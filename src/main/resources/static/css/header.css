@@ -1,0 +1,121 @@
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    padding-top: 104px;
+}
+
+.topHeader {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    padding-top: 15px;
+    background-color: #fff;
+    z-index: 9999;
+}
+
+.topBar {
+    height: 56px;
+    display: flex;
+    align-items: center;
+}
+
+.inner {
+    width: 100%;
+    max-width: 1250px;
+    margin: 0 auto;
+    padding: 0 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background-color: #fff;
+}
+
+.brandText {
+    text-decoration: none;
+    color: #111;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.search {
+    flex: 1;
+    margin: 0 16px;
+}
+
+.searchForm {
+    margin: 0;
+}
+
+.searchInput {
+    width: 100%;
+    max-width: 500px;
+    height: 36px;
+    padding: 0 12px;
+    border: 1px solid #d1d5db;
+    border-radius: 20px;
+    outline: none;
+}
+
+.searchInput:focus {
+    border-color: #1f2a44;
+}
+
+.menu {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.userText {
+    font-size: 14px;
+    color: #111827;
+}
+
+.btnLogin,
+.btnUser {
+    text-decoration: none;
+    color: #1f2a44;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.categoryBar {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f2f2f2;
+}
+
+.categoryBar .inner {
+    justify-content: flex-start;
+    padding-left: 24px;
+    padding-right: 24px;
+}
+
+.categoryMenu {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.categoryMenu li a {
+    text-decoration: none;
+    color: #111;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 10px 12px;
+    border-bottom: 3px solid transparent;
+    padding-bottom: 6px;
+}
+
+.categoryMenu li a:hover {
+    border-bottom: 3px solid #0E0F37;
+}
+
+.categoryMenu li a.active {
+    border-bottom: 3px solid #0E0F37;
+}

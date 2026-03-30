@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Stock</title>
+
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/stock.css}">
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/kfonts2.css}">
+
+    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
+</head>
+
+<body>
+
+    <div th:replace="~{fragments/header :: header('stock')}"></div>
+
+    <div class="stockContent">
+
+    </div>
+
+<script th:src="@{/js/bootstrap.min.js}"></script>
+</body>
+</html>

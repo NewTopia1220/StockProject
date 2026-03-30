@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>WriteForm</title>
+</head>
+<body>
+    <form>
+        <table border="1">
+            <tr>
+                <th>제목</th>
+                <th>작성자</th>
+                <th>카테고리</th>
+                <th>내용</th>
+                <th>첨부 파일</th>
+            </tr>
+            <tr>
+                <td>
+                    <input type="text" th:field="*{title}">
+                </td>
+                <td>
+                    <input type="text" th:field="*{user_num}">
+                </td>
+                <td>
+                    <input type="text" th:field="*{category}">
+                </td>
+                <td>
+                    <input type="text" th:field="*{content}">
+                </td>
+                <td>
+                    <input type="text" th:field="*{file}">
+                </td>
+            </tr>
+        </table>
+
+        <input type="submit" value="저장">
+    </form>
+</body>
+</html>

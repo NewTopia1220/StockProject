@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/mypage.css}">
+
+    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
+
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header('mypage')}"></div>
+
+    <div class="mypageContent">
+
+    </div>
+
+<script th:src="@{/js/bootstrap.min.js}"></script>
+</body>
+</html>

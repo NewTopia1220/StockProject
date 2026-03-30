@@ -1,0 +1,113 @@
+-- =========================
+-- 1. 기존 테이블 / 시퀀스 삭제
+-- =========================
+
+drop table users;
+drop sequence user_seq;
+
+-- =========================
+-- 2. 회원 테이블 생성
+-- =========================
+
+create table users(
+    num number primary key,
+    name varchar2(50) not null,
+    email varchar2(100) unique,
+    password varchar2(40) not null,
+    role varchar2(20) default 'user'
+);
+
+create sequence user_seq
+    start with 1
+    increment by 1
+    nocache;
+
+-- =========================
+-- 1. 기존 테이블 / 시퀀스 삭제
+-- =========================
+
+drop table community_comment;
+drop table community_board;
+
+drop sequence community_comment_seq;
+drop sequence community_board_seq;
+
+
+-- =========================
+-- 2. 게시글 테이블 생성
+-- =========================
+
+create table community_board(
+    board_id number primary key,
+    user_num number not null,
+    category varchar2(30) not null,
+    title varchar2(200) not null,
+    content clob not null,
+    view_count number default 0 not null,
+    like_count number default 0 not null,
+    created_at date default sysdate not null,
+    updated_at date default sysdate not null,
+    constraint fk_board_user foreign key (user_num)
+        references users(num)
+        on delete cascade
+);
+
+
+-- =========================
+-- 3. 댓글 테이블 생성
+-- =========================
+
+create table community_comment(
+    comment_id number primary key,
+    board_id number not null,
+    user_num number not null,
+    content varchar2(1000) not null,
+    created_at date default sysdate not null,
+    updated_at date default sysdate not null,
+    constraint fk_comment_board foreign key (board_id)
+        references community_board(board_id)
+        on delete cascade,
+    constraint fk_comment_user foreign key (user_num)
+        references users(num)
+        on delete cascade
+);
+
+
+-- =========================
+-- 4. 시퀀스 생성
+-- =========================
+
+create sequence community_board_seq
+    start with 1
+    increment by 1
+    nocache;
+
+create sequence community_comment_seq
+    start with 1
+    increment by 1
+    nocache;
+
+
+-- =========================
+-- 5. 조회용 출력 형식
+-- =========================
+
+col board_id for 999
+col user_num for 999
+col category for a15
+col title for a30
+col view_count for 9999
+col like_count for 9999
+
+col comment_id for 999
+col content for a40
+
+
+-- =========================
+-- 6. 확인
+-- =========================
+
+select * from community_board;
+select * from community_comment;
+
+commit;

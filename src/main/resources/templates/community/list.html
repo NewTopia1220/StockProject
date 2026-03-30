@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>community</title>
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/community/list.css}">
+
+    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
+
+</head>
+<body>
+    <div th:replace="~{fragments/header :: header('community')}"></div>
+
+    <div class="communityPage">
+        <section class="communityDes">
+            <div class="desText">
+                <p>투자 정보와 시장 이슈를 함께 나누는 주식 커뮤니티입니다</p>
+            </div>
+            <form class="communitySearch" th:action="@{/community}" method="get">
+                <input type="text" name="keyword" placeholder="검색어를 입력해주세요">
+                <button type="submit">검색</button>
+            </form>
+        </section>
+        <div class="communityMain">
+            <aside class="communitySidebar">
+                <h3>카테고리</h3>
+                <ul class="categoryList">
+                    <li>
+                        <a th:href="@{/community}"
+                           th:classappend="${param.category == null} ? 'active' : ''">전체</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='semiconductor')}"
+                           th:classappend="${param.category != null and param.category[0] == 'semiconductor'} ? 'active' : ''">반도체·AI</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='battery')}"
+                           th:classappend="${param.category != null and param.category[0] == 'battery'} ? 'active' : ''">2차전지</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='bio')}"
+                           th:classappend="${param.category != null and param.category[0] == 'bio'} ? 'active' : ''">제약·바이오</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='finance')}"
+                           th:classappend="${param.category != null and param.category[0] == 'finance'} ? 'active' : ''">금융·밸류업</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='defense')}"
+                           th:classappend="${param.category != null and param.category[0] == 'defense'} ? 'active' : ''">방산·우주항공</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='platform')}"
+                           th:classappend="${param.category != null and param.category[0] == 'platform'} ? 'active' : ''">IT·플랫폼</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='entertainment')}"
+                           th:classappend="${param.category != null and param.category[0] == 'entertainment'} ? 'active' : ''">엔터·미디어</a>
+                    </li>
+                    <li>
+                        <a th:href="@{/community(category='mobility')}"
+                           th:classappend="${param.category != null and param.category[0] == 'mobility'} ? 'active' : ''">자동차·모빌리티</a>
+                    </li>
+                </ul>
+            </aside>
+
+            <section class="communityContent">
+                <div class="contentTop">
+                    <div class="contentWrap">
+                        <h2></h2>
+
+                    </div>
+                    <a th:href="@{/community/write}" class="writeBtn">글쓰기</a>
+                </div>
+                <!-- 게시글 없을 때 -->
+                <div class="emptyBox" th:if="${lists == null or #lists.isEmpty(lists)}">
+                    <p>등록된 게시글이 없습니다.</p>
+                </div>
+
+                <!-- 게시글 목록 -->
+                <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
+                    <article class="boardItem" th:each="dto : ${lists}">
+                        <a class="boardLink" th:href="@{/community/detail(board_id=${dto.board_id})}">
+                            <div class="boardCategory" th:text="${dto.category}">카테고리</div>
+
+                            <h3 class="boardTitle" th:text="${dto.title}">게시글 제목</h3>
+
+                            <p class="boardPreview"
+                               th:text="${#strings.length(dto.content) > 120 ? #strings.substring(dto.content, 0, 120) + '...' : dto.content}">
+                                게시글 내용 미리보기
+                            </p>
+
+                            <div class="boardMeta">
+                                <span th:text="'작성자 번호 ' + ${dto.user_num}">작성자 번호 1</span>
+                                <span th:text="${#dates.format(dto.created_at, 'yyyy-MM-dd HH:mm')}">2026-03-28 20:00</span>
+                            </div>
+
+                            <div class="boardStats">
+                                <span th:text="'조회 ' + ${dto.view_count}">조회 0</span>
+                                <span th:text="'좋아요 ' + ${dto.like_count}">좋아요 0</span>
+                            </div>
+                        </a>
+                    </article>
+                </div>
+            </section>
+        </div>
+
+        </section>
+    </div>
+
+<script th:src="@{/js/bootstrap.min.js}"></script>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>로그인</title>
+
+    <link rel="stylesheet" th:href="@{/css/guestHeader.css}">
+    <link rel="stylesheet" th:href="@{/css/login.css}">
+    <script type="text/javascript" th:src="@{/js/login.js}"></script>
+</head>
+
+<body>
+
+    <div th:replace="fragments/guestHeader :: guestHeader('login')"></div>
+
+    <div class="page">
+        <div class="loginWrap">
+            <div class="loginCard">
+                <h1 class="cardTitle">로그인</h1>
+                <p class="cardDesc">이메일과 비밀번호를 입력해주세요.</p>
+
+                <div class="errorBox" th:if="${error != null}">
+                    이메일 또는 비밀번호를 다시 확인해주세요.
+                </div>
+
+                <form name="loginForm" id="loginForm" th:action="@{/login}" method="post" onsubmit="return checkLogin();">
+
+                    <div class="field">
+                        <label for="userEmail" class="fieldLabel">이메일</label>
+                        <input type="email" name="userEmail" id="userEmail" class="inputBox" placeholder="이메일 입력">
+                    </div>
+
+                    <div class="field">
+                        <label for="userPassword" class="fieldLabel">비밀번호</label>
+                        <input type="password" name="userPassword" id="userPassword" class="inputBox" placeholder="비밀번호 입력">
+                    </div>
+
+                    <button type="submit" class="loginBtn">로그인</button>
+                </form>
+
+                <div class="optionRow">
+                    <label class="saveId">
+                        <input type="checkbox" name="saveId">
+                        아이디 저장
+                    </label>
+
+                    <div class="findLinks">
+                        <a href="#">아이디 찾기</a>
+                        <span>|</span>
+                        <a href="#">비밀번호 찾기</a>
+                    </div>
+                </div>
+
+                <div class="bottomArea">
+                    아직 회원이 아니신가요?
+                    <a th:href="@{/register}">회원가입</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
