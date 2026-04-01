@@ -1,3 +1,65 @@
-.stockContent{
-    padding: 20px;
+:root {
+    --primary-navy: #0E0F37;
+    --bg-light: #f8f9fa;
+    --border-color: #e5e7eb;
+    --text-main: #111827;
+    --text-muted: #6b7280;
+    --up-red: #ef4444;
+    --down-blue: #3b82f6;
+    --live-green: #10b981;
 }
+
+* { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
+body { background-color: var(--bg-light); color: var(--text-main); }
+
+.stockMainPage { max-width: 1300px; margin: 0 auto; padding: 30px 20px 60px; display: flex; flex-direction: column; gap: 32px; }
+
+/* 지수 티커 */
+.marketTicker { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.tickerItem { background: #fff; border-radius: 16px; padding: 20px; border: 1px solid var(--border-color); }
+.valueGroup strong { font-size: 22px; font-weight: 800; color: var(--primary-navy); }
+
+/* 중앙 차트 & 분석 */
+.stockTop { display: flex; gap: 24px; }
+.chartBox { flex: 7; background: #fff; padding: 24px; border-radius: 24px; border: 1px solid var(--border-color); min-height: 450px; }
+.chartContainer { height: 350px; position: relative; width: 100%; }
+
+.analysisBox { flex: 3; }
+.combinedAnalysis { background: #fff; padding: 24px; border-radius: 24px; border: 1px solid var(--border-color); height: 100%; display: flex; flex-direction: column; gap: 24px; }
+.statusBadge { font-size: 11px; background: #ecfdf5; color: #059669; padding: 4px 10px; border-radius: 999px; font-weight: 700; }
+
+/* 게이지 애니메이션 */
+.gaugeBar { width: 100%; height: 10px; background: #f3f4f6; border-radius: 999px; overflow: hidden; position: relative; }
+.gaugeFill { height: 100%; border-radius: 999px; width: 0; transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1); }
+.gaugeFill.positive { background: linear-gradient(90deg, #f87171, var(--up-red)); }
+.gaugeFill.negative { background: linear-gradient(90deg, #60a5fa, var(--down-blue)); }
+
+/* 무한 흐르는 주가 티커 */
+.price-ticker-container { width: 100%; overflow: hidden; background: white; border: 1px solid var(--border-color); border-radius: 12px; padding: 15px 0; }
+.price-ticker-wrapper { display: flex; white-space: nowrap; animation: tickerScroll 40s linear infinite; }
+.ticker-content { display: flex; align-items: center; }
+.t-item { padding: 0 40px; font-size: 15px; border-right: 1px solid #f0f0f0; }
+.t-item span { color: var(--text-muted); margin-right: 8px; }
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* 섹터 보정 */
+.sectorWrap { margin-top: 10px; }
+.sector-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+.live-badge { font-size: 12px; color: var(--live-green); background: #ecfdf5; padding: 4px 10px; border-radius: 6px; font-weight: bold; }
+.sectorList { display: flex; gap: 10px; flex-wrap: wrap; }
+.sectorList button { border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 12px; background: white; cursor: pointer; font-size: 14px; font-weight: 600; color: #4b5563; }
+.sectorList button.active { background: var(--primary-navy); color: white; border-color: var(--primary-navy); box-shadow: 0 4px 12px rgba(14,15,55,0.15); }
+
+/* 종목 리스트 */
+.stockList { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
+.stockItem { background: #fff; border-radius: 18px; padding: 20px 24px; border: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; cursor: pointer; transition: 0.2s; }
+.stockItem:hover { transform: translateY(-3px); border-color: var(--primary-navy); }
+
+.up { color: var(--up-red); font-weight: 600; }
+.down { color: var(--down-blue); font-weight: 600; }
+
+@media (max-width: 992px) { .stockTop { flex-direction: column; } .stockList { grid-template-columns: 1fr; } }

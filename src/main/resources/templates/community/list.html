@@ -2,113 +2,256 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>community</title>
+    <title>Stoxle - Community</title>
+
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/community/list.css}">
-
     <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
-
+    <script th:src="@{/js/community/list.js}"></script>
 </head>
 <body>
-    <div th:replace="~{fragments/header :: header('community')}"></div>
+<div th:replace="~{fragments/header :: header('community')}"></div>
 
-    <div class="communityPage">
-        <section class="communityDes">
-            <div class="desText">
-                <p>투자 정보와 시장 이슈를 함께 나누는 주식 커뮤니티입니다</p>
+<div class="communityPage">
+
+    <!-- 상단 히어로 -->
+    <section class="communityHero">
+
+        <div class="heroTop">
+            <div class="heroText">
+                <h1>투자 정보와 시장 이슈를 함께 나누는 공간</h1>
+                <p>
+                    종목 토론부터 시장 이슈, 초보 질문까지 다양한 투자 이야기를 자유롭게 나눠보세요.
+                    실시간으로 흐름을 확인하고 의견을 공유할 수 있습니다.
+                </p>
             </div>
-            <form class="communitySearch" th:action="@{/community}" method="get">
-                <input type="text" name="keyword" placeholder="검색어를 입력해주세요">
-                <button type="submit">검색</button>
-            </form>
-        </section>
-        <div class="communityMain">
-            <aside class="communitySidebar">
-                <h3>카테고리</h3>
-                <ul class="categoryList">
-                    <li>
-                        <a th:href="@{/community}"
-                           th:classappend="${param.category == null} ? 'active' : ''">전체</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='semiconductor')}"
-                           th:classappend="${param.category != null and param.category[0] == 'semiconductor'} ? 'active' : ''">반도체·AI</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='battery')}"
-                           th:classappend="${param.category != null and param.category[0] == 'battery'} ? 'active' : ''">2차전지</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='bio')}"
-                           th:classappend="${param.category != null and param.category[0] == 'bio'} ? 'active' : ''">제약·바이오</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='finance')}"
-                           th:classappend="${param.category != null and param.category[0] == 'finance'} ? 'active' : ''">금융·밸류업</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='defense')}"
-                           th:classappend="${param.category != null and param.category[0] == 'defense'} ? 'active' : ''">방산·우주항공</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='platform')}"
-                           th:classappend="${param.category != null and param.category[0] == 'platform'} ? 'active' : ''">IT·플랫폼</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='entertainment')}"
-                           th:classappend="${param.category != null and param.category[0] == 'entertainment'} ? 'active' : ''">엔터·미디어</a>
-                    </li>
-                    <li>
-                        <a th:href="@{/community(category='mobility')}"
-                           th:classappend="${param.category != null and param.category[0] == 'mobility'} ? 'active' : ''">자동차·모빌리티</a>
-                    </li>
-                </ul>
-            </aside>
+        </div>
 
-            <section class="communityContent">
-                <div class="contentTop">
-                    <div class="contentWrap">
-                        <h2></h2>
+        <form class="communitySearch" th:action="@{/community}" method="get">
+            <input type="text" name="keyword" th:value="${param.keyword}" placeholder="종목명, 키워드, 시장 이슈를 검색해보세요">
+            <button type="submit">검색</button>
+        </form>
 
-                    </div>
-                    <a th:href="@{/community/write}" class="writeBtn">글쓰기</a>
-                </div>
-                <!-- 게시글 없을 때 -->
-                <div class="emptyBox" th:if="${lists == null or #lists.isEmpty(lists)}">
-                    <p>등록된 게시글이 없습니다.</p>
+        <div class="quickTags">
+            <a th:href="@{/community(category='semiconductor')}">#반도체·AI</a>
+            <a th:href="@{/community(category='battery')}">#2차전지</a>
+            <a th:href="@{/community(category='bio')}">#제약·바이오</a>
+            <a th:href="@{/community(category='topic')}">#종목토론</a>
+            <a th:href="@{/community(category='market')}">#시장이슈</a>
+            <a th:href="@{/community(category='beginner')}">#초보질문</a>
+        </div>
+    </section>
+
+    <!-- 메인 -->
+    <div class="communityMain">
+
+        <!-- 왼쪽 사이드바 -->
+        <aside class="communitySidebar">
+            <div class="sidebarCard">
+                <div class="sidebarHeader">
+                    <h3>카테고리</h3>
+                    <p>관심 있는 게시판을 빠르게 선택하세요.</p>
                 </div>
 
-                <!-- 게시글 목록 -->
-                <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
-                    <article class="boardItem" th:each="dto : ${lists}">
-                        <a class="boardLink" th:href="@{/community/detail(board_id=${dto.board_id})}">
-                            <div class="boardCategory" th:text="${dto.category}">카테고리</div>
+                <nav class="categoryNav">
 
-                            <h3 class="boardTitle" th:text="${dto.title}">게시글 제목</h3>
+                    <div class="categoryGroupTitle">전체</div>
+                    <a th:href="@{/community}"
+                       class="navItem"
+                       th:classappend="${param.category == null} ? ' active' : ''">
+                        <span class="navLabel">전체 게시판</span>
+                    </a>
 
-                            <p class="boardPreview"
-                               th:text="${#strings.length(dto.content) > 120 ? #strings.substring(dto.content, 0, 120) + '...' : dto.content}">
-                                게시글 내용 미리보기
-                            </p>
+                    <div class="categoryGroupTitle">테마별</div>
 
+                    <a th:href="@{/community(category='semiconductor')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'semiconductor'} ? ' active' : ''">
+                        <span class="navLabel">반도체·AI</span>
+                    </a>
+
+                    <a th:href="@{/community(category='battery')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'battery'} ? ' active' : ''">
+                        <span class="navLabel">2차전지</span>
+                    </a>
+
+                    <a th:href="@{/community(category='bio')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'bio'} ? ' active' : ''">
+                        <span class="navLabel">제약·바이오</span>
+                    </a>
+
+                    <a th:href="@{/community(category='finance')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'finance'} ? ' active' : ''">
+                        <span class="navLabel">금융·밸류업</span>
+                    </a>
+
+                    <a th:href="@{/community(category='defense')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'defense'} ? ' active' : ''">
+                        <span class="navLabel">방산·우주항공</span>
+                    </a>
+
+                    <a th:href="@{/community(category='platform')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'platform'} ? ' active' : ''">
+                        <span class="navLabel">IT·플랫폼</span>
+                    </a>
+
+                    <a th:href="@{/community(category='entertainment')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'entertainment'} ? ' active' : ''">
+                        <span class="navLabel">엔터·미디어</span>
+                    </a>
+
+                    <a th:href="@{/community(category='mobility')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'mobility'} ? ' active' : ''">
+                        <span class="navLabel">자동차·모빌리티</span>
+                    </a>
+
+                    <div class="categoryGroupTitle">커뮤니티</div>
+
+                    <a th:href="@{/community(category='free')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'free'} ? ' active' : ''">
+                        <span class="navLabel">자유게시판</span>
+                    </a>
+
+                    <a th:href="@{/community(category='beginner')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'beginner'} ? ' active' : ''">
+                        <span class="navLabel">초보질문</span>
+                    </a>
+
+                    <a th:href="@{/community(category='topic')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'topic'} ? ' active' : ''">
+                        <span class="navLabel">종목토론</span>
+                    </a>
+
+                    <a th:href="@{/community(category='market')}"
+                       class="navItem"
+                       th:classappend="${param.category != null and param.category[0] == 'market'} ? ' active' : ''">
+                        <span class="navLabel">시장이슈</span>
+                    </a>
+                </nav>
+
+                <div class="sidebarFooter">
+                    <a th:href="@{/community/write}" class="sidebarWriteBtn">글쓰기</a>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 중앙 콘텐츠 -->
+        <section class="communityContent">
+            <div class="contentTop">
+                <div class="contentWrap">
+                    <h2 th:text="${param.category == null ? '전체 게시글' :
+                                  param.category[0] == 'semiconductor' ? '반도체·AI' :
+                                  param.category[0] == 'battery' ? '2차전지' :
+                                  param.category[0] == 'bio' ? '제약·바이오' :
+                                  param.category[0] == 'finance' ? '금융·밸류업' :
+                                  param.category[0] == 'defense' ? '방산·우주항공' :
+                                  param.category[0] == 'platform' ? 'IT·플랫폼' :
+                                  param.category[0] == 'entertainment' ? '엔터·미디어' :
+                                  param.category[0] == 'mobility' ? '자동차·모빌리티' :
+                                  param.category[0] == 'free' ? '자유게시판' :
+                                  param.category[0] == 'beginner' ? '초보질문' :
+                                  param.category[0] == 'topic' ? '종목토론' :
+                                  param.category[0] == 'market' ? '시장이슈' : '전체 게시글'}">
+                        전체 게시글
+                    </h2>
+                    <p class="contentDesc">카테고리별로 투자 의견과 시장 이슈를 나눌 수 있습니다.</p>
+                </div>
+
+                <a th:href="@{/community/write}" class="writeBtn">글쓰기</a>
+            </div>
+
+            <!-- 게시글 있음 -->
+            <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
+                <article class="boardItem" th:each="dto : ${lists}">
+                    <a class="boardLink" th:href="@{/community/detail(board_id=${dto.board_id})}">
+                        <div class="boardTopRow">
+                            <span class="boardCategory" th:text="${dto.category}">카테고리</span>
+
+                            <div class="boardRightStat">
+                                <span class="trendValue neutral">커뮤니티</span>
+                            </div>
+                        </div>
+
+                        <h3 class="boardTitle" th:text="${dto.title}">게시글 제목</h3>
+
+                        <p class="boardPreview"
+                           th:text="${#strings.length(dto.content) > 120 ? #strings.substring(dto.content, 0, 120) + '...' : dto.content}">
+                            게시글 내용 미리보기
+                        </p>
+
+                        <div class="boardBottom">
                             <div class="boardMeta">
-                                <span th:text="'작성자 번호 ' + ${dto.user_num}">작성자 번호 1</span>
-                                <span th:text="${#dates.format(dto.created_at, 'yyyy-MM-dd HH:mm')}">2026-03-28 20:00</span>
+                                <span th:text="'작성자 번호 ' + ${dto.user_num}">작성자 번호</span>
+                                <span th:text="${#dates.format(dto.created_at, 'yyyy-MM-dd HH:mm')}">2026-03-30 12:00</span>
                             </div>
 
                             <div class="boardStats">
                                 <span th:text="'조회 ' + ${dto.view_count}">조회 0</span>
                                 <span th:text="'좋아요 ' + ${dto.like_count}">좋아요 0</span>
                             </div>
-                        </a>
-                    </article>
+                        </div>
+                    </a>
+                </article>
+            </div>
+
+            <!-- 게시글 없음 -->
+            <div class="emptySection" th:if="${lists == null or #lists.isEmpty(lists)}">
+                <div class="emptyMainCard">
+                    <div class="emptyIcon">📝</div>
+                    <h3>아직 등록된 게시글이 없습니다</h3>
+                    <p>첫 번째 글을 작성해서 커뮤니티를 시작해보세요.</p>
+
+                    <div class="emptyBtnArea">
+                        <a th:href="@{/community/write}" class="writeBtn">첫 글 작성하기</a>
+                        <a th:href="@{/community(category='beginner')}" class="ghostBtn">초보질문 보러가기</a>
+                    </div>
                 </div>
-            </section>
-        </div>
-
+            </div>
         </section>
-    </div>
 
-<script th:src="@{/js/bootstrap.min.js}"></script>
+        <!-- 오른쪽 보조 영역 -->
+        <aside class="communityRight">
+            <div class="sideCard">
+                <h4>인기 카테고리</h4>
+                <ul class="sideRankList">
+                    <li><span>1</span><a th:href="@{/community(category='semiconductor')}">반도체·AI</a></li>
+                    <li><span>2</span><a th:href="@{/community(category='battery')}">2차전지</a></li>
+                    <li><span>3</span><a th:href="@{/community(category='market')}">시장이슈</a></li>
+                    <li><span>4</span><a th:href="@{/community(category='topic')}">종목토론</a></li>
+                    <li><span>5</span><a th:href="@{/community(category='bio')}">제약·바이오</a></li>
+                </ul>
+            </div>
+
+            <div class="sideCard">
+                <h4>커뮤니티 가이드</h4>
+                <ul class="guideList">
+                    <li>투자 판단은 본인 책임입니다.</li>
+                    <li>근거 없는 비방/홍보 글은 지양해주세요.</li>
+                    <li>차분한 정보 공유 문화를 지향합니다.</li>
+                </ul>
+            </div>
+
+            <div class="sideCard">
+                <h4>빠른 이동</h4>
+                <div class="sideLinks">
+                    <a th:href="@{/community/write}">글 작성하기</a>
+                    <a th:href="@{/community(category='beginner')}">초보질문</a>
+                    <a th:href="@{/community(category='market')}">시장이슈</a>
+                    <a th:href="@{/community(category='topic')}">종목토론</a>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
 </body>
 </html>

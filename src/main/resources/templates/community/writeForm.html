@@ -1,39 +1,69 @@
 <!DOCTYPE html>
-<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>WriteForm</title>
+    <title>게시글 작성</title>
+
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/community/writeForm.css}">
+    <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
+    <link rel="stylesheet" th:href="@{/css/kfonts2.css}">
+
+    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
 </head>
 <body>
-    <form>
-        <table border="1">
-            <tr>
-                <th>제목</th>
-                <th>작성자</th>
-                <th>카테고리</th>
-                <th>내용</th>
-                <th>첨부 파일</th>
-            </tr>
-            <tr>
-                <td>
-                    <input type="text" th:field="*{title}">
-                </td>
-                <td>
-                    <input type="text" th:field="*{user_num}">
-                </td>
-                <td>
-                    <input type="text" th:field="*{category}">
-                </td>
-                <td>
-                    <input type="text" th:field="*{content}">
-                </td>
-                <td>
-                    <input type="text" th:field="*{file}">
-                </td>
-            </tr>
-        </table>
+<div th:replace="~{fragments/header :: header('community')}"></div>
 
-        <input type="submit" value="저장">
-    </form>
+<div class="writePage">
+    <div class="writeCard">
+        <div class="writeTop">
+            <h2>게시글 작성</h2>
+            <p>카테고리를 선택하고 주식 관련 이야기를 자유롭게 작성해보세요.</p>
+        </div>
+
+        <form th:action="@{/community/insert}" method="post" th:object="${dto}">
+            <div class="field">
+                <label for="category">카테고리</label>
+                <select id="category" th:field="*{category}" class="inputBox">
+                    <option value="">카테고리를 선택해주세요</option>
+                    <option value="반도체·AI">반도체·AI</option>
+                    <option value="2차전지">2차전지</option>
+                    <option value="제약·바이오">제약·바이오</option>
+                    <option value="금융·밸류업">금융·밸류업</option>
+                    <option value="방산·우주항공">방산·우주항공</option>
+                    <option value="IT·플랫폼">IT·플랫폼</option>
+                    <option value="엔터·미디어">엔터·미디어</option>
+                    <option value="자동차·모빌리티">자동차·모빌리티</option>
+                    <option value="자유게시판">자유게시판</option>
+                    <option value="초보질문">초보질문</option>
+                    <option value="종목토론">종목토론</option>
+                    <option value="시장이슈">시장이슈</option>
+                </select>
+            </div>
+
+            <div class="field">
+                <label for="title">제목</label>
+                <input type="text" id="title" th:field="*{title}" class="inputBox" placeholder="제목을 입력해주세요">
+            </div>
+
+            <div class="field">
+                <label for="user_num">작성자 번호</label>
+                <input type="text" id="user_num" th:field="*{user_num}" class="inputBox" placeholder="작성자 번호를 입력해주세요">
+            </div>
+
+            <div class="field">
+                <label for="content">내용</label>
+                <textarea id="content" th:field="*{content}" class="textAreaBox" placeholder="내용을 입력해주세요"></textarea>
+            </div>
+
+            <div class="btnArea">
+                <a th:href="@{/community}" class="cancelBtn">목록</a>
+                <button type="submit" class="saveBtn">저장</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script th:src="@{/js/bootstrap.min.js}"></script>
 </body>
 </html>
