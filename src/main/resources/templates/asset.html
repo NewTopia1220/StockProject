@@ -2,20 +2,157 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <title>자산 분석</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset.css}">
-
-    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
-
 </head>
 <body>
-    <div th:replace="~{fragments/header :: header('asset')}"></div>
 
-    <div class="assetContent">
+<div th:replace="~{fragments/header :: header('asset')}"></div>
 
-    </div>
+<div class="assetPage">
 
-<script th:src="@{/js/bootstrap.min.js}"></script>
+    <section class="assetCard">
+        <h2>마이 자산 분석</h2>
+        <p class="assetDesc">현재 자산과 목표 정보를 입력하면 목표 달성 가능성을 분석해드려요.</p>
+
+        <div th:if="${errorMessage}" class="errorBox" th:text="${errorMessage}"></div>
+
+        <form th:action="@{/asset/analyze}" th:object="${assetDto}" method="post" class="assetForm">
+            <div class="formGrid">
+
+                <div class="formItem">
+                    <label for="currentAsset">현재 자산(원)</label>
+                    <input type="number" id="currentAsset" th:field="*{currentAsset}" min="0" required>
+                </div>
+
+                <div class="formItem">
+                    <label for="monthlyIncome">월 소득(원)</label>
+                    <input type="number" id="monthlyIncome" th:field="*{monthlyIncome}" min="0" required>
+                </div>
+
+                <div class="formItem">
+                    <label for="monthlyExpense">월 지출(원)</label>
+                    <input type="number" id="monthlyExpense" th:field="*{monthlyExpense}" min="0" required>
+                </div>
+
+                <div class="formItem">
+                    <label for="goalAmount">목표 금액(원)</label>
+                    <input type="number" id="goalAmount" th:field="*{goalAmount}" min="0" required>
+                </div>
+
+                <div class="formItem">
+                    <label for="goalMonths">목표 기간(개월)</label>
+                    <input type="number" id="goalMonths" th:field="*{goalMonths}" min="1" required>
+                </div>
+
+                <div class="formItem">
+                    <label for="age">나이</label>
+                    <input type="number" id="age" th:field="*{age}" min="1" required>
+                </div>
+
+                <div class="formItem">
+                    <label for="jobType">직업 유형</label>
+                    <select id="jobType" th:field="*{jobType}">
+                        <option value="student">student</option>
+                        <option value="office_worker">office_worker</option>
+                        <option value="self_employed">self_employed</option>
+                        <option value="freelancer">freelancer</option>
+                        <option value="etc">etc</option>
+                    </select>
+                </div>
+
+                <div class="formItem">
+                    <label for="riskPreference">투자 성향</label>
+                    <select id="riskPreference" th:field="*{riskPreference}">
+                        <option value="low">low</option>
+                        <option value="medium">medium</option>
+                        <option value="high">high</option>
+                    </select>
+                </div>
+
+            </div>
+
+            <div class="formButtonWrap">
+                <button type="submit" class="analyzeBtn">자산 분석하기</button>
+            </div>
+        </form>
+    </section>
+
+    <section class="resultCard" th:if="${assetDto.predictionLabel != null}">
+        <h2>분석 결과</h2>
+
+        <div class="resultGrid">
+            <div class="resultItem">
+                <h3>예측 결과</h3>
+                <p>달성 여부 <strong th:text="${assetDto.predictionLabel}">달성 가능</strong></p>
+                <p>모델 확률 <strong th:text="${#numbers.formatDecimal(assetDto.modelProbability * 100, 1, 2)} + '%'">82.00%</strong></p>
+                <p>예상 최종 자산 <strong th:text="${#numbers.formatInteger(assetDto.estimatedFinalAsset, 3, 'COMMA')} + '원'">0원</strong></p>
+            </div>
+
+            <div class="resultItem">
+                <h3>분석 톤</h3>
+                <p>분석 톤 <strong th:text="${assetDto.toneTitle}">안정형</strong></p>
+                <p>월 저축 가능 금액 <strong th:text="${#numbers.formatInteger(assetDto.monthlySaving, 3, 'COMMA')} + '원'">0원</strong></p>
+
+                <p th:if="${assetDto.goalGap > 0}">
+                    목표까지 부족
+                    <strong th:text="${#numbers.formatInteger(assetDto.goalGap, 3, 'COMMA')} + '원'">0원</strong>
+                </p>
+
+                <p th:if="${assetDto.goalGap < 0}">
+                    목표보다 초과
+                    <strong th:text="${#numbers.formatInteger(assetDto.goalGap * -1, 3, 'COMMA')} + '원'">0원</strong>
+                </p>
+
+                <p th:if="${assetDto.goalGap == 0}">
+                    목표와 동일
+                    <strong>0원</strong>
+                </p>
+            </div>
+
+            <div class="resultItem">
+                <h3>필요 저축액</h3>
+                <p>월 필요 저축액 <strong th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 3, 'COMMA')} + '원'">0원</strong></p>
+            </div>
+        </div>
+
+        <p class="resultMessage" th:text="${assetDto.message}">
+            현재 조건 기준으로 목표 금액까지 부족할 수 있습니다.
+        </p>
+    </section>
+
+    <section class="historyCard">
+        <h2>최근 자산 분석 이력</h2>
+
+        <table class="historyTable">
+            <thead>
+            <tr>
+                <th>번호</th>
+                <th>현재 자산</th>
+                <th>목표 금액</th>
+                <th>목표 기간</th>
+                <th>결과</th>
+                <th>생성일</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:if="${historyList == null or #lists.isEmpty(historyList)}">
+                <td colspan="6">아직 저장된 분석 이력이 없습니다.</td>
+            </tr>
+            <tr th:each="item : ${historyList}">
+                <td th:text="${item.analysisId}">1</td>
+                <td th:text="${#numbers.formatInteger(item.currentAsset, 3, 'COMMA')} + '원'">0원</td>
+                <td th:text="${#numbers.formatInteger(item.goalAmount, 3, 'COMMA')} + '원'">0원</td>
+                <td th:text="${item.goalMonths} + '개월'">12개월</td>
+                <td th:text="${item.predictionLabel}">달성 가능</td>
+                <td th:text="${item.createdAt}">2026-04-01</td>
+            </tr>
+            </tbody>
+        </table>
+    </section>
+
+</div>
+
 </body>
 </html>
