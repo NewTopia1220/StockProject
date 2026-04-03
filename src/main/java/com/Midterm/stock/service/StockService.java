@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
 import com.fasterxml.jackson.databind.JsonNode;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -65,10 +66,10 @@ public class StockService {
 
         JsonNode output = response.get("output");
 
-        System.out.println("=== API 응답 전체 ===");
-        System.out.println(response.toPrettyString());
-        System.out.println("=== output ===");
-        System.out.println(output.toPrettyString());
+//        System.out.println("=== API 응답 전체 ===");
+//        System.out.println(response.toPrettyString());
+//        System.out.println("=== output ===");
+//        System.out.println(output.toPrettyString());
 
         StockResponseDto dto = new StockResponseDto();
         // 기존 - 이 필드가 응답에 없어서 null 터짐
@@ -153,8 +154,8 @@ public class StockService {
                 .bodyToMono(JsonNode.class)
                 .block();
 
-        System.out.println("=== 코스피 응답 ===");
-        System.out.println(response.toPrettyString());
+//        System.out.println("=== 코스피 응답 ===");
+//        System.out.println(response.toPrettyString());
 
         JsonNode output = response.get("output");
 
@@ -168,5 +169,54 @@ public class StockService {
 //        System.out.println(response.toPrettyString());
 
          return dto;
+    }
+
+    // 코스피 차트
+    public StockChartDto getKospiChart() {
+        if (accessToken == null) issueToken();
+
+        WebClient client = WebClient.create(baseUrl);
+
+        String toDate = java.time.LocalDate.now()
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+        String fromDate = java.time.LocalDate.now().minusDays(30)
+                .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd"));
+
+        JsonNode response = client.get()
+                .uri(uriBuilder -> uriBuilder
+                        .path("/uapi/domestic-stock/v1/quotations/inquire-index-daily-price")
+                        .queryParam("FID_COND_MRKT_DIV_CODE", "U")
+                        .queryParam("FID_INPUT_ISCD", "0001")
+                        .queryParam("FID_PERIOD_DIV_CODE", "D")
+                        .queryParam("FID_INPUT_DATE_1", fromDate)
+                        .queryParam("FID_INPUT_DATE_2", toDate)
+                        .build())
+                .header("authorization", "Bearer " + accessToken)
+                .header("appkey", appKey)
+                .header("appsecret", appSecret)
+                .header("tr_id", "FHPUP02120000")
+                .retrieve()
+                .bodyToMono(JsonNode.class)
+                .block();
+
+        List<String> labels = new ArrayList<>();
+        List<String> closePrices = new ArrayList<>();
+        List<String> volumes = new ArrayList<>();
+
+        for (JsonNode item : response.get("output2")) {
+            labels.add(item.get("stck_bsop_date").asText());
+            closePrices.add(item.get("bstp_nmix_prpr").asText());  // 코스피 지수
+            volumes.add(item.get("acml_vol").asText());
+        }
+
+        Collections.reverse(labels);
+        Collections.reverse(closePrices);
+        Collections.reverse(volumes);
+
+        StockChartDto dto = new StockChartDto();
+        dto.setLabels(labels);
+        dto.setClosePrices(closePrices);
+        dto.setVolumes(volumes);
+        return dto;
     }
 }

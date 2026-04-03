@@ -26,6 +26,7 @@ public class StockController {
         StockResponseDto stockInfo = stockService.getCurrentPrice(code);
         StockChartDto chartData = stockService.getDailyPrice(code);
         StockResponseDto kospiInfo = stockService.getKospiIndex(); // 코스피
+        model.addAttribute("kospiChartData", stockService.getKospiChart()); // 코스피 차트
 
 
         model.addAttribute("stockInfo", stockInfo);
@@ -54,4 +55,11 @@ public class StockController {
     public StockResponseDto getKospiApi() {
         return stockService.getKospiIndex();
     }
+
+    @GetMapping("/api/kospi/chart")
+    @ResponseBody
+    public StockChartDto getKospiChartApi() {
+        return stockService.getKospiChart();
+    }
+
 }
