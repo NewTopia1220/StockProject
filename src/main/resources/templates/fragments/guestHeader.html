@@ -2,27 +2,31 @@
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<header class="topHeader" th:fragment="guestHeader(currentPage)">
-    <div class="inner">
-        <div class="brand">
-            <a class="brandText" th:href="@{/stock}">Stoxle</a>
-        </div>
+<header class="topHeader guestOnlyHeader" th:fragment="guestHeader(currentPage)">
+    <div class="topBar">
+        <div class="inner">
+            <div class="brand">
+                <a class="brandText" th:href="@{/stock}">Stoxle</a>
+            </div>
 
-        <div class="menu">
-            <th:block th:if="${currentPage == 'login'}">
-                <span class="currentPage">로그인</span>
-                <a th:href="@{/register}" class="clicked">회원가입</a>
-            </th:block>
+            <div class="search searchPlaceholder"></div>
 
-            <th:block th:if="${currentPage == 'register'}">
-                <span class="currentPage">회원가입</span>
-                <a th:href="@{/login}" class="unclicked">로그인</a>
-            </th:block>
+            <div class="menu">
+                <th:block th:if="${currentPage == 'login'}">
+                    <span class="currentPageText">로그인</span>
+                    <a th:href="@{/register}" class="menuBtn menuBtnFill">회원가입</a>
+                </th:block>
 
-            <th:block th:if="${currentPage != 'login' and currentPage != 'register'}">
-                <a th:href="@{/login}" class="unclicked">로그인</a>
-                <a th:href="@{/register}" class="clicked">회원가입</a>
-            </th:block>
+                <th:block th:if="${currentPage == 'register'}">
+                    <span class="currentPageText">회원가입</span>
+                    <a th:href="@{/login}" class="menuBtn menuBtnOutline">로그인</a>
+                </th:block>
+
+                <th:block th:if="${currentPage != 'login' and currentPage != 'register'}">
+                    <a th:href="@{/login}" class="menuBtn menuBtnOutline">로그인</a>
+                    <a th:href="@{/register}" class="menuBtn menuBtnFill">회원가입</a>
+                </th:block>
+            </div>
         </div>
     </div>
 </header>

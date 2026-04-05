@@ -7,151 +7,154 @@
     <link rel="stylesheet" th:href="@{/css/stock.css}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
+<body class="withMainHeader">
 
 <div th:replace="~{fragments/header :: header('stock')}"></div>
 
-<div class="stockMainPage">
+<div class="pageContainer">
+    <div class="stockMainPage">
 
-    <div class="marketTicker">
-        <div class="tickerItem">
-            <span class="label">KOSPI</span>
-            <div class="valueGroup">
-                <strong>2,618.40</strong>
-                <span class="up">▲ 0.47%</span>
+        <div class="marketTicker">
+            <div class="tickerItem">
+                <span class="label">KOSPI</span>
+                <div class="valueGroup">
+                    <strong>2,618.40</strong>
+                    <span class="up">▲ 0.47%</span>
+                </div>
             </div>
-        </div>
-        <div class="tickerItem">
-            <span class="label">KOSDAQ</span>
-            <div class="valueGroup">
-                <strong>732.18</strong>
-                <span class="down">▼ 0.61%</span>
+            <div class="tickerItem">
+                <span class="label">KOSDAQ</span>
+                <div class="valueGroup">
+                    <strong>732.18</strong>
+                    <span class="down">▼ 0.61%</span>
+                </div>
             </div>
-        </div>
-        <div class="tickerItem">
-            <span class="label">USD/KRW</span>
-            <div class="valueGroup">
-                <strong>1,328.5</strong>
-                <span class="down">▼ 0.18%</span>
-            </div>
-        </div>
-    </div>
-
-    <div class="stockTop">
-        <div class="chartBox">
-            <div class="boxHeader">
-                <h2>시장 트렌드 차트</h2>
-            </div>
-            <div class="chartContainer">
-                <canvas id="mainChart"></canvas>
+            <div class="tickerItem">
+                <span class="label">USD/KRW</span>
+                <div class="valueGroup">
+                    <strong>1,328.5</strong>
+                    <span class="down">▼ 0.18%</span>
+                </div>
             </div>
         </div>
 
-        <div class="analysisBox">
-            <div class="combinedAnalysis">
+        <div class="stockTop">
+            <div class="chartBox">
                 <div class="boxHeader">
-                    <h3>AI 종합 분석</h3>
-                    <span class="statusBadge" id="aiStatus">안정</span>
+                    <h2>시장 트렌드 차트</h2>
                 </div>
-
-                <div class="gaugeWrapper">
-                    <div class="gaugeLabel">
-                        <span>AI 신뢰도</span>
-                        <strong id="confVal">0%</strong>
-                    </div>
-                    <div class="gaugeBar">
-                        <div class="gaugeFill positive" id="confBar" style="width: 0%;"></div>
-                    </div>
+                <div class="chartContainer">
+                    <canvas id="mainChart"></canvas>
                 </div>
+            </div>
 
-                <div class="gaugeWrapper">
-                    <div class="gaugeLabel">
-                        <span>정보 노이즈(낚시)</span>
-                        <strong id="noiseVal">0%</strong>
+            <div class="analysisBox">
+                <div class="combinedAnalysis">
+                    <div class="boxHeader">
+                        <h3>AI 종합 분석</h3>
+                        <span class="statusBadge" id="aiStatus">안정</span>
                     </div>
-                    <div class="gaugeBar">
-                        <div class="gaugeFill negative" id="noiseBar" style="width: 0%;"></div>
+
+                    <div class="gaugeWrapper">
+                        <div class="gaugeLabel">
+                            <span>AI 신뢰도</span>
+                            <strong id="confVal">0%</strong>
+                        </div>
+                        <div class="gaugeBar">
+                            <div class="gaugeFill positive" id="confBar" style="width: 0%;"></div>
+                        </div>
                     </div>
+
+                    <div class="gaugeWrapper">
+                        <div class="gaugeLabel">
+                            <span>정보 노이즈(낚시)</span>
+                            <strong id="noiseVal">0%</strong>
+                        </div>
+                        <div class="gaugeBar">
+                            <div class="gaugeFill negative" id="noiseBar" style="width: 0%;"></div>
+                        </div>
+                    </div>
+
+                    <div class="gaugeWrapper">
+                        <div class="gaugeLabel">
+                            <span>시장 감성 (Sentiment)</span>
+                            <strong id="sentLabel">중립</strong>
+                        </div>
+                        <div class="gaugeBar sentiment">
+                            <div class="gaugeFill positive" id="sentBar" style="width: 50%;"></div>
+                        </div>
+                        <div class="gaugeRange">
+                            <span>부정</span>
+                            <span>중립</span>
+                            <span>긍정</span>
+                        </div>
+                    </div>
+
+                    <p class="analysisDesc" id="aiDesc">데이터를 분석하고 있습니다...</p>
                 </div>
-
-                <div class="gaugeWrapper">
-                    <div class="gaugeLabel">
-                        <span>시장 감성 (Sentiment)</span>
-                        <strong id="sentLabel">중립</strong>
-                    </div>
-                    <div class="gaugeBar sentiment">
-                        <div class="gaugeFill positive" id="sentBar" style="width: 50%;"></div>
-                    </div>
-                    <div class="gaugeRange">
-                        <span>부정</span>
-                        <span>중립</span>
-                        <span>긍정</span>
-                    </div>
-                </div>
-
-                <p class="analysisDesc" id="aiDesc">데이터를 분석하고 있습니다...</p>
-            </div>
-        </div>
-    </div>
-
-    <div class="price-ticker-container">
-        <div class="price-ticker-wrapper">
-            <div class="ticker-content">
-                <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
-                <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
-                <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
-                <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
-                <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
-                <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
-            </div>
-            <div class="ticker-content">
-                <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
-                <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
-                <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
-                <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
-                <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
-                <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
-            </div>
-        </div>
-    </div>
-
-    <div class="bottomSection">
-        <div class="sectorWrap">
-            <div class="sector-header">
-                <h2>섹터별 분석 핫이슈</h2>
-                <span class="live-badge">LIVE 업데이트 중</span>
-            </div>
-            <div class="sectorList">
-                <button class="active" data-sector="all">전체</button>
-                <button data-sector="it">반도체·AI</button>
-                <button data-sector="battery">2차전지</button>
-                <button data-sector="bio">바이오</button>
-                <button data-sector="finance">금융</button>
             </div>
         </div>
 
-        <div class="stockList" id="stockListContainer">
-            <div class="stockItem">
-                <div class="name">
-                    <h3>삼성전자</h3>
-                    <p>005930</p>
+        <div class="price-ticker-container">
+            <div class="price-ticker-wrapper">
+                <div class="ticker-content">
+                    <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
+                    <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
+                    <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
+                    <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
+                    <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
+                    <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
                 </div>
-                <div class="priceInfo">
-                    <strong>75,200원</strong>
-                    <span class="up">▲ 1.08%</span>
-                </div>
-            </div>
-            <div class="stockItem">
-                <div class="name">
-                    <h3>SK하이닉스</h3>
-                    <p>000660</p>
-                </div>
-                <div class="priceInfo">
-                    <strong>218,000원</strong>
-                    <span class="up">▲ 2.35%</span>
+                <div class="ticker-content">
+                    <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
+                    <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
+                    <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
+                    <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
+                    <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
+                    <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
                 </div>
             </div>
         </div>
+
+        <div class="bottomSection">
+            <div class="sectorWrap">
+                <div class="sector-header">
+                    <h2>섹터별 분석 핫이슈</h2>
+                    <span class="live-badge">LIVE 업데이트 중</span>
+                </div>
+                <div class="sectorList">
+                    <button class="active" data-sector="all">전체</button>
+                    <button data-sector="it">반도체·AI</button>
+                    <button data-sector="battery">2차전지</button>
+                    <button data-sector="bio">바이오</button>
+                    <button data-sector="finance">금융</button>
+                </div>
+            </div>
+
+            <div class="stockList" id="stockListContainer">
+                <div class="stockItem">
+                    <div class="name">
+                        <h3>삼성전자</h3>
+                        <p>005930</p>
+                    </div>
+                    <div class="priceInfo">
+                        <strong>75,200원</strong>
+                        <span class="up">▲ 1.08%</span>
+                    </div>
+                </div>
+                <div class="stockItem">
+                    <div class="name">
+                        <h3>SK하이닉스</h3>
+                        <p>000660</p>
+                    </div>
+                    <div class="priceInfo">
+                        <strong>218,000원</strong>
+                        <span class="up">▲ 2.35%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 

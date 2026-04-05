@@ -1,111 +1,121 @@
-document.addEventListener('DOMContentLoaded', function () {
-    initCommunityPage();
-});
+window.addEventListener("load", function () {
+    const communityMain = document.querySelector(".communityMain");
+    const communityRight = document.getElementById("communityRight") || document.querySelector(".communityRight");
 
-function initCommunityPage() {
-    bindSearchForm();
-    bindCategoryEffects();
-    bindQuickLinks();
-    setActiveCategoryFromUrl();
-}
+    const panelConfigs = [
+        { toggleId: "togglePopular", panelId: "popularPanel", key: "popular" },
+        { toggleId: "toggleGuide", panelId: "guidePanel", key: "guide" },
+        { toggleId: "toggleAnalysis", panelId: "analysisPanel", key: "analysis" },
+        { toggleId: "togglePrice", panelId: "pricePanel", key: "price" }
+    ];
 
-function bindSearchForm() {
-    const searchForm = document.querySelector('.communitySearch');
-    if (!searchForm) return;
+    const STORAGE_KEY = "communityRightPanelSettingsV2";
 
-    const searchInput = searchForm.querySelector('input[name="keyword"]');
-    const searchButton = searchForm.querySelector('button[type="submit"]');
+    if (!communityMain || !communityRight) {
+        return;
+    }
 
-    if (!searchInput || !searchButton) return;
+    function getCheckbox(toggleId) {
+        return document.getElementById(toggleId);
+    }
 
-    searchInput.addEventListener('input', function () {
-        const trimmedValue = this.value.trim();
+    function getPanel(panelId) {
+        return document.getElementById(panelId);
+    }
 
-        if (trimmedValue.length > 0) {
-            searchButton.classList.add('is-ready');
+    function setPanelVisible(panel, visible) {
+        if (!panel) return;
+        panel.style.display = visible ? "" : "none";
+    }
+
+    function updateRightLayout() {
+        let visibleCount = 0;
+
+        panelConfigs.forEach(function (config) {
+            const panel = getPanel(config.panelId);
+            if (panel && panel.style.display !== "none") {
+                visibleCount++;
+            }
+        });
+
+        if (visibleCount === 0) {
+            communityRight.style.display = "none";
+            communityMain.classList.add("right-empty");
         } else {
-            searchButton.classList.remove('is-ready');
+            communityRight.style.display = "";
+            communityMain.classList.remove("right-empty");
         }
-    });
+    }
 
-    searchForm.addEventListener('submit', function (e) {
-        const keyword = searchInput.value.trim();
+    function saveSettings() {
+        const settings = {};
 
-        if (keyword === '') {
-            e.preventDefault();
-            alert('검색어를 입력해주세요.');
-            searchInput.focus();
-            return false;
-        }
+        panelConfigs.forEach(function (config) {
+            const checkbox = getCheckbox(config.toggleId);
+            settings[config.key] = checkbox ? checkbox.checked : true;
+        });
 
-        searchInput.value = keyword;
-    });
-}
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    }
 
-function bindCategoryEffects() {
-    const categoryLinks = document.querySelectorAll('.categoryNav .navItem');
-    if (!categoryLinks.length) return;
+    function loadSettings() {
+        const saved = localStorage.getItem(STORAGE_KEY);
+        if (!saved) return;
 
-    categoryLinks.forEach(function (link) {
-        link.addEventListener('click', function () {
-            categoryLinks.forEach(function (item) {
-                item.classList.remove('active-click');
+        try {
+            const settings = JSON.parse(saved);
+
+            panelConfigs.forEach(function (config) {
+                const checkbox = getCheckbox(config.toggleId);
+                if (checkbox && typeof settings[config.key] === "boolean") {
+                    checkbox.checked = settings[config.key];
+                }
             });
-
-            this.classList.add('active-click');
-            document.body.classList.add('is-page-loading');
-        });
-    });
-
-    const quickTagLinks = document.querySelectorAll('.quickTags a');
-    quickTagLinks.forEach(function (link) {
-        link.addEventListener('click', function () {
-            document.body.classList.add('is-page-loading');
-        });
-    });
-
-    const writeButtons = document.querySelectorAll('.writeBtn, .sidebarWriteBtn');
-    writeButtons.forEach(function (button) {
-        button.addEventListener('click', function () {
-            document.body.classList.add('is-page-loading');
-        });
-    });
-}
-
-function bindQuickLinks() {
-    const sideLinks = document.querySelectorAll('.sideLinks a');
-    if (!sideLinks.length) return;
-
-    sideLinks.forEach(function (link) {
-        link.addEventListener('mouseenter', function () {
-            this.classList.add('is-hovered');
-        });
-
-        link.addEventListener('mouseleave', function () {
-            this.classList.remove('is-hovered');
-        });
-    });
-}
-
-function setActiveCategoryFromUrl() {
-    const currentUrl = new URL(window.location.href);
-    const currentCategory = currentUrl.searchParams.get('category');
-
-    const categoryLinks = document.querySelectorAll('.categoryNav .navItem');
-    if (!categoryLinks.length) return;
-
-    categoryLinks.forEach(function (link) {
-        const linkUrl = new URL(link.href, window.location.origin);
-        const linkCategory = linkUrl.searchParams.get('category');
-
-        link.classList.remove('active');
-
-        if (!currentCategory && !linkCategory) {
-            link.classList.add('active');
+        } catch (e) {
+            localStorage.removeItem(STORAGE_KEY);
         }
+    }
 
-        if (currentCategory && linkCategory === currentCategory) {
-            link.classList.add('active');
-        }
-    });
-}
+    function applySettings() {
+        panelConfigs.forEach(function (config) {
+            const checkbox = getCheckbox(config.toggleId);
+            const panel = getPanel(config.panelId);
+
+            if (!checkbox || !panel) return;
+
+            setPanelVisible(panel, checkbox.checked);
+        });
+
+        updateRightLayout();
+    }
+
+    function bindToggles() {
+        panelConfigs.forEach(function (config) {
+            const checkbox = getCheckbox(config.toggleId);
+            if (!checkbox) return;
+
+            checkbox.addEventListener("change", function () {
+                saveSettings();
+                applySettings();
+            });
+        });
+    }
+
+    function bindAccordion() {
+        const accordionButtons = document.querySelectorAll(".accordionButton");
+
+        accordionButtons.forEach(function (button) {
+            button.addEventListener("click", function () {
+                const item = button.closest(".accordionItem");
+                if (!item) return;
+
+                item.classList.toggle("open");
+            });
+        });
+    }
+
+    loadSettings();
+    applySettings();
+    bindToggles();
+    bindAccordion();
+});

@@ -41,9 +41,7 @@ body{
     align-items:stretch;
 }
 
-/* =========================
-   LEFT PANEL
-========================= */
+/* left panel */
 .introPanel{
     background: linear-gradient(-45deg, #1f2a44, #2c1f44, #233657, #1f2a44);
     background-size: 400% 400%;
@@ -143,7 +141,7 @@ body{
 
 .introStatValue{
     margin:0;
-    font-size:20px;
+    font-size:18px;
     font-weight:800;
     color:#ffffff;
 }
@@ -195,9 +193,7 @@ body{
     color:rgba(255,255,255,0.85);
 }
 
-/* =========================
-   RIGHT CARD
-========================= */
+/* right panel */
 .registerCard{
     background:rgba(255,255,255,0.92);
     border:1px solid rgba(229,231,235,0.9);
@@ -328,9 +324,7 @@ body{
     text-decoration:underline;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* 반응형 */
 @media (max-width: 1024px){
     .registerLayout{
         grid-template-columns:1fr;

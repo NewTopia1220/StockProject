@@ -22,6 +22,18 @@ public class PageController {
         return "register";
     }
 
+    // 이메일 찾기 화면
+    @GetMapping("/findEmail")
+    public String findEmailPage() {
+        return "findEmail";
+    }
+
+    // 비밀번호 찾기 화면
+    @GetMapping("findPassword")
+    public String findPasswordPage() {
+        return "findPassword";
+    }
+
     // 메인 화면
     @GetMapping("/stock")
     public String stockPage(HttpSession session) {
