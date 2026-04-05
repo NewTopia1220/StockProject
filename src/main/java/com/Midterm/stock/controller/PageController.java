@@ -23,7 +23,6 @@ public class PageController {
     // 메인 화면
     @GetMapping("/stock")
     public String stockPage(HttpSession session) {
-        System.out.println("session = " + session);
         String loginUser = (String) session.getAttribute("loginUser");
 
         if (loginUser == null) {
@@ -46,7 +45,7 @@ public class PageController {
     }
 
     // 마이페이지
-    @GetMapping("/mypage")
+    @GetMapping("/mypage/yoona")
     public String mypage(HttpSession session){
         String loginUser = (String) session.getAttribute("loginUser");
 

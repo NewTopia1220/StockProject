@@ -6,18 +6,20 @@ public class UserDto {
     private String email;
     private String password;
     private String role;
+    private String phone;
 
     public UserDto() {
 
     }
 
-    public UserDto(int num, String name, String email, String password, String role) {
+    public UserDto(int num, String name, String email, String password, String role, String phone) {
         super();
         this.num = num;
         this.name = name;
         this.email = email;
         this.password = password;
         this.role = role;
+        this.phone = phone;
     }
 
     public int getNum() {
@@ -51,5 +53,13 @@ public class UserDto {
 
     public void setRole(String role) {
         this.role = role;
+    }
+
+    public String getPhone() {
+        return phone;
+    }
+
+    public void setPhone(String phone) {
+        this.phone = phone;
     }
 }

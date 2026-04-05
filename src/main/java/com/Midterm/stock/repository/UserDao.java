@@ -1,13 +1,9 @@
 package com.Midterm.stock.repository;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
-import org.springframework.stereotype.Repository;
 import com.Midterm.stock.dto.UserDto;
+import org.springframework.stereotype.Repository;
+
+import java.sql.*;
 
 @Repository
 public class UserDao {
@@ -52,8 +48,8 @@ public class UserDao {
         int cnt = -1;
 
         // 테이블명과 시퀀스명이 클라우드 DB에 생성되어 있어야 합니다.
-        String sql = "insert into users (num, name, email, password, role) "
-                + "values (user_seq.nextval, ?, ?, ?, ?)";
+        String sql = "insert into users (num, name, email, password, role, phone) "
+                + "values (user_seq.nextval, ?, ?, ?, ?, ?)";
 
         try {
             conn = connect();
@@ -63,6 +59,7 @@ public class UserDao {
             pstmt.setString(2, dto.getEmail());
             pstmt.setString(3, dto.getPassword());
             pstmt.setString(4, dto.getRole());
+            pstmt.setString(5, dto.getPhone());
 
             cnt = pstmt.executeUpdate();
             System.out.println("회원가입 완료: " + cnt);
@@ -118,4 +115,118 @@ public class UserDao {
             e.printStackTrace();
         }
     }
+
+
+    // UserDao.java에 아래 메서드를 새로 '추가'해
+    public UserDto getUserInfoByEmail(String email) {
+        UserDto dto = null;
+        String sql = "SELECT * FROM users WHERE email = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, email);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    dto = new UserDto();
+                    dto.setNum(rs.getInt("num")); // 여기서 num을 가져오는 게 핵심이야
+                    dto.setName(rs.getString("name"));
+                    dto.setEmail(rs.getString("email"));
+                    dto.setPhone(rs.getString("phone"));
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return dto;
+    }
+
+    // 마이 페이지 때문에 추가 - user정보 가져오기
+    public UserDto getUserInfo(int num) {
+        UserDto dto = null;
+        String sql = "SELECT * FROM users WHERE num = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, num);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    dto = new UserDto();
+                    dto.setNum(rs.getInt("num"));
+                    dto.setName(rs.getString("name"));
+                    dto.setEmail(rs.getString("email"));
+                    dto.setRole(rs.getString("role"));
+                    dto.setPhone(rs.getString("phone"));
+                    // 비밀번호는 보안상 보통 마이페이지 조회시엔 잘 안 담지만 필요시 추가
+                }
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return dto;
+    }
+
+
+    // 이름 변경때문에 추가
+    // 이름 업데이트
+    public int updateName(int num, String newName) {
+        String sql = "UPDATE users SET name = ? WHERE num = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newName);
+            pstmt.setInt(2, num);
+            return pstmt.executeUpdate();
+        } catch (Exception e) { e.printStackTrace(); return 0; }
+    }
+
+    // 비밀번호 변경때문에 추가
+    public int updatePassword(int num, String newPassword) {
+        String sql = "UPDATE users SET password = ? WHERE num = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, newPassword);
+            pstmt.setInt(2, num);
+            return pstmt.executeUpdate();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    // 이메일 변경때문에 추가
+    // phone 업데이트 메서드 추가
+    public int updatePhone(int num, String newPhone) {
+        String sql = "UPDATE users SET phone = ? WHERE num = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, newPhone);
+            pstmt.setInt(2, num);
+
+            return pstmt.executeUpdate();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+    // 마이페이지 - 회원탈퇴
+    // 회원 탈퇴 (UserDao.java)
+    public int deleteUser(int num) {
+        // ⭐️ 주의: 만약 다른 테이블이 이 유저의 이메일을 참조하고 있다면
+        // 해당 데이터들도 같이 지워지거나 처리가 되어 있어야 에러가 안 납니다.
+        String sql = "DELETE FROM users WHERE num = ?";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, num);
+            int result = pstmt.executeUpdate();
+            System.out.println("회원 탈퇴 완료: " + num);
+            return result;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return 0;
+        }
+    }
+
+
+
+
 }
