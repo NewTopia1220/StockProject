@@ -1,7 +1,9 @@
 package com.Midterm.stock.controller;
 
+import com.Midterm.stock.dto.AssetAnalysisDto;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 // 화면 이동 Controller
@@ -20,6 +22,18 @@ public class PageController {
         return "register";
     }
 
+    // 이메일 찾기 화면
+    @GetMapping("/findEmail")
+    public String findEmailPage() {
+        return "findEmail";
+    }
+
+    // 비밀번호 찾기 화면
+    @GetMapping("findPassword")
+    public String findPasswordPage() {
+        return "findPassword";
+    }
+
     // 메인 화면
     @GetMapping("/stock")
     public String stockPage(HttpSession session) {
@@ -32,27 +46,15 @@ public class PageController {
         return "stock";
     }
 
-    // 자산 관리 화면
-    @GetMapping("/asset")
-    public String assetPage(HttpSession session){
-        String loginUser = (String) session.getAttribute("loginUser");
-
-        if (loginUser == null) {
-            return "redirect:/login";
-        }
-
-        return "asset";
-    }
-
-    // 마이페이지
-    @GetMapping("/mypage/yoona")
-    public String mypage(HttpSession session){
-        String loginUser = (String) session.getAttribute("loginUser");
-
-        if (loginUser == null) {
-            return "redirect:/login";
-        }
-
-        return "mypage";
-    }
+//    // 마이페이지
+//    @GetMapping("/mypage/yoona")
+//    public String mypage(HttpSession session){
+//        String loginUser = (String) session.getAttribute("loginUser");
+//
+//        if (loginUser == null) {
+//            return "redirect:/login";
+//        }
+//
+//        return "mypage";
+//    }
 }

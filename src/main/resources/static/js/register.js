@@ -61,5 +61,12 @@ function check(){
 		return false;
 	}
 
+	// 전화번호 일치 여부
+	if (registerForm.userPhone.value == ""){
+	    alert("전화번호 누락");
+	    registerForm.userPhone.focus();
+	    return false;
+	}
+
 	return true;
 }

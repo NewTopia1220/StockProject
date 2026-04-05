@@ -2,7 +2,7 @@
    CSS Variables & Reset
    ======================================== */
 :root {
-    --primary: #0066FF;
+    --primary: #15164D;
     --primary-foreground: #ffffff;
     --accent: #FF4B4B;
     --accent-foreground: #ffffff;
@@ -29,6 +29,7 @@ body {
     line-height: 1.5;
 }
 
+
 /* ========================================
    Layout
    ======================================== */
@@ -37,7 +38,7 @@ body {
     height: 100vh;
     overflow: hidden;
     /* 1. 헤더와의 간격을 위해 상단 margin 추가 (기존 padding-top 104px에 더해짐) */
-    margin: 70px auto;
+    margin: 30px auto;
     /* 2. 헤더의 .inner와 동일한 max-width 설정 (1250px) */
     max-width: 1200px;
     width: 100%;
@@ -1305,7 +1306,7 @@ body {
 
 /* 저장 버튼 (파랑) */
 .btn-save {
-    background-color: #0066FF;
+    background-color: #15164D;
     color: white;
 }
 

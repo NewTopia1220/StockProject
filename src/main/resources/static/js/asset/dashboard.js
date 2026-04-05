@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function() {
         data: {
             datasets: [{
                 data: [achievementRate, remainingRate],
-                backgroundColor: ['#0066FF', '#ececf0'],
+                backgroundColor: ['#15164D', '#ececf0'],
                 borderWidth: 0,
                 circumference: 180,
                 rotation: 270,
@@ -51,7 +51,7 @@ function drawAssetTrend() {
             labels: labels, // ["02월", "03월", "04월"]
             datasets: [{
                 data: values, // [25000000, 28000000, 31000000]
-                borderColor: '#0066FF',
+                borderColor: '#15164D',
                 backgroundColor: 'rgba(0, 102, 255, 0.1)',
                 fill: true,
                 tension: 0.4, // ❗ 곡선을 부드럽게 해서 데이터가 적어도 예쁘게 보임

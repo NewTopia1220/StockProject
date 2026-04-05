@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>이메일 찾기</title>
+
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/findEmail.css}">
+
+    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
+    <script type="text/javascript" th:src="@{/js/findEmail.js}"></script>
+</head>
+<body>
+
+<div th:replace="fragments/guestHeader :: guestHeader('findEmail')"></div>
+
+<div class="page">
+    <div class="findEmailWrap">
+        <div class="findEmailCard">
+            <h1 class="findEmailTitle">이메일 찾기</h1>
+            <p class="findEmailDesc">
+                가입 시 입력한 이름과 전화번호를 입력해주세요
+            </p>
+
+            <form name="findEmailForm" id="findEmailForm" th:action="@{/findEmail}" method="post" onsubmit="return checkfindEmail();">
+                <div class="field">
+                    <label for="userName" class="fieldLabel">이름</label>
+                    <input type="text" name="userName" id="userName" class="inputBox" placeholder="이름 입력">
+                </div>
+
+                <div class="field">
+                    <label for="userPhone" class="fieldLabel">전화번호</label>
+                    <input type="text" name="userPhone" id="userPhone" class="inputBox" placeholder="전화번호 입력">
+                </div>
+
+                <button type="submit" class="submitBtn">이메일 찾기</button>
+            </form>
+
+            <div th:if="${errorMessage != null}" class="messageBox errorBox" th:text="${errorMessage}"></div>
+
+            <div th:if="${maskedEmail != null}" class="messageBox successBox">
+                가입된 이메일: <strong th:text="${maskedEmail}"></strong>
+            </div>
+
+            <div class="bottomLinks">
+                <a th:href="@{/login}">로그인</a>
+                <span>|</span>
+                <a th:href="@{/find/password}">비밀번호 찾기</a>
+                <span>|</span>
+                <a th:href="@{/register}">회원가입</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

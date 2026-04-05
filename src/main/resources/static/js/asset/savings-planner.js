@@ -160,3 +160,32 @@ function validateInputs() {
 // 입력값 검증 이벤트
 document.getElementById('targetAmount').addEventListener('blur', validateInputs);
 document.getElementById('targetPeriod').addEventListener('blur', validateInputs);
+
+
+/**
+ * 카드 애니메이션
+ */
+function animateCards() {
+    const cards = document.querySelectorAll('.card');
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.style.opacity = '1';
+                entry.target.style.transform = 'translateY(0)';
+            }
+        });
+    }, {
+        threshold: 0.1
+    });
+
+    cards.forEach(card => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        card.style.transition = 'opacity 0.5s, transform 0.5s';
+        observer.observe(card);
+    });
+}
+
+// 페이지 로드 후 애니메이션 실행
+window.addEventListener('load', animateCards);

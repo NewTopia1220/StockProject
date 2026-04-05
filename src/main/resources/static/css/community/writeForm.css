@@ -1,0 +1,150 @@
+@charset "UTF-8";
+
+*{
+    box-sizing:border-box;
+}
+
+html, body{
+    margin:0;
+    padding:0;
+    min-height:100%;
+    font-family:"Malgun Gothic", "맑은 고딕", Arial, sans-serif;
+    background:#f7f8fb;
+    color:#0E0F37;
+}
+
+body{
+    display:flex;
+    flex-direction:column;
+    padding-top:76px;
+}
+
+.writePage{
+    width:100%;
+    max-width:1200px;
+    margin:0 auto;
+    padding:40px 20px 70px;
+}
+
+.writeCard{
+    background:#ffffff;
+    border:1px solid #e5e7eb;
+    border-radius:22px;
+    padding:36px 32px;
+    box-shadow:0 10px 24px rgba(0, 0, 0, 0.04);
+}
+
+.writeTop{
+    margin-bottom:28px;
+}
+
+.writeTop h2{
+    margin:0;
+    font-size:32px;
+    font-weight:800;
+    color:#111827;
+}
+
+.writeTop p{
+    margin:10px 0 0;
+    font-size:15px;
+    color:#6b7280;
+}
+
+.field{
+    margin-bottom:20px;
+}
+
+.field label{
+    display:block;
+    margin-bottom:8px;
+    font-size:15px;
+    font-weight:700;
+    color:#1f2937;
+}
+
+.inputBox{
+    width:100%;
+    height:50px;
+    border:1px solid #d1d5db;
+    border-radius:12px;
+    padding:0 16px;
+    font-size:15px;
+    color:#111827;
+    background:#ffffff;
+    outline:none;
+}
+
+.inputBox:focus,
+.textAreaBox:focus{
+    border-color:#15164D;
+}
+
+.textAreaBox{
+    width:100%;
+    min-height:240px;
+    resize:vertical;
+    border:1px solid #d1d5db;
+    border-radius:12px;
+    padding:16px;
+    font-size:15px;
+    color:#111827;
+    background:#ffffff;
+    outline:none;
+}
+
+.btnArea{
+    margin-top:28px;
+    display:flex;
+    justify-content:flex-end;
+    gap:12px;
+}
+
+.cancelBtn,
+.saveBtn{
+    min-width:110px;
+    height:46px;
+    border-radius:12px;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    text-decoration:none;
+    font-size:15px;
+    font-weight:800;
+    cursor:pointer;
+}
+
+.cancelBtn{
+    border:1px solid #d1d5db;
+    background:#ffffff;
+    color:#374151;
+}
+
+.saveBtn{
+    border:none;
+    background:#15164D;
+    color:#ffffff;
+}
+
+.saveBtn:hover{
+    background:#162036;
+}
+
+@media screen and (max-width:600px){
+    .writePage{
+        padding:24px 14px 50px;
+    }
+
+    .writeCard{
+        padding:24px 18px;
+    }
+
+    .btnArea{
+        flex-direction:column;
+    }
+
+    .cancelBtn,
+    .saveBtn{
+        width:100%;
+    }
+}

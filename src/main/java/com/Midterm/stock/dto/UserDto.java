@@ -1,5 +1,7 @@
 package com.Midterm.stock.dto;
 
+import java.sql.Timestamp;
+
 public class UserDto {
     private int num;
     private String name;
@@ -8,11 +10,14 @@ public class UserDto {
     private String role;
     private String phone;
 
+
     public UserDto() {
 
     }
 
+
     public UserDto(int num, String name, String email, String password, String role, String phone) {
+
         super();
         this.num = num;
         this.name = name;
@@ -50,7 +55,6 @@ public class UserDto {
     public String getRole() {
         return role;
     }
-
     public void setRole(String role) {
         this.role = role;
     }
@@ -62,4 +66,5 @@ public class UserDto {
     public void setPhone(String phone) {
         this.phone = phone;
     }
+
 }

@@ -15,9 +15,9 @@
 
 
 
-<body>
-<div th:replace="~{fragments/header :: header('asset')}"></div>
+<body class="withMainHeader">
 
+<div th:replace="~{fragments/header :: header('asset')}"></div>
 
 <div class="app-container">
     <!-- 좌측 사이드바 (동일) -->
@@ -296,5 +296,6 @@
     const categoryData = [[${categories}]];
 </script>
 <script th:src="@{/js/asset/analytics.js}"></script>
+
 </body>
 </html>
