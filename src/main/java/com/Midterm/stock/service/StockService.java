@@ -26,7 +26,6 @@ public class StockService {
 
     private final WebClient kisClient;
     private final WebClient eximClient;
-    private final WebClient krxClient;
 
     private String accessToken;
     private LocalDateTime tokenExpireTime;
@@ -47,12 +46,6 @@ public class StockService {
                 .baseUrl(baseUrl)
                 .build();
 
-        this.krxClient = WebClient.builder()
-                .baseUrl("http://data.krx.co.kr")
-                .defaultHeader("Content-Type", "application/x-www-form-urlencoded")
-                .defaultHeader("User-Agent", "Mozilla/5.0")
-                .defaultHeader("Referer", "http://data.krx.co.kr")
-                .build();
         // 환율 API - SSL 무시
         try {
             io.netty.handler.ssl.SslContext sslContext = io.netty.handler.ssl.SslContextBuilder
@@ -100,6 +93,17 @@ public class StockService {
                 .retrieve()
                 .bodyToMono(JsonNode.class)
                 .block();
+//        JsonNode response = kisClient.post()
+//                .uri("/oauth2/tokenP")
+//                .header("Content-Type", "application/json")
+//                .bodyValue(Map.of(
+//                        "grant_type", "client_credentials",
+//                        "appkey", appKey,
+//                        "appsecret", appSecret
+//                ))
+//                .retrieve()
+//                .bodyToMono(JsonNode.class)
+//                .block();
 
         if (response != null && response.has("access_token")) {
             this.accessToken = response.get("access_token").asText();
@@ -222,44 +226,58 @@ public class StockService {
 
     // 환율 조회
     public StockResponseDto getExchangeRate(String currency) {
-        LocalDate date = LocalDate.now().minusDays(1);
-        if (date.getDayOfWeek() == DayOfWeek.SATURDAY) date = date.minusDays(1);
-        if (date.getDayOfWeek() == DayOfWeek.SUNDAY) date = date.minusDays(2);
-        String searchDate = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0");
         dto.setPriceChange("0");
         dto.setChangeRate("0");
 
-        try {
-            String rawResponse = eximClient.get()
-                    .uri(uriBuilder -> uriBuilder
-                            .path("/site/program/financial/exchangeJSON")
-                            .queryParam("authkey", eximApiKey)
-                            .queryParam("searchdate", searchDate)
-                            .queryParam("data", "AP01")
-                            .build())
-                    .retrieve()
-                    .bodyToMono(String.class)
-                    .block();
+        LocalDate date = LocalDate.now().minusDays(1);
+        com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
 
-            if (rawResponse == null || rawResponse.isBlank()) return dto;
-
-            com.fasterxml.jackson.databind.ObjectMapper mapper =
-                    new com.fasterxml.jackson.databind.ObjectMapper();
-            JsonNode response = mapper.readTree(rawResponse);
-
-            for (JsonNode item : response) {
-                if (currency.equals(item.get("cur_unit").asText())) {
-                    dto.setCurrentPrice(item.get("deal_bas_r").asText());
-                    dto.setPriceChange(item.get("yy_efee_r").asText());
-                    dto.setChangeRate(item.get("yy_efee_r").asText());
-                    break;
-                }
+        // 공휴일/주말 대비 최대 7일 전까지 재시도
+        for (int attempt = 0; attempt < 7; attempt++) {
+            while (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+                date = date.minusDays(1);
             }
-        } catch (Exception e) {
-            System.out.println("환율 API 오류: " + e.getMessage());
+            final String searchDate = date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            try {
+                String rawResponse = eximClient.get()
+                        .uri(uriBuilder -> uriBuilder
+                                .path("/site/program/financial/exchangeJSON")
+                                .queryParam("authkey", eximApiKey)
+                                .queryParam("searchdate", searchDate)
+                                .queryParam("data", "AP01")
+                                .build())
+                        .retrieve()
+                        .bodyToMono(String.class)
+                        .block();
+
+                if (rawResponse == null || rawResponse.isBlank() || rawResponse.equals("[]")) {
+                    System.out.println("환율 데이터 없음 (" + searchDate + "), 하루 전으로 재시도");
+                    date = date.minusDays(1);
+                    continue;
+                }
+
+                JsonNode response = mapper.readTree(rawResponse);
+                if (!response.isArray() || response.size() == 0) {
+                    date = date.minusDays(1);
+                    continue;
+                }
+
+                for (JsonNode item : response) {
+                    if (currency.equals(item.get("cur_unit").asText())) {
+                        dto.setCurrentPrice(item.get("deal_bas_r").asText());
+                        dto.setPriceChange(item.get("yy_efee_r").asText());
+                        dto.setChangeRate(item.get("yy_efee_r").asText());
+                        System.out.println("환율 조회 성공: " + currency + " = " + item.get("deal_bas_r").asText() + " (" + searchDate + ")");
+                        return dto;
+                    }
+                }
+                break;
+            } catch (Exception e) {
+                System.out.println("환율 API 오류 (" + searchDate + "): " + e.getMessage());
+                date = date.minusDays(1);
+            }
         }
         return dto;
     }
@@ -357,37 +375,62 @@ public class StockService {
         return result;
     }
 
+    // 마지막 영업일 반환 (주말 제외)
+    private String getLastTradingDay() {
+        LocalDate date = LocalDate.now();
+        while (date.getDayOfWeek() == DayOfWeek.SATURDAY || date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+            date = date.minusDays(1);
+        }
+        return date.format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+    }
+
     private List<Map<String, String>> fetchKrxMarket(String marketCode) {
         try {
-            String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            String trdDd = getLastTradingDay();
 
-            // form 데이터 방식으로 변경
+            // Java HTTP Client - 쿠키 자동 관리로 세션 유지 (WebClient는 LOGOUT 오류 발생)
+            java.net.CookieManager cookieManager = new java.net.CookieManager(null, java.net.CookiePolicy.ACCEPT_ALL);
+            java.net.http.HttpClient httpClient = java.net.http.HttpClient.newBuilder()
+                    .cookieHandler(cookieManager)
+                    .followRedirects(java.net.http.HttpClient.Redirect.ALWAYS)
+                    .build();
+
+            // Step 1: 메인 페이지 접속으로 세션 쿠키 획득
+            java.net.http.HttpRequest initReq = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://data.krx.co.kr/contents/MDC/STAT/standard/MDCSTAT01901.cmd"))
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36")
+                    .GET()
+                    .build();
+            httpClient.send(initReq, java.net.http.HttpResponse.BodyHandlers.discarding());
+
+            // Step 2: 실제 데이터 요청 (세션 쿠키 자동 포함)
             String formData = "bld=dbms%2FMDC%2FSTAT%2Fstandard%2FMDCSTAT01901"
                     + "&mktId=" + marketCode
-                    + "&trdDd=" + today
+                    + "&trdDd=" + trdDd
                     + "&share=1&money=1&csvxls_isNo=false";
 
-            System.out.println("KRX 요청 formData: " + formData);
+            System.out.println("KRX [" + marketCode + "] 요청 trdDd=" + trdDd);
 
-            String rawResponse = krxClient.post()
-                    .uri("/comm/bldAttendant/getJsonData.cmd")
+            java.net.http.HttpRequest postReq = java.net.http.HttpRequest.newBuilder()
+                    .uri(java.net.URI.create("http://data.krx.co.kr/comm/bldAttendant/getJsonData.cmd"))
                     .header("Content-Type", "application/x-www-form-urlencoded; charset=UTF-8")
                     .header("Accept", "application/json, text/javascript, */*; q=0.01")
                     .header("X-Requested-With", "XMLHttpRequest")
-                    .bodyValue(formData)
-                    .retrieve()
-                    .onStatus(status -> !status.is2xxSuccessful(), res ->
-                            res.bodyToMono(String.class).doOnNext(body ->
-                                    System.out.println("KRX 오류 응답 body: " + body)
-                            ).then(reactor.core.publisher.Mono.error(
-                                    new RuntimeException("KRX 오류: " + res.statusCode())))
-                    )
-                    .bodyToMono(String.class)
-                    .block();
+                    .header("Referer", "http://data.krx.co.kr/contents/MDC/STAT/standard/MDCSTAT01901.cmd")
+                    .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36")
+                    .POST(java.net.http.HttpRequest.BodyPublishers.ofString(formData))
+                    .build();
 
-            if (rawResponse == null) return new ArrayList<>();
+            java.net.http.HttpResponse<String> response = httpClient.send(postReq,
+                    java.net.http.HttpResponse.BodyHandlers.ofString());
+            String rawResponse = response.body();
 
-            System.out.println("KRX 응답 앞100자: " + rawResponse.substring(0, Math.min(100, rawResponse.length())));
+            if (response.statusCode() != 200) {
+                System.out.println("KRX [" + marketCode + "] HTTP " + response.statusCode() + ": " + rawResponse);
+                return new ArrayList<>();
+            }
+
+            System.out.println("KRX [" + marketCode + "] 응답 앞100자: " + rawResponse.substring(0, Math.min(100, rawResponse.length())));
 
             com.fasterxml.jackson.databind.ObjectMapper mapper =
                     new com.fasterxml.jackson.databind.ObjectMapper();
@@ -435,11 +478,3 @@ public class StockService {
     }
 }
 
-//KRX 종목 목록 갱신 중...
-//KRX 요청 formData: bld=dbms%2FMDC%2FSTAT%2Fstandard%2FMDCSTAT01901&mktId=STK&trdDd=20260406&share=1&money=1&csvxls_isNo=false
-//KRX 오류 응답 body: LOGOUT
-//KRX [STK] 오류: KRX 오류: 400 BAD_REQUEST
-//KRX 요청 formData: bld=dbms%2FMDC%2FSTAT%2Fstandard%2FMDCSTAT01901&mktId=KSQ&trdDd=20260406&share=1&money=1&csvxls_isNo=false
-//KRX 오류 응답 body: LOGOUT
-//KRX [KSQ] 오류: KRX 오류: 400 BAD_REQUEST
-//KRX 종목 갱신 완료: 0개
