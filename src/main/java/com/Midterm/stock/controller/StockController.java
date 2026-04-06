@@ -3,15 +3,23 @@ package com.Midterm.stock.controller;
 import com.Midterm.stock.dto.StockChartDto;
 import com.Midterm.stock.dto.StockResponseDto;
 import com.Midterm.stock.service.StockService;
+import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
 public class StockController {
 
+    @Autowired
     private final StockService stockService;
 
 
@@ -21,20 +29,20 @@ public class StockController {
     }
 
     // 종목 조회
-    @GetMapping("/stockInquiry")
-    public String getStock(@RequestParam String code, Model model) {
-        StockResponseDto stockInfo = stockService.getCurrentPrice(code);
-        StockChartDto chartData = stockService.getDailyPrice(code);
-        StockResponseDto kospiInfo = stockService.getKospiIndex(); // 코스피
-        model.addAttribute("kospiChartData", stockService.getKospiChart()); // 코스피 차트
-
-
-        model.addAttribute("stockInfo", stockInfo);
-        model.addAttribute("chartData", chartData);
-        model.addAttribute("stockCode", code);
-        model.addAttribute("kospiInfo", kospiInfo);
-        return "stock/stockInquiry";
-    }
+//    @GetMapping("/stockInquiry")
+//    public String getStock(@RequestParam String code, Model model) {
+//        StockResponseDto stockInfo = stockService.getCurrentPrice(code);
+//        StockChartDto chartData = stockService.getDailyPrice(code);
+//        StockResponseDto kospiInfo = stockService.getKospiIndex(); // 코스피
+//        model.addAttribute("kospiChartData", stockService.getKospiChart()); // 코스피 차트
+//
+//
+//        model.addAttribute("stockInfo", stockInfo);
+//        model.addAttribute("chartData", chartData);
+//        model.addAttribute("stockCode", code);
+//        model.addAttribute("kospiInfo", kospiInfo);
+//        return "stock/stockInquiry";
+//    }
 
     // API 엔드포인트 추가
     @GetMapping("/api/stock/{code}")
@@ -49,6 +57,17 @@ public class StockController {
         return stockService.getDailyPrice(code);
     }
 
+    // 검색
+    @GetMapping("/api/stock/search")
+    @ResponseBody
+    public List<Map<String, String>> searchStock(@RequestParam String keyword) {
+        try {
+            return stockService.searchStock(keyword);
+        } catch (Exception e) {
+            return new ArrayList<>();
+        }
+    }
+
     // AJAX용 코스피 API
     @GetMapping("/api/kospi")
     @ResponseBody
@@ -60,6 +79,34 @@ public class StockController {
     @ResponseBody
     public StockChartDto getKospiChartApi() {
         return stockService.getKospiChart();
+    }
+
+
+    @GetMapping("/api/kosdaq")
+    @ResponseBody
+    public StockResponseDto getKosdaqApi() {
+        return stockService.getKosdaqIndex();
+    }
+
+    @GetMapping("/api/exchange")
+    @ResponseBody
+    public StockResponseDto getExchangeApi(
+            @RequestParam(defaultValue = "USD") String currency) {
+        return stockService.getExchangeRate(currency);
+    }
+
+    // 시간별 차트
+    @GetMapping("/api/stock/{code}/time")
+    @ResponseBody
+    public StockChartDto getTimeChart(@PathVariable String code) {
+        return stockService.getTimePrice(code);
+    }
+
+    // 분별 차트
+    @GetMapping("/api/stock/{code}/minute")
+    @ResponseBody
+    public StockChartDto getMinuteChart(@PathVariable String code) {
+        return stockService.getMinutePrice(code);
     }
 
 }

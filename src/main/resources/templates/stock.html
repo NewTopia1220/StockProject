@@ -17,22 +17,43 @@
         <div class="tickerItem">
             <span class="label">KOSPI</span>
             <div class="valueGroup">
-                <strong>2,618.40</strong>
-                <span class="up">▲ 0.47%</span>
+<!--                <strong>2,618.40</strong>-->
+<!--                <span class="up">▲ 0.47%</span>-->
+                <strong id="kospiPrice" th:text="${kospiInfo.currentPrice}">-</strong>
+                <span id="kospiRate"
+                      th:classappend="${kospiInfo.changeRate != null and #strings.startsWith(kospiInfo.changeRate, '-')} ? 'down' : 'up'"
+                      th:text="${kospiInfo.changeRate + '%'}">-</span>
             </div>
         </div>
         <div class="tickerItem">
             <span class="label">KOSDAQ</span>
             <div class="valueGroup">
-                <strong>732.18</strong>
-                <span class="down">▼ 0.61%</span>
+                <strong id="kosdaqPrice" th:text="${kosdaqInfo.currentPrice}">-</strong>
+                <span id="kosdaqRate"
+                      th:classappend="${kosdaqInfo.changeRate != null and #strings.startsWith(kosdaqInfo.changeRate, '-')} ? 'down' : 'up'"
+                      th:text="${kosdaqInfo.changeRate + '%'}">-</span>
             </div>
         </div>
         <div class="tickerItem">
-            <span class="label">USD/KRW</span>
+            <span class="label">환율</span>
             <div class="valueGroup">
-                <strong>1,328.5</strong>
-                <span class="down">▼ 0.18%</span>
+                <!-- 통화 선택 셀렉트 -->
+                <select id="currencySelect" style="
+            border: none;
+            background: transparent;
+            font-size: 13px;
+            color: #555;
+            cursor: pointer;
+            margin-right: 6px;
+        ">
+                    <option value="USD">USD/KRW</option>
+                    <option value="JPY(100)">JPY/KRW</option>
+                    <option value="EUR">EUR/KRW</option>
+                    <option value="CNH">CNH/KRW</option>
+                    <option value="GBP">GBP/KRW</option>
+                </select>
+                <strong id="exchangePrice">-</strong>
+                <span id="exchangeRate" class="down">-</span>
             </div>
         </div>
     </div>
@@ -41,6 +62,32 @@
         <div class="chartBox">
             <div class="boxHeader">
                 <h2>시장 트렌드 차트</h2>
+<!--                <input id="stockSearch" type="text" placeholder="종목코드 입력 후 Enter (예: 005930)" />-->
+                <div class="searchWrapper" style="position: relative;">
+                    <input id="stockSearch" type="text"
+                           placeholder="종목명 또는 코드 입력 (예: 삼성전자, 005930)"
+                           autocomplete="off"/>
+                    <div id="searchDropdown" style="
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            z-index: 1000;
+            max-height: 200px;
+            overflow-y: auto;
+        "></div>
+                </div>
+            </div>
+            <!-- 탭 버튼 추가 -->
+            <div class="chartTabs">
+                <button class="chartTab active" data-tab="daily">일별</button>
+                <button class="chartTab" data-tab="time">시간별</button>
+                <button class="chartTab" data-tab="minute">분별</button>
             </div>
             <div class="chartContainer">
                 <canvas id="mainChart"></canvas>

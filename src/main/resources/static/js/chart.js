@@ -4,6 +4,8 @@ let volumeChart = null;
 // 차트 최초 생성
 async function initCharts() {
     const data = await fetchChartData();
+    const kospiData = await fetchKospiChartData();
+
     if (!data) return;
 
     // 종가 시계열 차트
@@ -89,52 +91,51 @@ async function initCharts() {
         }
     });
 
-    // 코스피 차트
-
-        kospiChart = new Chart(document.getElementById('kospiChart'), {
-            data: {
-                labels: kospiData.labels,
-                datasets: [
-                    {
-                        type: 'line',
-                        label: 'KOSPI',
-                        data: kospiData.closePrices,
-                        borderColor: 'rgb(255, 159, 64)',
-                        backgroundColor: 'rgba(255, 159, 64, 0.1)',
-                        tension: 0.1,
-                        yAxisID: 'yPrice',
-                        fill: true
-                    },
-                    {
-                        type: 'bar',
-                        label: '거래량',
-                        data: kospiData.volumes,
-                        backgroundColor: 'rgba(255, 99, 132, 0.4)',
-                        yAxisID: 'yVolume'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                interaction: { mode: 'index', intersect: false },
-                plugins: {
-                    title: { display: true, text: 'KOSPI 지수 / 거래량' }
+        // 코스피 차트
+    kospiChart = new Chart(document.getElementById('kospiChart'), {
+        data: {
+            labels: kospiData.labels,
+            datasets: [
+                {
+                    type: 'line',
+                    label: 'KOSPI',
+                    data: kospiData.closePrices,
+                    borderColor: 'rgb(255, 159, 64)',
+                    backgroundColor: 'rgba(255, 159, 64, 0.1)',
+                    tension: 0.1,
+                    yAxisID: 'yPrice',
+                    fill: true
                 },
-                scales: {
-                    yPrice: {
-                        type: 'linear',
-                        position: 'left',
-                        title: { display: true, text: 'KOSPI 지수' }
-                    },
-                    yVolume: {
-                        type: 'linear',
-                        position: 'right',
-                        title: { display: true, text: '거래량' },
-                        grid: { drawOnChartArea: false }
-                    }
+                {
+                    type: 'bar',
+                    label: '거래량',
+                    data: kospiData.volumes,
+                    backgroundColor: 'rgba(255, 99, 132, 0.4)',
+                    yAxisID: 'yVolume'
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            interaction: { mode: 'index', intersect: false },
+            plugins: {
+                title: { display: true, text: 'KOSPI 지수 / 거래량' }
+            },
+            scales: {
+                yPrice: {
+                    type: 'linear',
+                    position: 'left',
+                    title: { display: true, text: 'KOSPI 지수' }
+                },
+                yVolume: {
+                    type: 'linear',
+                    position: 'right',
+                    title: { display: true, text: '거래량' },
+                    grid: { drawOnChartArea: false }
                 }
             }
-        });
+        }
+    });
 
 }
 
