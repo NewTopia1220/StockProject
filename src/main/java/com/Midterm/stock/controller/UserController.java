@@ -111,8 +111,9 @@ public class UserController {
         email = email.trim();
         pw = pw.trim();
         repw = repw.trim();
+        phone = phone.trim().replaceAll("[^0-9]", "");
 
-        if (name.equals("") || email.equals("") || pw.equals("") || repw.equals("")) {
+        if (name.equals("") || email.equals("") || pw.equals("") || repw.equals("") || phone.equals("")) {
             return "redirect:/register?error=1";
         }
 
@@ -150,42 +151,6 @@ public class UserController {
             return "redirect:/register?error=1";
         }
     }
-
-
-
-
-    // 마이페이지에서 정보 가져오기
-    @GetMapping("/mypage")
-    public String myPage(HttpSession session, Model model) {
-        // 1. 세션에서 로그인한 유저 번호(이메일) 확인
-        // String loginEmail = (String) session.getAttribute("loginUser");
-        Integer loginNum = (Integer) session.getAttribute("loginNum");
-
-        // 로그인이 안 되어 있으면 로그인 페이지로 튕겨내기 (보안)
-        if (loginNum == null) {
-            return "redirect:/login";
-        }
-
-        // 2. 실제 DB에서 유저 정보 가져오기
-        UserDto user = userDao.getUserInfo(loginNum);
-        // 만약 유저 정보가 없으면 예외 처리
-        if (user == null) {
-            return "redirect:/login";
-        }
-
-        model.addAttribute("user", user);
-        model.addAttribute("currentPage", "mypage"); // 헤더 활성화용
-
-//        // 3. 기존 설정에 있던 계좌 정보 등 추가 (하드코딩 데이터나 DAO 호출)
-//        List<Map<String, Object>> accounts = new ArrayList<>();
-//        // ... (기존 계좌 리스트 로직) ...
-//        model.addAttribute("accounts", accounts);
-
-//        return "asset/settings";
-        return "mypage";
-    }
-
-
 
     // 마이페이지 이름, 비번 변경
     @PostMapping("/user/update-profile")
@@ -238,8 +203,6 @@ public class UserController {
         return "redirect:/login?withdraw=1";
     }
 
-
-
     // UserController.java
     @GetMapping("/logout")
     public String logout(HttpSession session) {
@@ -291,15 +254,15 @@ public class UserController {
             model.addAttribute("errorMessage", "이름과 전화번호를 입력해주세요");
             return "findEmail";
         }
+
         name = name.trim();
-        phone = phone.trim();
+        phone = phone.trim().replaceAll("[^0-9]", "");
 
         if (name.equals("") || phone.equals("")) {
             model.addAttribute("errorMessage", "이름과 전화번호를 입력해주세요");
             return "findEmail";
         }
 
-        // 이메일을 찾기 위해 이름과 번호를 넘김
         String email = userDao.findEmailByNameAndPhone(name, phone);
 
         if (email == null) {
@@ -326,7 +289,7 @@ public class UserController {
 
         name = name.trim();
         email = email.trim();
-        phone = phone.trim();
+        phone = phone.trim().replaceAll("[^0-9]", "");
         newPassword = newPassword.trim();
         reNewPassword = reNewPassword.trim();
 

@@ -1,32 +1,28 @@
 @charset "UTF-8";
 
+/* 기본 리셋 */
 *{
     box-sizing:border-box;
 }
 
 html, body{
     margin:0;
-    padding:0;
+    padding-top:56px;
     min-height:100%;
     font-family:"Malgun Gothic", "맑은 고딕", Arial, sans-serif;
     background:#f7f8fb;
     color:#0E0F37;
 }
 
-body{
-    display:flex;
-    flex-direction:column;
-    padding-top:76px;
-}
-
 .writePage{
     width:100%;
     max-width:1200px;
     margin:0 auto;
-    padding:40px 20px 70px;
+    padding:110px 20px 70px; /* 고정 헤더 높이 고려 */
 }
 
-.writeCard{
+/* 카드 */
+.writePage .writeCard{
     background:#ffffff;
     border:1px solid #e5e7eb;
     border-radius:22px;
@@ -34,38 +30,50 @@ body{
     box-shadow:0 10px 24px rgba(0, 0, 0, 0.04);
 }
 
-.writeTop{
+/* 상단 문구 */
+.writePage .writeTop{
     margin-bottom:28px;
 }
 
-.writeTop h2{
+.writePage .writeTop h2{
     margin:0;
     font-size:32px;
     font-weight:800;
     color:#111827;
+    line-height:1.3;
+    letter-spacing:-0.4px;
 }
 
-.writeTop p{
+.writePage .writeTop p{
     margin:10px 0 0;
     font-size:15px;
+    line-height:1.6;
     color:#6b7280;
 }
 
-.field{
+/* form 내부만 스타일 적용 */
+.writePage form{
+    margin:0;
+}
+
+/* 필드 */
+.writePage .field{
     margin-bottom:20px;
 }
 
-.field label{
+.writePage .field label{
     display:block;
     margin-bottom:8px;
     font-size:15px;
     font-weight:700;
     color:#1f2937;
+    line-height:1.4;
 }
 
-.inputBox{
+/* input / select */
+.writePage .inputBox{
     width:100%;
-    height:50px;
+    height:52px;
     border:1px solid #d1d5db;
     border-radius:12px;
     padding:0 16px;
@@ -73,14 +81,44 @@ body{
     color:#111827;
     background:#ffffff;
     outline:none;
+    box-shadow:none;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    appearance:none;
+    -webkit-appearance:none;
+    -moz-appearance:none;
 }
 
-.inputBox:focus,
-.textAreaBox:focus{
+.writePage select.inputBox{
+    cursor:pointer;
+    background-image:
+        linear-gradient(45deg, transparent 50%, #6b7280 50%),
+        linear-gradient(135deg, #6b7280 50%, transparent 50%);
+    background-position:
+        calc(100% - 20px) calc(50% - 3px),
+        calc(100% - 14px) calc(50% - 3px);
+    background-size:6px 6px, 6px 6px;
+    background-repeat:no-repeat;
+    padding-right:42px;
+}
+
+.writePage .inputBox::placeholder{
+    color:#9ca3af;
+}
+
+.writePage .inputBox:hover,
+.writePage .textAreaBox:hover{
+    border-color:#bfc6d1;
+}
+
+.writePage .inputBox:focus,
+.writePage .textAreaBox:focus{
     border-color:#15164D;
+    box-shadow:0 0 0 4px rgba(21, 22, 77, 0.08);
+    background:#ffffff;
 }
 
-.textAreaBox{
+/* textarea */
+.writePage .textAreaBox{
     width:100%;
     min-height:240px;
     resize:vertical;
@@ -88,22 +126,33 @@ body{
     border-radius:12px;
     padding:16px;
     font-size:15px;
+    line-height:1.7;
     color:#111827;
     background:#ffffff;
     outline:none;
+    box-shadow:none;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.btnArea{
+.writePage .textAreaBox::placeholder{
+    color:#9ca3af;
+}
+
+/* 버튼 영역 */
+.writePage .btnArea{
     margin-top:28px;
     display:flex;
     justify-content:flex-end;
+    align-items:center;
     gap:12px;
 }
 
-.cancelBtn,
-.saveBtn{
+/* 공통 버튼 */
+.writePage .cancelBtn,
+.writePage .saveBtn{
     min-width:110px;
     height:46px;
+    padding:0 18px;
     border-radius:12px;
     display:inline-flex;
     align-items:center;
@@ -111,40 +160,93 @@ body{
     text-decoration:none;
     font-size:15px;
     font-weight:800;
+    line-height:1;
     cursor:pointer;
+    transition:all 0.2s ease;
 }
 
-.cancelBtn{
+/* 목록 버튼 */
+.writePage .cancelBtn{
     border:1px solid #d1d5db;
     background:#ffffff;
     color:#374151;
 }
 
-.saveBtn{
+.writePage .cancelBtn:hover{
+    border-color:#b8c0cc;
+    background:#f9fafb;
+    color:#111827;
+    text-decoration:none;
+}
+
+/* 저장 버튼 */
+.writePage .saveBtn{
     border:none;
     background:#15164D;
     color:#ffffff;
+    box-shadow:0 8px 18px rgba(21, 22, 77, 0.16);
 }
 
-.saveBtn:hover{
+.writePage .saveBtn:hover{
     background:#162036;
+    transform:translateY(-1px);
 }
 
-@media screen and (max-width:600px){
+.writePage .saveBtn:active{
+    transform:translateY(0);
+}
+
+/* 숨김 input이 있을 때 레이아웃 깨짐 방지 */
+.writePage input[type="hidden"]{
+    display:none !important;
+}
+
+/* 반응형 */
+@media screen and (max-width: 900px){
     .writePage{
-        padding:24px 14px 50px;
+        padding:96px 16px 56px;
     }
 
-    .writeCard{
+    .writePage .writeCard{
+        padding:28px 22px;
+        border-radius:18px;
+    }
+
+    .writePage .writeTop h2{
+        font-size:28px;
+    }
+
+    .writePage .writeTop p{
+        font-size:14px;
+    }
+}
+
+@media screen and (max-width: 600px){
+    .writePage{
+        padding:88px 14px 50px;
+    }
+
+    .writePage .writeCard{
         padding:24px 18px;
     }
 
-    .btnArea{
-        flex-direction:column;
+    .writePage .inputBox{
+        height:48px;
+        font-size:14px;
     }
 
-    .cancelBtn,
-    .saveBtn{
+    .writePage .textAreaBox{
+        min-height:200px;
+        font-size:14px;
+    }
+
+    .writePage .btnArea{
+        flex-direction:column;
+        align-items:stretch;
+    }
+
+    .writePage .cancelBtn,
+    .writePage .saveBtn{
         width:100%;
     }
 }

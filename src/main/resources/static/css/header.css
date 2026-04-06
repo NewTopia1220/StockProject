@@ -9,7 +9,7 @@
     --header-primary-dark: #172033;
     --header-hover: #f9fafb;
 
-    --header-max-width: 1250px;
+    --header-max-width: 1200px;
 
     --header-topbar-height: 76px;
     --header-category-height: 48px;
@@ -185,7 +185,7 @@ body.withGuestHeader {
 
 .pageContainer {
     width: 100%;
-    max-width: 1280px;
+    max-width: 1200px;
     margin: 0 auto;
     padding: 28px 20px 64px;
 }
@@ -262,5 +262,57 @@ body.withGuestHeader {
 
     .pageContainer {
         padding: 20px 14px 48px;
+    }
+
+    /* ===== 헤더 글꼴/크기 강제 고정 ===== */
+    .topHeader,
+    .topHeader *,
+    .topHeader a,
+    .topHeader button,
+    .topHeader span,
+    .topHeader p,
+    .topHeader li {
+        font-family: "Pretendard", "Malgun Gothic", "맑은 고딕", Arial, sans-serif !important;
+    }
+
+    .topHeader .brandText {
+        font-size: 24px !important;
+        font-weight: 800 !important;
+        letter-spacing: -0.4px !important;
+        line-height: 1 !important;
+    }
+
+    .topHeader .userText,
+    .topHeader .currentPageText {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        line-height: 1 !important;
+    }
+
+    .topHeader .menuBtn {
+        font-size: 14px !important;
+        font-weight: 700 !important;
+        line-height: 40px !important;
+    }
+
+    .topHeader .categoryMenu li a {
+        font-size: 15px !important;
+        font-weight: 600 !important;
+        line-height: 1.2 !important;
+    }
+
+    @media (max-width: 768px) {
+        .topHeader .brandText {
+            font-size: 21px !important;
+        }
+
+        .topHeader .menuBtn {
+            font-size: 13px !important;
+            line-height: 38px !important;
+        }
+
+        .topHeader .categoryMenu li a {
+            font-size: 14px !important;
+        }
     }
 }

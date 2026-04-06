@@ -18,8 +18,8 @@
                 <th:block th:if="${session.loginUser != null}">
                     <span class="userText"
                           th:text="${#strings.arraySplit(session.loginUser, '@')[0]} + '님'"></span>
-                    <a th:href="@{/login}" class="menuBtn menuBtnOutline">로그아웃</a>
-                    <a th:href="@{/user}" class="menuBtn menuBtnFill">인증</a>
+                    <a th:href="@{/logout}" class="menuBtn menuBtnOutline">로그아웃</a>
+                    <a th:href="@{/mypage}" class="menuBtn menuBtnFill">마이페이지</a>
                 </th:block>
             </div>
         </div>
