@@ -81,8 +81,6 @@ public class AssetController {
         model.addAttribute("diffRate", Math.abs(Math.round(diffRate * 10) / 10.0)); // 소수점 첫째자리까지 절대값으로
         model.addAttribute("isIncreased", currentMonthSpending >= previousMonthSpending); // 증가 여부 판단
 
-
-
         int currentMonthIncome = 0; // 초기값
 
         // 1. 저축 플래너 최신 이력 가져오기
@@ -116,15 +114,12 @@ public class AssetController {
         }
         model.addAttribute("goalAchievementRate", Math.round(goalAchievementRate * 10) / 10.0);
 
-
         // 전체 월별 자산 추이 (2월, 3월, 4월 등)
         // 선택된 월 기준 최근 3개월 데이터 가져오기
         Map<String, Long> assetTrend = assetDao.getAssetTrendData(currentRealMonth);
 
         model.addAttribute("trendLabels", new ArrayList<>(assetTrend.keySet()));
         model.addAttribute("trendValues", new ArrayList<>(assetTrend.values()));
-
-
 
         return "asset/dashboard";
     }

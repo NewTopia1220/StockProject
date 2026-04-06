@@ -58,9 +58,9 @@ public class AssetDao {
         try {
 
             String sql = "SELECT month, transaction_date, amount, vendor, category " +
-                         "FROM asset_data " +
-                         "where month = ?" +
-                         "ORDER BY transaction_date DESC FETCH FIRST 10 ROWS ONLY";
+                    "FROM asset_data " +
+                    "where month = ?" +
+                    "ORDER BY transaction_date DESC FETCH FIRST 10 ROWS ONLY";
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);
@@ -138,9 +138,9 @@ public class AssetDao {
 
         // 식비, 의료, 주거는 필수(Need)로 분류하는 SQL
         String sql = "SELECT SUM(CASE WHEN category LIKE '%식비%' OR category LIKE '%의료%' OR category LIKE '%주거%' THEN amount ELSE 0 END) as need, " +
-                            "SUM(CASE WHEN NOT (category LIKE '%식비%' OR category like '%의료%' OR category like '%주거%') THEN amount ELSE 0 END) as want " +
-                     "FROM asset_data " +
-                     "WHERE month = ?";
+                "SUM(CASE WHEN NOT (category LIKE '%식비%' OR category like '%의료%' OR category like '%주거%') THEN amount ELSE 0 END) as want " +
+                "FROM asset_data " +
+                "WHERE month = ?";
 
         try {
             pstmt = conn.prepareStatement(sql);
@@ -171,10 +171,10 @@ public class AssetDao {
         conn = connect();
 
         String sql = "SELECT category, SUM(amount) as total " +
-                     "FROM asset_data " +
-                     "WHERE month = ? " +
-                     "GROUP BY category " +
-                     "ORDER BY total DESC";
+                "FROM asset_data " +
+                "WHERE month = ? " +
+                "GROUP BY category " +
+                "ORDER BY total DESC";
         try {
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);

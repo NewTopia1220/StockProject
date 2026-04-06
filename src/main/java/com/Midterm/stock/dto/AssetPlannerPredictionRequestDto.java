@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 // FastAPI 요청용
 public class AssetPlannerPredictionRequestDto {
 
-
     @JsonProperty("current_asset")
     private long current_asset;
 
@@ -14,9 +13,6 @@ public class AssetPlannerPredictionRequestDto {
 
     @JsonProperty("monthly_expense")
     private long monthly_expense;
-
-    @JsonProperty("monthly_saving")
-    private long monthly_saving;
 
     @JsonProperty("goal_amount")
     private long goal_amount;
@@ -35,14 +31,6 @@ public class AssetPlannerPredictionRequestDto {
 
     @JsonProperty("risk_preference")
     private String risk_preference;
-
-    public long getMonthly_saving() {
-        return monthly_saving;
-    }
-
-    public void setMonthly_saving(long monthly_saving) {
-        this.monthly_saving = monthly_saving;
-    }
 
     public long getCurrent_asset() {
         return current_asset;

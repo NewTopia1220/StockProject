@@ -46,9 +46,9 @@ public class CommunityController {
     }
 
     // 글쓰기 화면
-    @GetMapping("/write")
+    @GetMapping("/writeForm")
     public String writeForm(HttpSession session, Model model){
-
+        CommunityDto dto = new CommunityDto();
         String loginUser = (String) session.getAttribute("loginUser");
 
         if (loginUser == null){
@@ -56,6 +56,7 @@ public class CommunityController {
         }
 
         model.addAttribute("currentPage", "community");
+        model.addAttribute("dto", dto);
         return "community/writeForm";
     }
 }

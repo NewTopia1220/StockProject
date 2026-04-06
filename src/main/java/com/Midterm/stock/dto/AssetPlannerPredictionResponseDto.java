@@ -21,8 +21,6 @@ public class AssetPlannerPredictionResponseDto {
     @JsonProperty("prediction_label")
     private String prediction_label;
 
-
-
     @JsonProperty("tone_title")
     private String tone_title;
 
@@ -30,9 +28,6 @@ public class AssetPlannerPredictionResponseDto {
     private InputSummary input_summary;
 
     private Analysis analysis;
-
-
-
 
     public static class InputSummary {
         @JsonProperty("current_asset")
@@ -44,19 +39,24 @@ public class AssetPlannerPredictionResponseDto {
         @JsonProperty("monthly_expense")
         private long monthly_expense;
 
-        @JsonProperty("monthly_saving")
-        private double monthly_saving;
+        @JsonProperty("monthly_cashflow")
+        private double monthly_cashflow;
 
         @JsonProperty("goal_amount")
         private long goal_amount;
+
         @JsonProperty("goal_months")
         private int goal_months;
+
         @JsonProperty("expected_return")
         private double expected_return;
+
         @JsonProperty("age")
         private int age;
+
         @JsonProperty("job_type")
         private String job_type;
+
         @JsonProperty("risk_preference")
         private String risk_preference;
 
@@ -84,12 +84,12 @@ public class AssetPlannerPredictionResponseDto {
             this.monthly_expense = monthly_expense;
         }
 
-        public double getMonthly_saving() {
-            return monthly_saving;
+        public double getMonthly_cashflow() {
+            return monthly_cashflow;
         }
 
-        public void setMonthly_saving(double monthly_saving) {
-            this.monthly_saving = monthly_saving;
+        public void setMonthly_cashflow(double monthly_cashflow) {
+            this.monthly_cashflow = monthly_cashflow;
         }
 
         public long getGoal_amount() {
@@ -142,17 +142,35 @@ public class AssetPlannerPredictionResponseDto {
     }
 
     public static class Analysis {
-        private long required_monthly_saving;
+        @JsonProperty("required_monthly_cashflow")
+        private long required_monthly_cashflow;
+
+        @JsonProperty("estimated_final_asset")
         private long estimated_final_asset;
+
+        @JsonProperty("goal_gap")
         private long goal_gap;
+
+        @JsonProperty("future_value_current")
+        private long future_value_current;
+
+        @JsonProperty("remain_needed")
+        private long remain_needed;
+
+        @JsonProperty("surplus_amount")
+        private long surplus_amount;
+
+        @JsonProperty("is_achieved_by_current_asset_growth")
+        private boolean is_achieved_by_current_asset_growth;
+
         private String message;
 
-        public long getRequired_monthly_saving() {
-            return required_monthly_saving;
+        public long getRequired_monthly_cashflow() {
+            return required_monthly_cashflow;
         }
 
-        public void setRequired_monthly_saving(long required_monthly_saving) {
-            this.required_monthly_saving = required_monthly_saving;
+        public void setRequired_monthly_cashflow(long required_monthly_cashflow) {
+            this.required_monthly_cashflow = required_monthly_cashflow;
         }
 
         public long getEstimated_final_asset() {
@@ -169,6 +187,38 @@ public class AssetPlannerPredictionResponseDto {
 
         public void setGoal_gap(long goal_gap) {
             this.goal_gap = goal_gap;
+        }
+
+        public long getFuture_value_current() {
+            return future_value_current;
+        }
+
+        public void setFuture_value_current(long future_value_current) {
+            this.future_value_current = future_value_current;
+        }
+
+        public long getRemain_needed() {
+            return remain_needed;
+        }
+
+        public void setRemain_needed(long remain_needed) {
+            this.remain_needed = remain_needed;
+        }
+
+        public long getSurplus_amount() {
+            return surplus_amount;
+        }
+
+        public void setSurplus_amount(long surplus_amount) {
+            this.surplus_amount = surplus_amount;
+        }
+
+        public boolean isIs_achieved_by_current_asset_growth() {
+            return is_achieved_by_current_asset_growth;
+        }
+
+        public void setIs_achieved_by_current_asset_growth(boolean is_achieved_by_current_asset_growth) {
+            this.is_achieved_by_current_asset_growth = is_achieved_by_current_asset_growth;
         }
 
         public String getMessage() {

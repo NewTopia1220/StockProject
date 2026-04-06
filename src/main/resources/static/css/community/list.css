@@ -30,7 +30,7 @@
     --radius-md:16px;
     --radius-sm:12px;
 
-    --page-width:1540px;
+    --page-width:1200px;
     --left-width:260px;
     --right-width:320px;
 }
@@ -48,7 +48,7 @@ a{
     max-width:var(--page-width);
     width:100%;
     margin:0 auto;
-    padding:24px 20px 56px;
+    padding:26px 20px 56px;
     min-height:calc(100vh - 124px);
 }
 
