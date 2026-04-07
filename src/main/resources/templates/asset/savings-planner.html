@@ -261,7 +261,7 @@
                                 <div class="banner-content">
                                     <span class="banner-label">달성 여부</span>
                                     <span class="banner-badge">AI 예측 - </span>
-                                    <strong class="banner-text" th:text="${assetDto.predictionLabel}"></strong>
+                                    <strong class="banner-text" th:text="${assetDto.modelPredictionLabel}"></strong>
                                     <span class="banner-sub" th:text="${#numbers.formatDecimal(assetDto.modelProbability * 100, 1, 2)} + '%'"></span>
                                 </div>
                             </div>

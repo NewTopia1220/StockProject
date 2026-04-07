@@ -27,7 +27,7 @@ public class AssetPlannerAnalysisService {
     private final ObjectMapper objectMapper;
     private final String predictionApiUrl;
 
-    public AssetPlannerAnalysisService(@Value("${asset.prediction.api-url:http://127.0.0.1:8000/api/asset/predict}") String predictionApiUrl) {
+    public AssetPlannerAnalysisService(@Value("${asset.prediction.api-url:http://127.0.0.1:9000/api/asset/predict}") String predictionApiUrl) {
         objectMapper = new ObjectMapper();
         objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
         this.predictionApiUrl = predictionApiUrl;
@@ -77,6 +77,10 @@ public class AssetPlannerAnalysisService {
             System.out.println("MONTHLY CASHFLOW: " + responseDto.getInput_summary().getMonthly_cashflow());
         }
 
+        System.out.println("model_prediction = " + responseDto.getModel_prediction());
+        System.out.println("model_prediction_label = " + responseDto.getModel_prediction_label());
+        System.out.println("model_probability = " + responseDto.getModel_probability());
+
         AssetPlannerAnalysisDto resultDto = new AssetPlannerAnalysisDto();
         resultDto.setCurrentAsset(formDto.getCurrentAsset());
         resultDto.setMonthlyIncome(formDto.getMonthlyIncome());
@@ -97,10 +101,15 @@ public class AssetPlannerAnalysisService {
         }
 
         resultDto.setPrediction(responseDto.getPrediction());
+        // getPrediction_label 추가
         resultDto.setPredictionLabel(responseDto.getPrediction_label());
         resultDto.setToneTitle(responseDto.getTone_title());
+
         resultDto.setModelPrediction(responseDto.getModel_prediction());
+        resultDto.setModelPredictionLabel(responseDto.getModel_prediction_label());
         resultDto.setModelProbability(responseDto.getModel_probability());
+
+        System.out.println("resultDto modelPredictionLabel = " + resultDto.getModelPredictionLabel());
 
         if (responseDto.getAnalysis() != null) {
             // FastAPI의 required_monthly_cashflow 값을, 자바/DB에서는 기존 requiredMonthlySaving 필드에 저장

@@ -78,18 +78,20 @@ public class AssetController {
         int currentMonthSpending = assetDao.getMonthSpending(month);  // 일단 넣어준거 수정해야됨
         int prevMonth = (month == 1) ? 12 : month - 1;
         int previousMonthSpending = assetDao.getMonthSpending(prevMonth);  // 일단 넣어준거 수정해야됨
+
         model.addAttribute("currentMonthSpending", currentMonthSpending);
         model.addAttribute("previousMonthSpending", previousMonthSpending);
         model.addAttribute("prevMonth", prevMonth);
 
-        // 이전 달 데이터 존재 여부 확인
-        boolean hasPrevData = assetDao.getRecentTransactionsByMonth(prevMonth) != null
-                                && !assetDao.getRecentTransactionsByMonth(prevMonth).isEmpty();
-        model.addAttribute("hasPrevData", hasPrevData);
-        // 다음 달 데이터 존재 여부 확인
+        // 이전 달과 다음 달의 데이터 존재 여부 확인
+        List<AssetDto> prevTransactions = assetDao.getRecentTransactionsByMonth(prevMonth);
+        boolean hasPrevData = !prevTransactions.isEmpty();
+
         int nextMonth = (month == 12) ? 1 : month + 1;
-        boolean hasNextData = assetDao.getRecentTransactionsByMonth(nextMonth) != null
-                                && !assetDao.getRecentTransactionsByMonth(nextMonth).isEmpty();
+        List<AssetDto> nextTransactions = assetDao.getRecentTransactionsByMonth(nextMonth);
+        boolean hasNextData = !nextTransactions.isEmpty();
+
+        model.addAttribute("hasPrevData", hasPrevData);
         model.addAttribute("hasNextData", hasNextData);
         model.addAttribute("nextMonth", nextMonth);
 
