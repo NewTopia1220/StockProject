@@ -10,11 +10,9 @@ public class UserDto {
     private String role;
     private String phone;
 
-
     public UserDto() {
 
     }
-
 
     public UserDto(int num, String name, String email, String password, String role, String phone) {
 

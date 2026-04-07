@@ -47,8 +47,8 @@ a{
 .communityPage{
     max-width:var(--page-width);
     width:100%;
-    margin:0 auto;
-    padding:26px 20px 56px;
+    margin:10 auto;
+    padding:36px 20px 56px;
     min-height:calc(100vh - 124px);
 }
 
@@ -395,7 +395,7 @@ a{
     border-top:1px solid var(--line);
 }
 
-.sidebarWriteBtn{
+.sidebarInsertBtn{
     width:100%;
     display:inline-flex;
     align-items:center;
@@ -410,7 +410,7 @@ a{
     transition:transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.sidebarWriteBtn:hover{
+.sidebarInsertBtn:hover{
     transform:translateY(-1px);
     box-shadow:0 14px 26px rgba(215, 75, 90, 0.22);
 }

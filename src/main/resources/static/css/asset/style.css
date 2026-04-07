@@ -38,7 +38,7 @@ body {
     height: 100vh;
     overflow: hidden;
     /* 1. 헤더와의 간격을 위해 상단 margin 추가 (기존 padding-top 104px에 더해짐) */
-    margin: 30px auto;
+    margin: 10px auto;
     /* 2. 헤더의 .inner와 동일한 max-width 설정 (1250px) */
     max-width: 1200px;
     width: 100%;

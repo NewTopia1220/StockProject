@@ -7,11 +7,13 @@ import com.Midterm.stock.repository.AssetDao;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategies;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.ArrayList;
@@ -23,10 +25,12 @@ public class AssetPlannerAnalysisService {
     private AssetDao assetDao;
 
     private final ObjectMapper objectMapper;
+    private final String predictionApiUrl;
 
-    public AssetPlannerAnalysisService() {
+    public AssetPlannerAnalysisService(@Value("${asset.prediction.api-url:http://127.0.0.1:8000/api/asset/predict}") String predictionApiUrl) {
         objectMapper = new ObjectMapper();
         objectMapper.setPropertyNamingStrategy(PropertyNamingStrategies.SNAKE_CASE);
+        this.predictionApiUrl = predictionApiUrl;
     }
 
     public AssetPlannerAnalysisDto analyzeAndSave(AssetPlannerAnalysisDto formDto) throws Exception {
@@ -50,12 +54,16 @@ public class AssetPlannerAnalysisService {
         HttpEntity<AssetPlannerPredictionRequestDto> entity =
                 new HttpEntity<>(requestDto, headers);
 
-        ResponseEntity<AssetPlannerPredictionResponseDto> response =
-                restTemplate.postForEntity(
-                        "http://127.0.0.1:8000/api/asset/predict",
-                        entity,
-                        AssetPlannerPredictionResponseDto.class
-                );
+        ResponseEntity<AssetPlannerPredictionResponseDto> response;
+        try {
+            response = restTemplate.postForEntity(
+                    predictionApiUrl,
+                    entity,
+                    AssetPlannerPredictionResponseDto.class
+            );
+        } catch (RestClientException e) {
+            throw new RuntimeException("자산 예측 API 호출에 실패했습니다. FastAPI 서버 상태와 주소를 확인해주세요: " + predictionApiUrl, e);
+        }
 
         AssetPlannerPredictionResponseDto responseDto = response.getBody();
 
