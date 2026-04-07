@@ -28,23 +28,30 @@ public class PageController {
         return "register";
     }
 
-    // 메인 화면
+    /**
+     * 주식 메인 페이지
+     * GET /stock?code=005930
+     * - 페이지 첫 로드 시 서버사이드 렌더링으로 초기 데이터 포함
+     * - 이후 데이터는 stock.js에서 폴링으로 업데이트
+     * - 비로그인 시 /login 리다이렉트
+     *
+     * @param code 초기 표시 종목코드 (기본값: 005930 삼성전자)
+     */
     @GetMapping("/stock")
     public String stockPage(@RequestParam(defaultValue = "005930") String code,
                             HttpSession session,
                             Model model) {
         String loginUser = (String) session.getAttribute("loginUser");
+        if (loginUser == null) {
+            return "redirect:/login";
+        }
 
-        // 페이지 로드시 ticker 데이터 포함
+        // 초기 렌더링용 데이터 (JS 폴링 전 빈 화면 방지)
         model.addAttribute("stockInfo", stockService.getCurrentPrice(code));
         model.addAttribute("chartData", stockService.getDailyPrice(code));
         model.addAttribute("kospiInfo", stockService.getKospiIndex());
         model.addAttribute("kosdaqInfo", stockService.getKosdaqIndex());
         model.addAttribute("stockCode", code);
-
-        if (loginUser == null) {
-            return "redirect:/login";
-        }
 
         return "stock";
     }

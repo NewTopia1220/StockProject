@@ -2,6 +2,11 @@ package com.Midterm.stock.dto;
 
 import lombok.Data;
 
+/**
+ * 주식/지수/환율 응답 공통 DTO
+ * - 주식: stockName, currentPrice, openPrice, highPrice, lowPrice, volume
+ * - 지수/환율: currentPrice, priceChange, changeRate
+ */
 @Data
 public class StockResponseDto {
     // 종목

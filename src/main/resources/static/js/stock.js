@@ -1,20 +1,35 @@
+// ════════════════════════════════════════════════════════
+//  전역 상태 변수
+// ════════════════════════════════════════════════════════
+
+/** Chart.js 인스턴스 (단일 차트 재사용) */
 let mainChart = null;
-const DEFAULT_CODE = '005930';
-let currentCode = DEFAULT_CODE;
+
+/** 현재 표시 중인 종목코드 (기본: 삼성전자) */
+let currentCode = '005930';
+
+/** 현재 차트 탭 (daily | time | minute) */
 let currentTab = 'daily';
+
+/** 검색 디바운싱용 타이머 ID */
 let searchTimer = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-    // 섹터 버튼 클릭 이벤트
+// ════════════════════════════════════════════════════════
+//  초기화 (DOM 로드 완료 후 실행)
+// ════════════════════════════════════════════════════════
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    // 섹터 버튼 클릭 시 활성 상태 토글
     const sectorBtns = document.querySelectorAll('.sectorList button');
     sectorBtns.forEach(btn => {
-        btn.addEventListener('click', function() {
+        btn.addEventListener('click', function () {
             sectorBtns.forEach(b => b.classList.remove('active'));
             this.classList.add('active');
         });
     });
 
-    // AI 분석 더미데이터
+    // AI 분석 더미 데이터 (추후 실제 ML 모델 연동 예정)
     updateAIAnalysis({
         confidence: 88,
         noise: 12,
@@ -23,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function() {
         desc: '현재 시장 트렌드는 매우 안정적이며, AI 신뢰도가 높게 유지되고 있습니다.'
     });
 
-    // 탭 전환
+    // 차트 탭 전환 이벤트
     document.querySelectorAll('.chartTab').forEach(btn => {
         btn.addEventListener('click', async () => {
             document.querySelectorAll('.chartTab').forEach(b => b.classList.remove('active'));
@@ -33,12 +48,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // 검색
+    // 종목 검색 입력 이벤트 (300ms 디바운싱)
     document.getElementById('stockSearch')?.addEventListener('input', async (e) => {
         const keyword = e.target.value.trim();
         const dropdown = document.getElementById('searchDropdown');
-
-        // 타이머로 입력 중 과도한 API 호출 방지 (300ms 디바운싱)
         clearTimeout(searchTimer);
 
         if (keyword.length < 1) {
@@ -49,13 +62,14 @@ document.addEventListener('DOMContentLoaded', function() {
         searchTimer = setTimeout(async () => {
             try {
                 const res = await fetch(`/api/stock/search?keyword=${encodeURIComponent(keyword)}`);
-                const items = await res.json(); // ← data.output 대신 바로 items로
+                const items = await res.json();
 
                 if (!items || items.length === 0) {
                     dropdown.style.display = 'none';
                     return;
                 }
 
+                // 검색 결과 드롭다운 렌더링
                 dropdown.innerHTML = items.slice(0, 8).map(item => `
                     <div class="searchItem"
                          data-code="${item.code}"
@@ -68,15 +82,13 @@ document.addEventListener('DOMContentLoaded', function() {
                     </div>
                 `).join('');
 
+                // 드롭다운 항목 클릭: 종목 변경 + 차트/정보 업데이트
                 dropdown.querySelectorAll('.searchItem').forEach(el => {
                     el.addEventListener('click', async () => {
                         currentCode = el.dataset.code;
                         const name = el.dataset.name;
-                        document.getElementById('stockSearch').value =
-                            name + ' (' + el.dataset.code + ')';
+                        document.getElementById('stockSearch').value = `${name} (${el.dataset.code})`;
                         dropdown.style.display = 'none';
-
-                        // 종목명을 updateStockInfo에 전달
                         await updateStockInfo(name);
                         await updateMainChart();
                     });
@@ -89,36 +101,46 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 300);
     });
 
-// 외부 클릭시 드롭다운 닫기
+    // 검색창 외부 클릭 시 드롭다운 닫기
     document.addEventListener('click', (e) => {
         if (!e.target.closest('.searchWrapper')) {
             document.getElementById('searchDropdown').style.display = 'none';
         }
     });
 
-// Enter 키 직접 코드 입력도 유지
+    // Enter 키로 종목코드 직접 입력
     document.getElementById('stockSearch')?.addEventListener('keypress', async (e) => {
         if (e.key === 'Enter') {
-            const val = e.target.value.trim();
-            currentCode = val;
+            currentCode = e.target.value.trim();
             document.getElementById('searchDropdown').style.display = 'none';
             await updateMainChart();
         }
     });
 
+    // 통화 변경 시 환율 즉시 업데이트
+    document.getElementById('currencySelect')?.addEventListener('change', () => {
+        updateExchange();
+    });
 
     // 폴링 시작
     startPolling();
 });
 
-// 차트 데이터 fetch
+// ════════════════════════════════════════════════════════
+//  차트 관련
+// ════════════════════════════════════════════════════════
+
+/**
+ * 현재 탭/종목에 맞는 차트 데이터 fetch
+ * - 장 외 시간에 시간별/분별 선택 시 일별로 자동 전환
+ */
 async function fetchMainChartData() {
-    // 시간별/분별은 장 중에만 가능
     let tab = currentTab;
+
+    // 장 외 시간에는 시간별/분별 대신 일별로 대체
     if ((tab === 'time' || tab === 'minute') && !isMarketOpen()) {
         console.log('장 외 시간 - 일별 차트로 대체');
         tab = 'daily';
-        // 탭 UI도 일별로 변경
         document.querySelectorAll('.chartTab').forEach(b => {
             b.classList.toggle('active', b.dataset.tab === 'daily');
         });
@@ -126,8 +148,8 @@ async function fetchMainChartData() {
     }
 
     const endpoints = {
-        daily: `/api/stock/${currentCode}/chart`,
-        time: `/api/stock/${currentCode}/time`,
+        daily:  `/api/stock/${currentCode}/chart`,
+        time:   `/api/stock/${currentCode}/time`,
         minute: `/api/stock/${currentCode}/minute`
     };
 
@@ -135,7 +157,7 @@ async function fetchMainChartData() {
         const res = await fetch(endpoints[tab]);
         const data = await res.json();
 
-        // 빈 데이터면 일별로 fallback
+        // 빈 데이터 응답 시 일별로 fallback
         if (!data.labels || data.labels.length === 0) {
             const fallback = await fetch(`/api/stock/${currentCode}/chart`);
             return await fallback.json();
@@ -147,7 +169,10 @@ async function fetchMainChartData() {
     }
 }
 
-// 차트 초기화
+/**
+ * 차트 초기화 (첫 로드 또는 종목 변경 시)
+ * - 기존 Chart 인스턴스가 있으면 destroy 후 재생성
+ */
 async function initMainChart() {
     const data = await fetchMainChartData();
 
@@ -178,7 +203,7 @@ async function initMainChart() {
                 legend: { display: false },
                 title: {
                     display: true,
-                    text: `${currentCode} - ${currentTab === 'daily' ? '일별' : currentTab === 'time' ? '시간별' : '분별'}`
+                    text: getChartTitle()
                 }
             },
             scales: {
@@ -192,50 +217,109 @@ async function initMainChart() {
     });
 }
 
-// 차트 업데이트
+/**
+ * 차트 데이터 업데이트 (폴링 or 탭/종목 변경 시)
+ */
 async function updateMainChart() {
     const data = await fetchMainChartData();
     if (!mainChart) return;
 
     mainChart.data.labels = data.labels;
     mainChart.data.datasets[0].data = data.closePrices;
-    mainChart.options.plugins.title.text =
-        `${currentCode} - ${currentTab === 'daily' ? '일별' : currentTab === 'time' ? '시간별' : '분별'}`;
+    mainChart.options.plugins.title.text = getChartTitle();
     mainChart.update();
 }
 
-// ticker + 환율 업데이트
+/**
+ * 현재 종목/탭에 맞는 차트 제목 반환
+ */
+function getChartTitle() {
+    const tabLabel = currentTab === 'daily' ? '일별' : currentTab === 'time' ? '시간별' : '분별';
+    return `${currentCode} - ${tabLabel}`;
+}
+
+// ════════════════════════════════════════════════════════
+//  종목 정보 패널
+// ════════════════════════════════════════════════════════
+
+/**
+ * 차트 상단 종목 정보 패널 업데이트
+ * - 현재가, 시가, 고가, 저가, 거래량, 등락 표시
+ *
+ * @param stockName 종목명 (검색 시 넘어온 값, 없으면 기존 값 유지)
+ */
+async function updateStockInfo(stockName = '') {
+    try {
+        const res = await fetch(`/api/stock/${currentCode}`);
+        const data = await res.json();
+
+        // 종목명: 검색 시 전달된 이름 우선, 없으면 기존 표시 유지
+        document.getElementById('chartStockName').textContent =
+            stockName || document.getElementById('chartStockName').textContent || currentCode;
+        document.getElementById('chartStockCode').textContent = currentCode;
+
+        const price = Number(data.currentPrice);
+        const open  = Number(data.openPrice);
+        const high  = Number(data.highPrice);
+        const low   = Number(data.lowPrice);
+        const vol   = Number(data.volume);
+
+        document.getElementById('chartCurrentPrice').textContent = `${price.toLocaleString()} KRW`;
+
+        // 등락 = 현재가 - 시가 기준
+        const change = price - open;
+        const changeRate = open !== 0 ? ((change / open) * 100).toFixed(2) : '0.00';
+        const sign = change >= 0 ? '+' : '';
+        const arrow = change >= 0 ? '▲' : '▼';
+        const changeEl = document.getElementById('chartPriceChange');
+        changeEl.textContent = `${sign}${change.toLocaleString()} (${sign}${changeRate}%) ${arrow} 오늘`;
+        changeEl.className = change >= 0 ? 'up' : 'down';
+
+        document.getElementById('chartOpenPrice').textContent = open.toLocaleString();
+        document.getElementById('chartHighPrice').textContent = high.toLocaleString();
+        document.getElementById('chartLowPrice').textContent = low.toLocaleString();
+        document.getElementById('chartVolume').textContent = vol.toLocaleString();
+
+    } catch (e) {
+        console.log('종목 정보 오류:', e);
+    }
+}
+
+// ════════════════════════════════════════════════════════
+//  지수 / 환율 업데이트
+// ════════════════════════════════════════════════════════
+
+/**
+ * 코스피/코스닥 지수 업데이트
+ */
 async function updateTicker() {
     try {
-        const [kospi, kosdaq, exchange] = await Promise.all([
+        const [kospi, kosdaq] = await Promise.all([
             fetch('/api/kospi').then(r => r.json()),
-            fetch('/api/kosdaq').then(r => r.json()),
-            fetch('/api/exchange').then(r => r.json())
+            fetch('/api/kosdaq').then(r => r.json())
         ]);
 
-        // 코스피
-        document.getElementById('kospiPrice').textContent =
-            Number(kospi.currentPrice).toLocaleString();
+        document.getElementById('kospiPrice').textContent = Number(kospi.currentPrice).toLocaleString();
         document.getElementById('kospiRate').textContent =
             (kospi.changeRate > 0 ? '▲ ' : '▼ ') + kospi.changeRate + '%';
 
-        // 코스닥
-        document.getElementById('kosdaqPrice').textContent =
-            Number(kosdaq.currentPrice).toLocaleString();
+        document.getElementById('kosdaqPrice').textContent = Number(kosdaq.currentPrice).toLocaleString();
         document.getElementById('kosdaqRate').textContent =
             (kosdaq.changeRate > 0 ? '▲ ' : '▼ ') + kosdaq.changeRate + '%';
-
     } catch (e) {
         console.log('ticker 오류:', e);
     }
 }
 
-// 환율 함수
+/**
+ * 환율 업데이트
+ * - 선택된 통화(currencySelect)로 조회
+ * - 등락에 따라 up/down 클래스 적용
+ */
 async function updateExchange() {
     try {
         const currency = document.getElementById('currencySelect')?.value || 'USD';
-        const exchange = await fetch(`/api/exchange?currency=${currency}`)
-            .then(r => r.json());
+        const exchange = await fetch(`/api/exchange?currency=${currency}`).then(r => r.json());
 
         document.getElementById('exchangePrice').textContent =
             Number(exchange.currentPrice).toLocaleString() + '원';
@@ -257,89 +341,22 @@ async function updateExchange() {
     }
 }
 
-// 통화 변경시 즉시 업데이트
-document.getElementById('currencySelect')?.addEventListener('change', () => {
-    updateExchange();
-});
+// ════════════════════════════════════════════════════════
+//  등락률 상위 종목 (티커 + 종목 리스트)
+// ════════════════════════════════════════════════════════
 
-
-// 종목 정보 패널 업데이트
-async function updateStockInfo(stockName = '') {
-    try {
-        const res = await fetch(`/api/stock/${currentCode}`);
-        const data = await res.json();
-
-        // 종목명 - 검색시 넘어온 이름 우선, 없으면 코드 표시
-        document.getElementById('chartStockName').textContent =
-            stockName || document.getElementById('chartStockName').textContent || currentCode;
-        document.getElementById('chartStockCode').textContent = currentCode;
-
-        const price = Number(data.currentPrice);
-        const open  = Number(data.openPrice);
-        const high  = Number(data.highPrice);
-        const low   = Number(data.lowPrice);
-        const vol   = Number(data.volume);
-
-        // 현재가
-        document.getElementById('chartCurrentPrice').textContent =
-            price.toLocaleString() + ' KRW';
-
-        // 등락 (현재가 - 시가)
-        const change = price - open;
-        const changeRate = open !== 0 ? ((change / open) * 100).toFixed(2) : '0.00';
-        const sign = change >= 0 ? '+' : '';
-        const arrow = change >= 0 ? '▲' : '▼';
-        const changeEl = document.getElementById('chartPriceChange');
-        changeEl.textContent =
-            `${sign}${change.toLocaleString()} (${sign}${changeRate}%) ${arrow} 오늘`;
-        changeEl.className = change >= 0 ? 'up' : 'down';
-
-        // 시가/고가/저가/거래량
-        document.getElementById('chartOpenPrice').textContent =
-            open.toLocaleString();
-        document.getElementById('chartHighPrice').textContent =
-            high.toLocaleString();
-        document.getElementById('chartLowPrice').textContent =
-            low.toLocaleString();
-        document.getElementById('chartVolume').textContent =
-            vol.toLocaleString();
-
-    } catch (e) {
-        console.log('종목 정보 오류:', e);
-    }
-}
-
-
-
-// AI 분석 업데이트
-function updateAIAnalysis(data) {
-    document.getElementById('confBar').style.width = data.confidence + '%';
-    document.getElementById('confVal').innerText = data.confidence + '%';
-    document.getElementById('noiseBar').style.width = data.noise + '%';
-    document.getElementById('noiseVal').innerText = data.noise + '%';
-    document.getElementById('sentBar').style.width = data.sentiment + '%';
-    document.getElementById('aiStatus').innerText = data.status;
-    document.getElementById('aiDesc').innerText = data.desc;
-}
-
-// 장 운영시간 체크
-function isMarketOpen() {
-    const now = new Date();
-    const day = now.getDay();
-    if (day === 0 || day === 6) return false;
-    const time = now.getHours() * 100 + now.getMinutes();
-    return time >= 900 && time <= 1530;
-}
-
-// 등락률 상위 종목 업데이트
+/**
+ * 등락률 상위 종목 조회 후 티커와 종목 리스트 업데이트
+ * - 티커: 무한 스크롤을 위해 동일 내용 2개 렌더링
+ * - 종목 리스트: 상위 6개 표시
+ */
 async function updateTopStocks() {
     try {
         const res = await fetch('/api/stock/top-fluctuation');
         const stocks = await res.json();
-
         if (!stocks || stocks.length === 0) return;
 
-        // 티커 업데이트
+        // 티커 아이템 HTML 생성
         const tickerHtml = stocks.map(s => {
             const rate = parseFloat(s.changeRate);
             const cls = rate >= 0 ? 'up' : 'down';
@@ -347,22 +364,21 @@ async function updateTopStocks() {
             return `<div class="t-item">
                 <span>${s.stockName}</span>
                 <strong class="${cls}">
-                    ${Number(s.currentPrice).toLocaleString()} 
-                    ${arrow}${Math.abs(rate).toFixed(2)}%
+                    ${Number(s.currentPrice).toLocaleString()} ${arrow}${Math.abs(rate).toFixed(2)}%
                 </strong>
             </div>`;
         }).join('');
 
-        // 티커 두 개 동일하게 (무한 스크롤용)
+        // 무한 스크롤용으로 동일 내용 2개 렌더링
         document.getElementById('tickerContent1').innerHTML = tickerHtml;
         document.getElementById('tickerContent2').innerHTML = tickerHtml;
 
-        // 종목 리스트 업데이트
+        // 종목 리스트 (상위 6개)
         const listHtml = stocks.slice(0, 6).map(s => {
             const rate = parseFloat(s.changeRate);
             const cls = rate >= 0 ? 'up' : 'down';
             const arrow = rate >= 0 ? '▲' : '▼';
-            return `<div class="stockItem" onclick="selectStock('${s.stockName}')">
+            return `<div class="stockItem">
                 <div class="name">
                     <h3>${s.stockName}</h3>
                 </div>
@@ -374,25 +390,67 @@ async function updateTopStocks() {
         }).join('');
 
         document.getElementById('stockListContainer').innerHTML = listHtml;
-
     } catch (e) {
         console.log('등락률 순위 오류:', e);
     }
 }
 
+// ════════════════════════════════════════════════════════
+//  AI 분석 (추후 ML 모델 연동 예정)
+// ════════════════════════════════════════════════════════
 
+/**
+ * AI 분석 게이지 바 업데이트
+ * @param data { confidence, noise, sentiment, status, desc }
+ */
+function updateAIAnalysis(data) {
+    document.getElementById('confBar').style.width = data.confidence + '%';
+    document.getElementById('confVal').innerText = data.confidence + '%';
+    document.getElementById('noiseBar').style.width = data.noise + '%';
+    document.getElementById('noiseVal').innerText = data.noise + '%';
+    document.getElementById('sentBar').style.width = data.sentiment + '%';
+    document.getElementById('aiStatus').innerText = data.status;
+    document.getElementById('aiDesc').innerText = data.desc;
+}
 
+// ════════════════════════════════════════════════════════
+//  유틸리티
+// ════════════════════════════════════════════════════════
 
-// 폴링 시작
+/**
+ * 현재 장 운영 시간 여부 확인
+ * - 평일(월~금) 09:00 ~ 15:30 만 true
+ */
+function isMarketOpen() {
+    const now = new Date();
+    const day = now.getDay(); // 0=일, 6=토
+    if (day === 0 || day === 6) return false;
+    const time = now.getHours() * 100 + now.getMinutes();
+    return time >= 900 && time <= 1530;
+}
+
+// ════════════════════════════════════════════════════════
+//  폴링 (주기적 데이터 갱신)
+// ════════════════════════════════════════════════════════
+
+/**
+ * 폴링 시작
+ * - 초기 로드: 차트, 종목정보, 지수, 환율, 등락률 순위 한 번 실행
+ * - 지수/종목정보/등락률: 3초마다 갱신
+ * - 환율: 30초마다 갱신 (자주 변하지 않으므로 별도 인터벌)
+ * - 차트: 장 중에만 갱신
+ */
 async function startPolling() {
+    // 초기 로드
     await initMainChart();
     await updateStockInfo();
-    await updateTicker();       // 코스피/코스닥
-    await updateExchange();     // 환율 (별도)
-    await updateTopStocks();    // 등락률 (티커 + 종목 리스트)
+    await updateTicker();
+    await updateExchange();
+    await updateTopStocks();
 
+    // 지수/종목/등락률: 3초마다
     setInterval(async () => {
-        await updateTicker(); // 항상 업데이트
+        await updateTicker();
         await updateStockInfo();
         await updateTopStocks();
         if (isMarketOpen()) {
