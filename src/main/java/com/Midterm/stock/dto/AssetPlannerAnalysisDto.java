@@ -31,6 +31,7 @@ public class AssetPlannerAnalysisDto {
 
     private String message;
     private String createdAt;
+    private String modelPredictionLabel;
 
     public int getAnalysisId() {
         return analysisId;
@@ -198,5 +199,13 @@ public class AssetPlannerAnalysisDto {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public String getModelPredictionLabel() {
+        return modelPredictionLabel;
+    }
+
+    public void setModelPredictionLabel(String modelPredictionLabel) {
+        this.modelPredictionLabel = modelPredictionLabel;
     }
 }

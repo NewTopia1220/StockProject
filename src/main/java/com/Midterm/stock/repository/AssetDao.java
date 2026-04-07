@@ -231,10 +231,10 @@ public class AssetDao {
         String sql = "insert into asset_analysis_history ("
                 + "analysis_id, current_asset, monthly_income, monthly_expense, monthly_saving, "
                 + "goal_amount, goal_months, expected_return, age, job_type, risk_preference, "
-                + "prediction, prediction_label, tone_title, model_prediction, model_probability, "
+                + "prediction, prediction_label, tone_title, model_prediction, model_prediction_label, model_probability, "
                 + "required_monthly_saving, estimated_final_asset, goal_gap, message, created_at"
                 + ") values ("
-                + "asset_analysis_history_seq.nextval, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate"
+                + "asset_analysis_history_seq.nextval, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate"
                 + ")";
 
         try {
@@ -255,12 +255,13 @@ public class AssetDao {
             pstmt.setString(13, dto.getToneTitle());
 
             pstmt.setInt(14, dto.getModelPrediction());
-            pstmt.setDouble(15, dto.getModelProbability());
+            pstmt.setString(15, dto.getModelPredictionLabel());
+            pstmt.setDouble(16, dto.getModelProbability());
 
-            pstmt.setLong(16, dto.getRequiredMonthlySaving());
-            pstmt.setLong(17, dto.getEstimatedFinalAsset());
-            pstmt.setLong(18, dto.getGoalGap());
-            pstmt.setString(19, dto.getMessage());
+            pstmt.setLong(17, dto.getRequiredMonthlySaving());
+            pstmt.setLong(18, dto.getEstimatedFinalAsset());
+            pstmt.setLong(19, dto.getGoalGap());
+            pstmt.setString(20, dto.getMessage());
 
             count = pstmt.executeUpdate();
 
@@ -273,13 +274,14 @@ public class AssetDao {
         return count;
     }
 
+
     public ArrayList<AssetPlannerAnalysisDto> getAnalysisHistory() {
         connect();
         ArrayList<AssetPlannerAnalysisDto> lists = new ArrayList<>();
 
         String sql = "select analysis_id, current_asset, monthly_income, monthly_expense, monthly_saving, "
                 + "goal_amount, goal_months, expected_return, age, job_type, risk_preference, "
-                + "prediction, prediction_label, tone_title, model_prediction, model_probability, "
+                + "prediction, prediction_label, tone_title, model_prediction, model_prediction_label, model_probability, "
                 + "required_monthly_saving, estimated_final_asset, goal_gap, message, created_at "
                 + "from asset_analysis_history "
                 + "order by analysis_id desc "
@@ -309,6 +311,7 @@ public class AssetDao {
                 dto.setToneTitle(rs.getString("tone_title"));
 
                 dto.setModelPrediction(rs.getInt("model_prediction"));
+                dto.setModelPredictionLabel(rs.getString("model_prediction_label"));
                 dto.setModelProbability(rs.getDouble("model_probability"));
 
                 dto.setRequiredMonthlySaving(rs.getLong("required_monthly_saving"));

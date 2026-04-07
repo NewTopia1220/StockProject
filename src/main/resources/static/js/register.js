@@ -1,4 +1,4 @@
-function check(){
+function check() {
 
 	const registerForm = document.forms["registerForm"];
 

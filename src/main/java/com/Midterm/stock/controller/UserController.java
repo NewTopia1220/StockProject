@@ -45,7 +45,7 @@ public class UserController {
 //            session.setAttribute("loginNum", loginUserDto.getNum()); //  이 번호가 마이페이지의 열쇠입니다.
         }
 
-        email = email.trim();
+        email = email.trim().toLowerCase();   // 대소문자 무시
         pw = pw.trim();
 
         if (email.equals("") || pw.equals("")) {
@@ -108,7 +108,7 @@ public class UserController {
         }
 
         name = name.trim();
-        email = email.trim();
+        email = email.trim().toLowerCase();  // 대소문자 무시
         pw = pw.trim();
         repw = repw.trim();
         phone = phone.trim().replaceAll("[^0-9]", "");
@@ -288,7 +288,7 @@ public class UserController {
         }
 
         name = name.trim();
-        email = email.trim();
+        email = email.trim().toLowerCase();  // 대소문자 무시
         phone = phone.trim().replaceAll("[^0-9]", "");
         newPassword = newPassword.trim();
         reNewPassword = reNewPassword.trim();
@@ -303,7 +303,26 @@ public class UserController {
             return "findPassword";
         }
 
+        if (newPassword.length() < 5 || newPassword.length() > 8) {
+            model.addAttribute("errorMessage", "비밀번호는 5자 이상 8자 이하로 입력해주세요.");
+            return "findPassword";
+        }
+
+        try {
+            Integer.parseInt(newPassword);
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "비밀번호는 숫자만 입력해주세요.");
+            return "findPassword";
+        }
+
+        System.out.println("findPassword start");
+        System.out.println("name = " + name);
+        System.out.println("email = " + email);
+        System.out.println("phone = " + phone);
+
+        System.out.println("before resetPasswordByUserInfo");
         int result = userDao.resetPasswordByUserInfo(name, email, phone, newPassword);
+        System.out.println("after resetPasswordByUserInfo: " + result);
 
         if (result > 0) {
             return "redirect:/login?reset=1";
@@ -366,4 +385,3 @@ public class UserController {
         return null;  // 못 찾음
     }
 }
-

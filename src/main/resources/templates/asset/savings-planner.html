@@ -161,10 +161,10 @@
                                     <select th:field="*{jobType}" class="input-field" style="width: 100%; background: white;">
 <!--                                        <option value="">선택하세요</option>-->
                                         <option value="student">학생</option>
-                                        <option value="office">직장인</option>
-                                        <option value="developer">개발자</option>
+                                        <option value="employee">직장인</option>
+                                        <option value="professional">전문직</option>
                                         <option value="freelancer">프리랜서</option>
-                                        <option value="business">사업가</option>
+                                        <option value="self_employed">자영업자</option>
                                     </select>
                                 </div>
                             </div>
@@ -261,7 +261,7 @@
                                 <div class="banner-content">
                                     <span class="banner-label">달성 여부</span>
                                     <span class="banner-badge">AI 예측 - </span>
-                                    <strong class="banner-text" th:text="${assetDto.predictionLabel}"></strong>
+                                    <strong class="banner-text" th:text="${assetDto.modelPredictionLabel}"></strong>
                                     <span class="banner-sub" th:text="${#numbers.formatDecimal(assetDto.modelProbability * 100, 1, 2)} + '%'"></span>
                                 </div>
                             </div>

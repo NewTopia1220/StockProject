@@ -140,25 +140,35 @@ public class UserDao {
         PreparedStatement pstmt = null;
         int cnt = -1;
 
-        String sql = "update users set password = ? where name = ? and email = ? and phone = ?";
+        String sql = "update users "
+                + "set password = ? "
+                + "where trim(name) = trim(?) "
+                + "and lower(trim(email)) = lower(trim(?)) "
+                + "and regexp_replace(phone, '[^0-9]', '') = ?";
 
         try {
             conn = connect();
             pstmt = conn.prepareStatement(sql);
+            pstmt.setQueryTimeout(5);
             pstmt.setString(1, newPassword);
             pstmt.setString(2, name);
             pstmt.setString(3, email);
             pstmt.setString(4, phone);
 
+            System.out.println("resetPasswordByUserInfo executeUpdate start");
             cnt = pstmt.executeUpdate();
+            System.out.println("resetPasswordByUserInfo executeUpdate end");
             System.out.println("비밀번호 변경 결과: " + cnt);
 
+        } catch (SQLTimeoutException e) {
+            System.err.println("비밀번호 변경 쿼리 시간 초과");
+            e.printStackTrace();
+            cnt = 0;
         } catch (Exception e) {
             e.printStackTrace();
         } finally {
             closeResources(null, pstmt, conn);
         }
-
         return cnt;
     }
 
@@ -245,19 +255,6 @@ public class UserDao {
 
         return cnt;
     }
-
-    // 자원 해제용 공통 메서드
-    private void closeResources(ResultSet rs, PreparedStatement pstmt, Connection conn) {
-        try {
-            if (rs != null) rs.close();
-            if (pstmt != null) pstmt.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
-    }
-
-
 
     // UserDao.java에 아래 메서드를 새로 '추가'해
     public UserDto getUserInfoByEmail(String email) {
@@ -367,5 +364,15 @@ public class UserDao {
             return 0;
         }
     }
-}
 
+    // 자원 해제용 공통 메서드
+    private void closeResources(ResultSet rs, PreparedStatement pstmt, Connection conn) {
+        try {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+}
