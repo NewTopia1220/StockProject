@@ -128,7 +128,6 @@ public class NewsDao {
             "           sentiment, type_prob, clickbait_prob " +
             "    FROM NEWS_DATA_SEC WHERE " + TODAY_FILTER +
             ") GROUP BY sector_name ORDER BY sector_name";
-
         Connection conn = connect(); if (conn == null) return result;
         try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
