@@ -68,7 +68,7 @@ public class AssetController {
         }
 
         // 달 지정해서 데이터 불러오기
-        List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month); // 메서드 추가 필요
+        List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month, loginNum); // 메서드 추가 필요
         model.addAttribute("selectedMonth", month);
         model.addAttribute("currentRealMonth", currentRealMonth);
         model.addAttribute("recentTransactions", transactions);

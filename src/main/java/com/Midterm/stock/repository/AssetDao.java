@@ -51,19 +51,20 @@ public class AssetDao {
 
 
     // dashboard - 최근 소비 조회 메서드
-    public List<AssetDto> getRecentTransactionsByMonth(int month) {
+    public List<AssetDto> getRecentTransactionsByMonth(int month, int loginNum) {
         List<AssetDto> list = new ArrayList<>();
         conn = connect();
 
         try {
 
             String sql = "SELECT month, transaction_date, amount, vendor, category " +
-                    "FROM asset_data " +
-                    "where month = ?" +
+                    "FROM spending_data " +
+                    "where month = ? and user_id = ?" +
                     "ORDER BY transaction_date DESC FETCH FIRST 10 ROWS ONLY";
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);
+            pstmt.setInt(2, loginNum);
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
