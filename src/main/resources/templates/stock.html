@@ -62,25 +62,32 @@
         <div class="chartBox">
             <div class="boxHeader">
                 <h2>시장 트렌드 차트</h2>
-<!--                <input id="stockSearch" type="text" placeholder="종목코드 입력 후 Enter (예: 005930)" />-->
                 <div class="searchWrapper" style="position: relative;">
                     <input id="stockSearch" type="text"
                            placeholder="종목명 또는 코드 입력 (예: 삼성전자, 005930)"
                            autocomplete="off"/>
                     <div id="searchDropdown" style="
-            display: none;
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            z-index: 1000;
-            max-height: 200px;
-            overflow-y: auto;
-        "></div>
+                display: none; position: absolute; top: 100%; left: 0; right: 0;
+                background: white; border: 1px solid #ddd; border-radius: 4px;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 1000;
+                max-height: 250px; overflow-y: auto;"></div>
+                </div>
+            </div>
+            <!-- 종목 정보 -->
+            <div class="stockInfoPanel">
+                <div class="stockNameRow">
+                    <span id="chartStockName">삼성전자</span>
+                    <span id="chartStockCode" class="stockCodeBadge">005930</span>
+                </div>
+                <div class="stockPriceRow">
+                    <strong id="chartCurrentPrice">-</strong>
+                    <span id="chartPriceChange" class="up">-</span>
+                </div>
+                <div class="stockMetaRow">
+                    <span>시가 <strong id="chartOpenPrice">-</strong></span>
+                    <span>고가 <strong id="chartHighPrice" class="up">-</strong></span>
+                    <span>저가 <strong id="chartLowPrice" class="down">-</strong></span>
+                    <span>거래량 <strong id="chartVolume">-</strong></span>
                 </div>
             </div>
             <!-- 탭 버튼 추가 -->
@@ -143,22 +150,24 @@
 
     <div class="price-ticker-container">
         <div class="price-ticker-wrapper">
-            <div class="ticker-content">
-                <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
-                <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
-                <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
-                <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
-                <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
-                <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
-            </div>
-            <div class="ticker-content">
-                <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
-                <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
-                <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
-                <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
-                <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
-                <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
-            </div>
+<!--            <div class="ticker-content">-->
+<!--                <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>-->
+<!--                <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>-->
+<!--                <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>-->
+<!--                <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>-->
+<!--                <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>-->
+<!--                <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>-->
+<!--            </div>-->
+<!--            <div class="ticker-content">-->
+<!--                <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>-->
+<!--                <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>-->
+<!--                <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>-->
+<!--                <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>-->
+<!--                <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>-->
+<!--                <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>-->
+<!--            </div>-->
+            <div class="ticker-content" id="tickerContent1"></div>
+            <div class="ticker-content" id="tickerContent2"></div>
         </div>
     </div>
 
@@ -177,28 +186,29 @@
             </div>
         </div>
 
-        <div class="stockList" id="stockListContainer">
-            <div class="stockItem">
-                <div class="name">
-                    <h3>삼성전자</h3>
-                    <p>005930</p>
-                </div>
-                <div class="priceInfo">
-                    <strong>75,200원</strong>
-                    <span class="up">▲ 1.08%</span>
-                </div>
-            </div>
-            <div class="stockItem">
-                <div class="name">
-                    <h3>SK하이닉스</h3>
-                    <p>000660</p>
-                </div>
-                <div class="priceInfo">
-                    <strong>218,000원</strong>
-                    <span class="up">▲ 2.35%</span>
-                </div>
-            </div>
-        </div>
+        <div class="stockList" id="stockListContainer"></div>
+<!--        <div class="stockList" id="stockListContainer">-->
+<!--            <div class="stockItem">-->
+<!--                <div class="name">-->
+<!--                    <h3>삼성전자</h3>-->
+<!--                    <p>005930</p>-->
+<!--                </div>-->
+<!--                <div class="priceInfo">-->
+<!--                    <strong>75,200원</strong>-->
+<!--                    <span class="up">▲ 1.08%</span>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--            <div class="stockItem">-->
+<!--                <div class="name">-->
+<!--                    <h3>SK하이닉스</h3>-->
+<!--                    <p>000660</p>-->
+<!--                </div>-->
+<!--                <div class="priceInfo">-->
+<!--                    <strong>218,000원</strong>-->
+<!--                    <span class="up">▲ 2.35%</span>-->
+<!--                </div>-->
+<!--            </div>-->
+<!--        </div>-->
     </div>
 </div>
 

@@ -49,37 +49,36 @@ document.addEventListener('DOMContentLoaded', function() {
         searchTimer = setTimeout(async () => {
             try {
                 const res = await fetch(`/api/stock/search?keyword=${encodeURIComponent(keyword)}`);
-                const data = await res.json();
+                const items = await res.json(); // ← data.output 대신 바로 items로
 
-                // 응답 확인 후 드롭다운 표시
-                const items = data.output || [];
-                if (items.length === 0) {
+                if (!items || items.length === 0) {
                     dropdown.style.display = 'none';
                     return;
                 }
 
                 dropdown.innerHTML = items.slice(0, 8).map(item => `
-                <div class="searchItem"
-                     data-code="${item.code}"
-                     style="padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0;
-                            display: flex; justify-content: space-between; align-items: center;">
-                    <div>
-                        <span style="font-weight: bold;">${item.name}</span>
-                        <span style="font-size: 11px; color: #aaa; margin-left: 6px;">${item.market}</span>
+                    <div class="searchItem"
+                         data-code="${item.code}"
+                         data-name="${item.name}">
+                        <div>
+                            <span class="item-name">${item.name}</span>
+                            <span class="item-market">${item.market || ''}</span>
+                        </div>
+                        <span class="item-code">${item.code}</span>
                     </div>
-                    <span style="color: #888; font-size: 13px;">${item.code}</span>
-                </div>
-            `).join('');
+                `).join('');
 
-                // 드롭다운 항목 클릭
                 dropdown.querySelectorAll('.searchItem').forEach(el => {
-                    el.addEventListener('mouseenter', () => el.style.background = '#f5f5f5');
-                    el.addEventListener('mouseleave', () => el.style.background = 'white');
-                    el.addEventListener('click', () => {
+                    el.addEventListener('click', async () => {
                         currentCode = el.dataset.code;
-                        document.getElementById('stockSearch').value = el.querySelector('span').textContent;
+                        const name = el.dataset.name;
+                        document.getElementById('stockSearch').value =
+                            name + ' (' + el.dataset.code + ')';
                         dropdown.style.display = 'none';
-                        updateMainChart();
+
+                        // 종목명을 updateStockInfo에 전달
+                        await updateStockInfo(name);
+                        await updateMainChart();
                     });
                 });
 
@@ -114,13 +113,38 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 차트 데이터 fetch
 async function fetchMainChartData() {
+    // 시간별/분별은 장 중에만 가능
+    let tab = currentTab;
+    if ((tab === 'time' || tab === 'minute') && !isMarketOpen()) {
+        console.log('장 외 시간 - 일별 차트로 대체');
+        tab = 'daily';
+        // 탭 UI도 일별로 변경
+        document.querySelectorAll('.chartTab').forEach(b => {
+            b.classList.toggle('active', b.dataset.tab === 'daily');
+        });
+        currentTab = 'daily';
+    }
+
     const endpoints = {
         daily: `/api/stock/${currentCode}/chart`,
         time: `/api/stock/${currentCode}/time`,
         minute: `/api/stock/${currentCode}/minute`
     };
-    const res = await fetch(endpoints[currentTab]);
-    return await res.json();
+
+    try {
+        const res = await fetch(endpoints[tab]);
+        const data = await res.json();
+
+        // 빈 데이터면 일별로 fallback
+        if (!data.labels || data.labels.length === 0) {
+            const fallback = await fetch(`/api/stock/${currentCode}/chart`);
+            return await fallback.json();
+        }
+        return data;
+    } catch (e) {
+        console.log('차트 데이터 오류:', e);
+        return { labels: [], closePrices: [], volumes: [] };
+    }
 }
 
 // 차트 초기화
@@ -214,9 +238,20 @@ async function updateExchange() {
             .then(r => r.json());
 
         document.getElementById('exchangePrice').textContent =
-            exchange.currentPrice + '원';
-        document.getElementById('exchangeRate').textContent =
-            exchange.changeRate + '%';
+            Number(exchange.currentPrice).toLocaleString() + '원';
+
+        const change = parseFloat(exchange.priceChange);
+        const rateEl = document.getElementById('exchangeRate');
+        if (change > 0) {
+            rateEl.textContent = '▲ ' + exchange.changeRate + '%';
+            rateEl.className = 'up';
+        } else if (change < 0) {
+            rateEl.textContent = '▼ ' + Math.abs(exchange.changeRate) + '%';
+            rateEl.className = 'down';
+        } else {
+            rateEl.textContent = '0.00%';
+            rateEl.className = '';
+        }
     } catch (e) {
         console.log('환율 오류:', e);
     }
@@ -226,6 +261,54 @@ async function updateExchange() {
 document.getElementById('currencySelect')?.addEventListener('change', () => {
     updateExchange();
 });
+
+
+// 종목 정보 패널 업데이트
+async function updateStockInfo(stockName = '') {
+    try {
+        const res = await fetch(`/api/stock/${currentCode}`);
+        const data = await res.json();
+
+        // 종목명 - 검색시 넘어온 이름 우선, 없으면 코드 표시
+        document.getElementById('chartStockName').textContent =
+            stockName || document.getElementById('chartStockName').textContent || currentCode;
+        document.getElementById('chartStockCode').textContent = currentCode;
+
+        const price = Number(data.currentPrice);
+        const open  = Number(data.openPrice);
+        const high  = Number(data.highPrice);
+        const low   = Number(data.lowPrice);
+        const vol   = Number(data.volume);
+
+        // 현재가
+        document.getElementById('chartCurrentPrice').textContent =
+            price.toLocaleString() + ' KRW';
+
+        // 등락 (현재가 - 시가)
+        const change = price - open;
+        const changeRate = open !== 0 ? ((change / open) * 100).toFixed(2) : '0.00';
+        const sign = change >= 0 ? '+' : '';
+        const arrow = change >= 0 ? '▲' : '▼';
+        const changeEl = document.getElementById('chartPriceChange');
+        changeEl.textContent =
+            `${sign}${change.toLocaleString()} (${sign}${changeRate}%) ${arrow} 오늘`;
+        changeEl.className = change >= 0 ? 'up' : 'down';
+
+        // 시가/고가/저가/거래량
+        document.getElementById('chartOpenPrice').textContent =
+            open.toLocaleString();
+        document.getElementById('chartHighPrice').textContent =
+            high.toLocaleString();
+        document.getElementById('chartLowPrice').textContent =
+            low.toLocaleString();
+        document.getElementById('chartVolume').textContent =
+            vol.toLocaleString();
+
+    } catch (e) {
+        console.log('종목 정보 오류:', e);
+    }
+}
+
 
 
 // AI 분석 업데이트
@@ -248,21 +331,77 @@ function isMarketOpen() {
     return time >= 900 && time <= 1530;
 }
 
+// 등락률 상위 종목 업데이트
+async function updateTopStocks() {
+    try {
+        const res = await fetch('/api/stock/top-fluctuation');
+        const stocks = await res.json();
+
+        if (!stocks || stocks.length === 0) return;
+
+        // 티커 업데이트
+        const tickerHtml = stocks.map(s => {
+            const rate = parseFloat(s.changeRate);
+            const cls = rate >= 0 ? 'up' : 'down';
+            const arrow = rate >= 0 ? '▲' : '▼';
+            return `<div class="t-item">
+                <span>${s.stockName}</span>
+                <strong class="${cls}">
+                    ${Number(s.currentPrice).toLocaleString()} 
+                    ${arrow}${Math.abs(rate).toFixed(2)}%
+                </strong>
+            </div>`;
+        }).join('');
+
+        // 티커 두 개 동일하게 (무한 스크롤용)
+        document.getElementById('tickerContent1').innerHTML = tickerHtml;
+        document.getElementById('tickerContent2').innerHTML = tickerHtml;
+
+        // 종목 리스트 업데이트
+        const listHtml = stocks.slice(0, 6).map(s => {
+            const rate = parseFloat(s.changeRate);
+            const cls = rate >= 0 ? 'up' : 'down';
+            const arrow = rate >= 0 ? '▲' : '▼';
+            return `<div class="stockItem" onclick="selectStock('${s.stockName}')">
+                <div class="name">
+                    <h3>${s.stockName}</h3>
+                </div>
+                <div class="priceInfo">
+                    <strong>${Number(s.currentPrice).toLocaleString()}원</strong>
+                    <span class="${cls}">${arrow} ${Math.abs(rate).toFixed(2)}%</span>
+                </div>
+            </div>`;
+        }).join('');
+
+        document.getElementById('stockListContainer').innerHTML = listHtml;
+
+    } catch (e) {
+        console.log('등락률 순위 오류:', e);
+    }
+}
+
+
+
+
 // 폴링 시작
 async function startPolling() {
     await initMainChart();
+    await updateStockInfo();
     await updateTicker();       // 코스피/코스닥
     await updateExchange();     // 환율 (별도)
+    await updateTopStocks();    // 등락률 (티커 + 종목 리스트)
 
     setInterval(async () => {
         await updateTicker(); // 항상 업데이트
+        await updateStockInfo();
+        await updateTopStocks();
         if (isMarketOpen()) {
             await updateMainChart();
         }
-    }, 5000);
+    }, 3000);
 
-    // 환율: 1분마다
+    // 환율: 30초마다
     setInterval(async () => {
         await updateExchange();
-    }, 60000);
+    }, 30000);
 }

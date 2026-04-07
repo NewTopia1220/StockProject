@@ -95,18 +95,54 @@ public class StockController {
         return stockService.getExchangeRate(currency);
     }
 
-    // 시간별 차트
+    // 시간별
     @GetMapping("/api/stock/{code}/time")
     @ResponseBody
     public StockChartDto getTimeChart(@PathVariable String code) {
+        // 장 외 시간엔 일별로 대체
+        if (!isMarketOpen()) {
+            return stockService.getDailyPrice(code);
+        }
         return stockService.getTimePrice(code);
     }
 
-    // 분별 차트
+    // 분별
     @GetMapping("/api/stock/{code}/minute")
     @ResponseBody
     public StockChartDto getMinuteChart(@PathVariable String code) {
+        if (!isMarketOpen()) {
+            return stockService.getDailyPrice(code);
+        }
         return stockService.getMinutePrice(code);
     }
+
+    // 장 운영시간 체크
+    private boolean isMarketOpen() {
+        java.time.LocalDateTime now = java.time.LocalDateTime.now();
+        int day = now.getDayOfWeek().getValue(); // 1=월 ~ 7=일
+        if (day >= 6) return false; // 주말
+        int time = now.getHour() * 100 + now.getMinute();
+        return time >= 900 && time <= 1530;
+    }
+
+    // DB 저장 확인용 (나중에 지워도됌)
+    @GetMapping("/api/stock/refresh")
+    @ResponseBody
+    public String refreshStocks() {
+        try {
+            stockService.refreshStockListToDB();
+            return "완료: " + "DB 갱신 요청됨";
+        } catch (Exception e) {
+            return "오류: " + e.getMessage();
+        }
+    }
+
+    // 등락률 관련
+    @GetMapping("/api/stock/top-fluctuation")
+    @ResponseBody
+    public List<StockResponseDto> getTopFluctuation() {
+        return stockService.getTopFluctuation();
+    }
+
 
 }
