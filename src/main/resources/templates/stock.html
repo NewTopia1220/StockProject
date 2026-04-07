@@ -111,27 +111,25 @@
         <!-- 전광판 -->
         <div class="price-ticker-container">
             <div class="price-ticker-wrapper">
-                <div class="ticker-content" th:if="${tickerCompanies != null and not #lists.isEmpty(tickerCompanies)}">
-                    <a class="t-item" th:each="item : ${tickerCompanies}"
-                       th:href="@{/news(company=${item['companyName']})}">
-                        <span th:text="${item['companyName']}">종목명</span>
-                        <strong th:class="${item['sentiment'] == '호재' ? 'up' : 'down'}"
-                                th:text="${item['sentiment'] == '호재' ? '▲ 호재 ' + item['sentCount'] + '건' : '▼ 악재 ' + item['sentCount'] + '건'}">-</strong>
-                    </a>
+                <div class="ticker-content">
+                    <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
+                    <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
+                    <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
+                    <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
+                    <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
+                    <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
                 </div>
-                <div class="ticker-content" th:if="${tickerCompanies != null and not #lists.isEmpty(tickerCompanies)}">
-                    <a class="t-item" th:each="item : ${tickerCompanies}"
-                       th:href="@{/news(company=${item['companyName']})}">
-                        <span th:text="${item['companyName']}">종목명</span>
-                        <strong th:class="${item['sentiment'] == '호재' ? 'up' : 'down'}"
-                                th:text="${item['sentiment'] == '호재' ? '▲ 호재 ' + item['sentCount'] + '건' : '▼ 악재 ' + item['sentCount'] + '건'}">-</strong>
-                    </a>
-                </div>
-                <div class="ticker-content" th:if="${tickerCompanies == null or #lists.isEmpty(tickerCompanies)}">
-                    <span class="t-item noData"><span>오늘 수집된 뉴스가 없습니다</span></span>
+                <div class="ticker-content">
+                    <div class="t-item"><span>삼성전자</span> <strong class="up">75,200 ▲1.1%</strong></div>
+                    <div class="t-item"><span>SK하이닉스</span> <strong class="up">218,000 ▲2.3%</strong></div>
+                    <div class="t-item"><span>LG에너지솔루션</span> <strong class="down">392,000 ▼0.5%</strong></div>
+                    <div class="t-item"><span>현대차</span> <strong class="up">252,000 ▲0.8%</strong></div>
+                    <div class="t-item"><span>셀트리온</span> <strong class="down">182,100 ▼1.2%</strong></div>
+                    <div class="t-item"><span>NAVER</span> <strong class="down">175,400 ▼0.3%</strong></div>
                 </div>
             </div>
         </div>
+
 
         <!-- 섹터별 카드 -->
         <div class="bottomSection">
