@@ -847,6 +847,49 @@ a{
     display:none !important;
 }
 
+/* ══════════════════════════════════════
+   다크 모드 — 커뮤니티/뉴스 공통 레이아웃
+══════════════════════════════════════ */
+body.dark .communityHero            { background: #141720; border-color: #1e2235; }
+body.dark .heroText h1              { color: #f1f5f9; }
+body.dark .heroText p               { color: #8892a8; }
+body.dark .communitySearch input    { background: #0b0d14; border-color: #1e2235; color: #f1f5f9; }
+body.dark .communitySearch input::placeholder { color: #4a5568; }
+body.dark .communitySearch input:focus { border-color: #6366f1; box-shadow: 0 0 0 4px rgba(99,102,241,0.12); }
+body.dark .communitySearch button   { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+
+body.dark .sidebarCard              { background: #141720; border-color: #1e2235; }
+body.dark .sidebarHeader h3        { color: #f1f5f9; }
+body.dark .sidebarHeader p         { color: #8892a8; }
+
+body.dark .accordionItem            { background: #141720; border-color: #1e2235; }
+body.dark .accordionButton          { background: #141720; color: #f1f5f9; }
+body.dark .accordionArrow           { color: #8892a8; }
+body.dark .navItem                  { color: #94a3b8; }
+body.dark .navItem:hover            { background: #1a1e2e; border-color: #2a3050; }
+body.dark .navItem.active           { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; box-shadow: 0 6px 16px rgba(99,102,241,0.25); }
+
+body.dark .contentWrap h2           { color: #f1f5f9; }
+body.dark .contentDesc              { color: #64748b; }
+
+body.dark .sideCard                 { background: #141720; border-color: #1e2235; }
+body.dark .sideCard h4              { color: #f1f5f9; }
+body.dark .sideRankList a           { color: #a5b4fc; }
+body.dark .sideRankList li          { color: #94a3b8; }
+body.dark .sideRankList span        { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+
+body.dark .boardItem                { background: #141720; border-color: #1e2235; }
+body.dark .boardItem:hover          { border-color: #2a3050; }
+body.dark .boardCategory            { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+body.dark .boardTitle               { color: #e2e8f0; }
+body.dark .boardPreview             { color: #8892a8; }
+body.dark .boardMeta,
+body.dark .boardStats               { color: #64748b; }
+
+body.dark .emptyMainCard            { background: #141720; border-color: #1e2235; }
+body.dark .emptyMainCard h3         { color: #e2e8f0; }
+body.dark .emptyMainCard p          { color: #64748b; }
+
 /* RESPONSIVE */
 @media screen and (max-width:1200px){
     .communityMain{

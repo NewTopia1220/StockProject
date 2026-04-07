@@ -11,69 +11,118 @@
 <body class="withMainHeader">
 <div th:replace="~{fragments/header :: header('news')}"></div>
 
+<!-- 다크모드 버튼 -->
+<button class="darkModeBtn" id="darkModeBtn" title="다크모드 전환">🌙</button>
+
 <div class="pageContainer communityPage newsPage">
 
-    <!-- 히어로 -->
     <section class="communityHero">
         <div class="heroTop">
             <div class="heroText">
                 <h1>AI가 분석한 오늘의 주식 뉴스</h1>
-                <p>섹터·종목별로 필터링하고, 신뢰도와 낚시성 분석을 한눈에 확인하세요.</p>
+                <p>섹터별로 필터링하고, AI 신뢰도·낚시 분석을 한눈에 확인하세요.</p>
             </div>
         </div>
         <form class="communitySearch" th:action="@{/news}" method="get">
-            <input type="text" name="company" th:value="${company}" placeholder="종목명으로 검색 (예: 삼성전자)">
+            <input type="hidden" name="sector" th:value="${sector}" th:if="${sector != null}">
+            <input type="text" name="keyword" th:value="${keyword}" placeholder="기사 제목 키워드로 검색...">
             <button type="submit">검색</button>
         </form>
     </section>
 
     <div class="communityMain">
 
-        <!-- ── 왼쪽 사이드바 ── -->
+        <!-- 왼쪽 사이드바 -->
         <aside class="communitySidebar">
-            <div class="sidebarCard">
+
+            <!-- AI 종합 분석 패널 -->
+            <div class="sidebarCard sideAiPanel">
                 <div class="sidebarHeader">
-                    <h3>섹터 · 종목</h3>
-                    <p>원하는 섹터 또는 종목을 선택하세요.</p>
+                    <h3>AI 뉴스 종합 분석</h3>
+                    <p th:text="'총 ' + ${saTotal} + '건 분석'">총 0건 분석</p>
                 </div>
 
+                <div class="aiCircleRow">
+                    <!-- AI 신뢰도 -->
+                    <div class="aiCircleItem">
+                        <svg class="circleChart" viewBox="0 0 80 80">
+                            <circle class="circleBg" cx="40" cy="40" r="32"/>
+                            <circle class="circleFg circleBlue" cx="40" cy="40" r="32"
+                                    th:attr="data-value=${saType}"
+                                    stroke-dasharray="201.06" stroke-dashoffset="201.06"/>
+                        </svg>
+                        <div class="aiCircleLabel">
+                            <strong th:text="${saType} + '%'">0%</strong>
+                            <span>AI신뢰도</span>
+                        </div>
+                    </div>
+                    <!-- 낚시 확률 -->
+                    <div class="aiCircleItem">
+                        <svg class="circleChart" viewBox="0 0 80 80">
+                            <circle class="circleBg" cx="40" cy="40" r="32"/>
+                            <circle class="circleFg circleRed" cx="40" cy="40" r="32"
+                                    th:attr="data-value=${saNoise}"
+                                    stroke-dasharray="201.06" stroke-dashoffset="201.06"/>
+                        </svg>
+                        <div class="aiCircleLabel">
+                            <strong th:text="${saNoise} + '%'">0%</strong>
+                            <span>낚시확률</span>
+                        </div>
+                    </div>
+                    <!-- 긍정 감성 -->
+                    <div class="aiCircleItem">
+                        <svg class="circleChart" viewBox="0 0 80 80">
+                            <circle class="circleBg" cx="40" cy="40" r="32"/>
+                            <circle class="circleFg circleGreen" cx="40" cy="40" r="32"
+                                    th:attr="data-value=${saPosRatio}"
+                                    stroke-dasharray="201.06" stroke-dashoffset="201.06"/>
+                        </svg>
+                        <div class="aiCircleLabel">
+                            <strong th:text="${saPosRatio} + '%'">0%</strong>
+                            <span>긍정감성</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 분석 기준 안내 -->
+                <div class="aiGuideBox">
+                    <p class="aiGuideTitle">분석 기준</p>
+                    <ul class="aiGuideList">
+                        <li><span class="aiDot dotBlue"></span><strong>AI 신뢰도</strong> — 기사가 사실 기반으로 작성된 확률</li>
+                        <li><span class="aiDot dotRed"></span><strong>낚시 확률</strong> — 클릭베이트성 제목일 가능성</li>
+                        <li><span class="aiDot dotGreen"></span><strong>긍정 감성</strong> — 호재성 기사 비율</li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- 섹터 필터 -->
+            <div class="sidebarCard" style="margin-top:14px;">
+                <div class="sidebarHeader">
+                    <h3>섹터 필터</h3>
+                </div>
                 <nav class="categoryNav categoryAccordion">
-                    <!-- 전체 -->
                     <div class="accordionItem open">
                         <button type="button" class="accordionButton">
-                            <span>전체</span>
-                            <span class="accordionArrow">⌄</span>
+                            <span>전체</span><span class="accordionArrow">⌄</span>
                         </button>
                         <div class="accordionContent">
-                            <a th:href="@{/news}"
-                               class="navItem"
-                               th:classappend="${sector == null and company == null} ? ' active' : ''">
+                            <a th:href="@{/news}" class="navItem"
+                               th:classappend="${sector == null and keyword == null} ? ' active' : ''">
                                 <span class="navLabel">전체 뉴스</span>
                             </a>
                         </div>
                     </div>
-
-                    <!-- 섹터별 아코디언 -->
                     <div class="accordionItem"
                          th:each="entry : ${sectorMap}"
                          th:classappend="${sector == entry.key} ? ' open' : ''">
                         <button type="button" class="accordionButton">
-                            <span th:text="${entry.key}">섹터명</span>
+                            <span th:text="${entry.key}">섹터</span>
                             <span class="accordionArrow">⌄</span>
                         </button>
                         <div class="accordionContent">
-                            <!-- 섹터 전체 링크 -->
-                            <a th:href="@{/news(sector=${entry.key})}"
-                               class="navItem sectorLink"
-                               th:classappend="${sector == entry.key and company == null} ? ' active' : ''">
-                                <span class="navLabel" th:text="'· ' + ${entry.key} + ' 전체'">섹터 전체</span>
-                            </a>
-                            <!-- 종목별 링크 -->
-                            <a th:each="comp : ${entry.value}"
-                               th:href="@{/news(company=${comp})}"
-                               class="navItem companyLink"
-                               th:classappend="${company == comp} ? ' active' : ''">
-                                <span class="navLabel" th:text="${comp}">종목명</span>
+                            <a th:href="@{/news(sector=${entry.key})}" class="navItem sectorLink"
+                               th:classappend="${sector == entry.key} ? ' active' : ''">
+                                <span class="navLabel" th:text="${entry.key} + ' 전체'">섹터 전체</span>
                             </a>
                         </div>
                     </div>
@@ -81,32 +130,37 @@
             </div>
         </aside>
 
-        <!-- ── 중앙 콘텐츠 ── -->
+        <!-- 중앙 콘텐츠 -->
         <section class="communityContent">
             <div class="contentTop">
                 <div class="contentWrap">
-                    <h2 th:text="${company != null ? company + ' 뉴스' : (sector != null ? sector + ' 섹터 뉴스' : '전체 뉴스')}">전체 뉴스</h2>
-                    <p class="contentDesc" th:text="'총 ' + ${totalCount} + '건의 기사가 있습니다.'">총 0건</p>
+                    <h2 th:text="${keyword != null ? keyword + ' 검색 결과' : (sector != null ? sector + ' 섹터 뉴스' : '전체 뉴스')}">전체 뉴스</h2>
+                    <p class="contentDesc" th:text="'총 ' + ${totalCount} + '건의 기사'">총 0건</p>
                 </div>
             </div>
 
-            <!-- 뉴스 목록 -->
+            <!-- 뉴스 카드 -->
             <div th:if="${newsList != null and not #lists.isEmpty(newsList)}">
-                <article class="newsItem" th:each="dto : ${newsList}">
+                <article class="newsItem" th:each="dto : ${newsList}"
+                         th:attr="data-link=${dto.link}">
+
+                    <!-- 태그 행 -->
                     <div class="newsTopRow">
                         <span class="boardCategory" th:text="${dto.sectorName}">섹터</span>
                         <span class="companyTag" th:text="${dto.companyName}">종목</span>
                         <span class="sentimentTag"
-                              th:classappend="${dto.sentiment == '호재'} ? ' sent-positive' : (${dto.sentiment == '악재'} ? ' sent-negative' : ' sent-neutral')"
+                              th:class="${dto.sentiment == '호재' ? 'sentimentTag sent-positive' : (dto.sentiment == '악재' ? 'sentimentTag sent-negative' : 'sentimentTag sent-neutral')}"
                               th:text="${dto.sentiment}">중립</span>
                         <span class="newsDate" th:text="${dto.pubDate}">날짜</span>
                     </div>
 
+                    <!-- 제목 -->
                     <h3 class="newsTitle">
                         <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer"
                            th:text="${dto.title}">기사 제목</a>
                     </h3>
 
+                    <!-- 요약 -->
                     <p class="newsSummary" th:text="${dto.summary}">요약</p>
 
                     <!-- AI 분석 지표 -->
@@ -116,7 +170,7 @@
                             <div class="metricBarWrap">
                                 <div class="metricBar metricBarBlue">
                                     <div class="metricFill"
-                                         th:style="'width:' + ${#numbers.formatDecimal(dto.typeProb, 1, 1)} + '%'"></div>
+                                         th:style="'width:' + ${dto.typeProb} + '%'"></div>
                                 </div>
                                 <span class="metricVal" th:text="${dto.typeProbStr} + '%'">0%</span>
                             </div>
@@ -127,27 +181,54 @@
                             <div class="metricBarWrap">
                                 <div class="metricBar metricBarRed">
                                     <div class="metricFill"
-                                         th:style="'width:' + ${#numbers.formatDecimal(dto.clickbaitProb, 1, 1)} + '%'"></div>
+                                         th:style="'width:' + ${dto.clickbaitProb} + '%'"></div>
                                 </div>
                                 <span class="metricVal" th:text="${dto.clickbaitProbStr} + '%'">0%</span>
                             </div>
                         </div>
                     </div>
 
-                    <div class="newsLinkRow">
-                        <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer" class="newsOrigLink">
-                            원문 보기 →
-                        </a>
+                    <!-- 하단: 원문 + 좋아요 + 댓글 토글 -->
+                    <div class="newsActionRow">
+                        <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer"
+                           class="newsOrigLink">원문 보기 →</a>
+                        <div class="newsActions">
+                            <button class="likeBtn"
+                                    th:attr="data-link=${dto.link}"
+                                    th:class="${dto.liked ? 'likeBtn liked' : 'likeBtn'}"
+                                    onclick="toggleLike(this)">
+                                <span class="likeIcon" th:text="${dto.liked ? '❤️' : '🤍'}">🤍</span>
+                                <span class="likeCount" th:text="${dto.likeCount}">0</span>
+                            </button>
+                            <button class="commentToggleBtn"
+                                    th:attr="data-link=${dto.link}"
+                                    onclick="toggleComment(this)">
+                                💬 <span class="commentCountBadge" th:text="${dto.commentCount}">0</span>
+                            </button>
+                        </div>
                     </div>
+
+                    <!-- 댓글 섹션 (기본 숨김) -->
+                    <div class="commentSection" style="display:none;"
+                         th:attr="data-link=${dto.link}">
+                        <div class="commentList"></div>
+                        <div class="commentForm">
+                            <textarea class="commentInput" placeholder="댓글을 입력하세요..." rows="2"></textarea>
+                            <button class="commentSubmitBtn"
+                                    th:attr="data-link=${dto.link}"
+                                    onclick="submitComment(this)">등록</button>
+                        </div>
+                    </div>
+
                 </article>
             </div>
 
-            <!-- 뉴스 없음 -->
+            <!-- 빈 상태 -->
             <div class="emptySection" th:if="${newsList == null or #lists.isEmpty(newsList)}">
                 <div class="emptyMainCard">
                     <div class="emptyIcon">📰</div>
                     <h3>해당 조건의 뉴스가 없습니다</h3>
-                    <p>다른 섹터 또는 종목을 선택해보세요.</p>
+                    <p>다른 섹터 또는 키워드로 검색해보세요.</p>
                     <div class="emptyBtnArea">
                         <a th:href="@{/news}" class="writeBtn">전체 뉴스 보기</a>
                     </div>
@@ -157,38 +238,23 @@
             <!-- 페이징 -->
             <div class="pagination" th:if="${totalPages > 1}">
                 <a th:if="${currentPage > 1}"
-                   th:href="@{/news(page=${currentPage - 1}, sector=${sector}, company=${company})}"
+                   th:href="@{/news(page=${currentPage - 1}, sector=${sector}, keyword=${keyword})}"
                    class="pageBtn">‹ 이전</a>
-
-                <th:block th:each="i : ${#numbers.sequence(currentPage<4?1:(currentPage-3), currentPage+3)}">
-                    <a th:href="@{/news(page=${i}, sector=${sector}, company=${company})}"
-                       class="pageBtn"
-                       th:classappend="${i == currentPage} ? ' active' : ''"
+                <th:block th:each="i : ${#numbers.sequence(currentPage < 4 ? 1 : currentPage - 3, currentPage + 3 > totalPages ? totalPages : currentPage + 3)}">
+                    <a th:href="@{/news(page=${i}, sector=${sector}, keyword=${keyword})}"
+                       class="pageBtn" th:classappend="${i == currentPage} ? ' active' : ''"
                        th:text="${i}">1</a>
                 </th:block>
-
                 <a th:if="${currentPage < totalPages}"
-                   th:href="@{/news(page=${currentPage + 1}, sector=${sector}, company=${company})}"
+                   th:href="@{/news(page=${currentPage + 1}, sector=${sector}, keyword=${keyword})}"
                    class="pageBtn">다음 ›</a>
             </div>
         </section>
 
-        <!-- ── 오른쪽 패널 ── -->
+        <!-- 오른쪽 패널 -->
         <aside class="communityRight">
             <div class="sideCard">
-                <div class="sideCardHeader">
-                    <h4>분석 기준 안내</h4>
-                </div>
-                <ol class="guideList">
-                    <li><strong>AI 신뢰도</strong> — 기사가 사실 기반으로 작성된 확률입니다.</li>
-                    <li><strong>낚시 확률</strong> — 클릭베이트성 제목일 가능성입니다.</li>
-                    <li><strong>감성</strong> — 호재·악재·중립으로 시장 영향도를 나타냅니다.</li>
-                </ol>
-            </div>
-            <div class="sideCard">
-                <div class="sideCardHeader">
-                    <h4>바로가기</h4>
-                </div>
+                <div class="sideCardHeader"><h4>바로가기</h4></div>
                 <ul class="sideRankList">
                     <li><span>→</span><a th:href="@{/stock}">메인 페이지</a></li>
                     <li><span>→</span><a th:href="@{/community}">커뮤니티</a></li>
@@ -199,14 +265,149 @@
     </div>
 </div>
 
+<script th:inline="javascript">
+    var CTX_USER_NUM = /*[[${session.loginNum}]]*/ 0;
+</script>
 <script>
-    // 사이드바 아코디언
-    document.querySelectorAll('.accordionButton').forEach(function(btn) {
-        btn.addEventListener('click', function() {
-            var item = this.closest('.accordionItem');
-            item.classList.toggle('open');
-        });
+/* ── 다크모드 ── */
+(function () {
+    var btn = document.getElementById('darkModeBtn');
+    if (localStorage.getItem('darkMode') === 'on') {
+        document.body.classList.add('dark');
+        btn.textContent = '☀️';
+    }
+    btn.addEventListener('click', function () {
+        document.body.classList.toggle('dark');
+        var isDark = document.body.classList.contains('dark');
+        btn.textContent = isDark ? '☀️' : '🌙';
+        localStorage.setItem('darkMode', isDark ? 'on' : 'off');
     });
+})();
+
+/* ── 원형 차트 애니메이션 ── */
+(function () {
+    var CIRC = 201.06; // 2 * π * 32
+    document.querySelectorAll('.circleFg').forEach(function (el) {
+        var val = parseFloat(el.getAttribute('data-value')) || 0;
+        var offset = CIRC * (1 - val / 100);
+        setTimeout(function () {
+            el.style.transition = 'stroke-dashoffset 1s ease';
+            el.style.strokeDashoffset = offset;
+        }, 200);
+    });
+})();
+
+/* ── 사이드바 아코디언 ── */
+document.querySelectorAll('.accordionButton').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+        this.closest('.accordionItem').classList.toggle('open');
+    });
+});
+
+/* ── 좋아요 토글 ── */
+function toggleLike(btn) {
+    var link = btn.getAttribute('data-link');
+    fetch('/news/like', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'link=' + encodeURIComponent(link)
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.error) { alert(data.error); return; }
+        btn.querySelector('.likeCount').textContent = data.count;
+        btn.querySelector('.likeIcon').textContent  = data.liked ? '❤️' : '🤍';
+        btn.classList.toggle('liked', data.liked);
+    });
+}
+
+/* ── 댓글 토글 (열기/닫기 + 즉시 로드) ── */
+function toggleComment(btn) {
+    var link    = btn.getAttribute('data-link');
+    var section = btn.closest('.newsItem').querySelector('.commentSection');
+    var isOpen  = section.style.display !== 'none';
+
+    if (isOpen) {
+        section.style.display = 'none';
+    } else {
+        section.style.display = 'block';
+        loadComments(link, section);
+    }
+}
+
+function loadComments(link, section) {
+    fetch('/news/comments?link=' + encodeURIComponent(link))
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        renderComments(data, section.querySelector('.commentList'), link);
+    });
+}
+
+function renderComments(comments, container, link) {
+    container.innerHTML = '';
+    if (!comments || comments.length === 0) {
+        container.innerHTML = '<p class="noComment">첫 댓글을 작성해보세요!</p>';
+        return;
+    }
+    comments.forEach(function (c) {
+        var div = document.createElement('div');
+        div.className = 'commentItem';
+        var isOwn = c.userNum === CTX_USER_NUM;
+        div.innerHTML =
+            '<div class="commentMeta">' +
+                '<span class="commentUser">' + escapeHtml(c.userName || '익명') + '</span>' +
+                '<span class="commentDate">' + escapeHtml(c.createdAt || '') + '</span>' +
+                (isOwn ? '<button class="commentDeleteBtn" onclick="deleteComment(' + c.commentId + ', \'' + link.replace(/'/g, "\\'") + '\', this)">삭제</button>' : '') +
+            '</div>' +
+            '<p class="commentContent">' + escapeHtml(c.content) + '</p>';
+        container.appendChild(div);
+    });
+}
+
+/* ── 댓글 등록 ── */
+function submitComment(btn) {
+    var link    = btn.getAttribute('data-link');
+    var section = btn.closest('.commentSection');
+    var input   = section.querySelector('.commentInput');
+    var content = input.value.trim();
+    if (!content) { alert('댓글 내용을 입력해주세요.'); return; }
+
+    fetch('/news/comments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'link=' + encodeURIComponent(link) + '&content=' + encodeURIComponent(content)
+    })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.error) { alert(data.error); return; }
+        input.value = '';
+        renderComments(data.comments, section.querySelector('.commentList'), link);
+        // 댓글 수 배지 업데이트
+        var article = section.closest('.newsItem');
+        var badge   = article.querySelector('.commentCountBadge');
+        if (badge && data.comments) badge.textContent = data.comments.length;
+    });
+}
+
+/* ── 댓글 삭제 ── */
+function deleteComment(commentId, link, btn) {
+    if (!confirm('댓글을 삭제할까요?')) return;
+    fetch('/news/comments/' + commentId, { method: 'DELETE' })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+        if (data.success) {
+            var section = btn.closest('.commentSection');
+            loadComments(link, section);
+        }
+    });
+}
+
+/* ── XSS 방지 ── */
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+              .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+}
 </script>
 </body>
 </html>
