@@ -1,5 +1,6 @@
 package com.Midterm.stock.controller;
 
+
 import com.Midterm.stock.dto.AssetDto;
 import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.UserDao;
@@ -56,6 +57,10 @@ public class PageController {
         return "stock";
     }
 
+
+
+
+
     // 마이페이지 화면
     @GetMapping("/mypage")
     public String mypage(HttpSession session, Model model) {
@@ -76,4 +81,5 @@ public class PageController {
 
         return "mypage";
     }
+
 }

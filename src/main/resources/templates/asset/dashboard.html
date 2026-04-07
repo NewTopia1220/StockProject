@@ -78,22 +78,30 @@
 
                 <div class="page-header">
                     <div class="month-selector" style="display: flex; align-items: center; gap: 15px;">
-                        <a th:href="@{/asset/dashboard(month=${selectedMonth - 1})}" class="btn-month">
+
+                        <!-- 이전 버튼 비활성화 -->
+                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </div>
+
+                        <a th:if="${hasPrevData}" th:href="@{/asset/dashboard(month=${prevMonth})}" class="btn-month">  <!--이전달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </a>
 
-                        <h1 style="margin: 0;"><span th:text="${selectedMonth}">4</span>월 대시보드</h1>
+                        <h1 style="margin: 0;"><span th:text="${selectedMonth}">4</span>월 대시보드</h1>   <!--현재달-->
 
-                        <a th:if="${selectedMonth < currentRealMonth}"
-                           th:href="@{/asset/dashboard(month=${selectedMonth + 1})}" class="btn-month">
+                        <a th:if="${hasNextData}" th:href="@{/asset/dashboard(month=${nextMonth})}" class="btn-month"> <!--다음달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </a>
 
-                        <div th:unless="${selectedMonth < currentRealMonth}" style="color: #ccc; cursor: not-allowed;">
+                        <!--다음버튼 비활성화-->
+                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
@@ -193,33 +201,33 @@
                 </div>
 
 
-                <div class="card asset-trend-card">
-                    <div class="card-title-section">
-                        <h3>자산 성장 추이</h3>
-                        <span class="card-subtitle">최근 3개월 간의 변화</span>
-                    </div>
+<!--                <div class="card asset-trend-card">-->
+<!--                    <div class="card-title-section">-->
+<!--                        <h3>자산 성장 추이</h3>-->
+<!--                        <span class="card-subtitle">최근 3개월 간의 변화</span>-->
+<!--                    </div>-->
 
-                    <div class="asset-trend-content">
-                        <div class="trend-chart-container">
-                            <canvas id="assetTrendChart"
-                                    th:data-labels="${#strings.arrayJoin(trendLabels, ',')}"
-                                    th:data-values="${#strings.listJoin(trendValues, ',')}">
-                            </canvas>
-                        </div>
+<!--                    <div class="asset-trend-content">-->
+<!--                        <div class="trend-chart-container">-->
+<!--                            <canvas id="assetTrendChart"-->
+<!--                                    th:data-labels="${#strings.arrayJoin(trendLabels, ',')}"-->
+<!--                                    th:data-values="${#strings.listJoin(trendValues, ',')}">-->
+<!--                            </canvas>-->
+<!--                        </div>-->
 
-                        <div class="mini-transaction-list">
-                            <p class="mini-title">최근 지출</p>
-                            <div th:if="${recentTransactions == null or #lists.isEmpty(recentTransactions)}" style="font-size: 12px; color: #9ca3af; padding: 10px 0;">
-                                내역이 없습니다.
-                            </div>
-                            <div class="mini-item" th:each="transaction, iterStat : ${recentTransactions}" th:if="${iterStat.index < 3}">
-                                <span class="mini-vendor" th:text="${transaction.vendor}">식당</span>
-                                <span class="mini-amount" th:text="'-' + ${#numbers.formatInteger(transaction.amount, 0, 'COMMA')}">0</span>
-                            </div>
-                            <a href="/asset/analytics" class="btn-more">자세히 보기 →</a>
-                        </div>
-                    </div>
-                </div>
+<!--                        <div class="mini-transaction-list">-->
+<!--                            <p class="mini-title">최근 지출</p>-->
+<!--                            <div th:if="${recentTransactions == null or #lists.isEmpty(recentTransactions)}" style="font-size: 12px; color: #9ca3af; padding: 10px 0;">-->
+<!--                                내역이 없습니다.-->
+<!--                            </div>-->
+<!--                            <div class="mini-item" th:each="transaction, iterStat : ${recentTransactions}" th:if="${iterStat.index < 3}">-->
+<!--                                <span class="mini-vendor" th:text="${transaction.vendor}">식당</span>-->
+<!--                                <span class="mini-amount" th:text="'-' + ${#numbers.formatInteger(transaction.amount, 0, 'COMMA')}">0</span>-->
+<!--                            </div>-->
+<!--                            <a href="/asset/analytics" class="btn-more">자세히 보기 →</a>-->
+<!--                        </div>-->
+<!--                    </div>-->
+<!--                </div>-->
 
 
             </div>

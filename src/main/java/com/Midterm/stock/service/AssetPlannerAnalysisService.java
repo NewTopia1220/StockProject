@@ -54,6 +54,7 @@ public class AssetPlannerAnalysisService {
         HttpEntity<AssetPlannerPredictionRequestDto> entity =
                 new HttpEntity<>(requestDto, headers);
 
+
         ResponseEntity<AssetPlannerPredictionResponseDto> response;
         try {
             response = restTemplate.postForEntity(
@@ -64,6 +65,7 @@ public class AssetPlannerAnalysisService {
         } catch (RestClientException e) {
             throw new RuntimeException("자산 예측 API 호출에 실패했습니다. FastAPI 서버 상태와 주소를 확인해주세요: " + predictionApiUrl, e);
         }
+
 
         AssetPlannerPredictionResponseDto responseDto = response.getBody();
 

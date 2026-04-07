@@ -136,9 +136,9 @@ public class AssetDao {
         conn = connect();
         Map<String, Integer> result = new HashMap<>();
 
-        // 식비, 의료, 주거는 필수(Need)로 분류하는 SQL
-        String sql = "SELECT SUM(CASE WHEN category LIKE '%식비%' OR category LIKE '%의료%' OR category LIKE '%주거%' THEN amount ELSE 0 END) as need, " +
-                "SUM(CASE WHEN NOT (category LIKE '%식비%' OR category like '%의료%' OR category like '%주거%') THEN amount ELSE 0 END) as want " +
+        // 식비, 의료, 교육, 교통, 생활은 필수(Need)로 분류하는 SQL - 그외는 비분류
+        String sql = "SELECT SUM(CASE WHEN category LIKE '%식비%' OR category LIKE '%의료%' OR category LIKE '%교육%' OR category LIKE '%교통%' OR category LIKE '%생활%'  THEN amount ELSE 0 END) as need, " +
+                "SUM(CASE WHEN NOT (category LIKE '%식비%' OR category like '%의료%' OR category like '%교육%' OR category LIKE '%교통%' OR category LIKE '%생활%' ) THEN amount ELSE 0 END) as want " +
                 "FROM asset_data " +
                 "WHERE month = ?";
 
@@ -338,37 +338,37 @@ public class AssetDao {
         }
     }
 
-    public Map<String, Long> getAssetTrendData(int selectedMonth) {
-        Map<String, Long> trendData = new LinkedHashMap<>();
-        conn = connect();
-
-        // 선택한 월(selectedMonth)을 기준으로 그 포함 이전 3개월치 데이터를 가져오는 쿼리
-        // 예: 4월 선택 시 -> 2, 3, 4월의 마지막 데이터 추출
-        String sql = "SELECT TO_CHAR(created_at, 'MM') || '월' as month_label, current_asset " +
-                "FROM ( " +
-                "    SELECT created_at, current_asset, " +
-                "           ROW_NUMBER() OVER (PARTITION BY TO_CHAR(created_at, 'MM') ORDER BY created_at DESC) as rn " +
-                "    FROM asset_analysis_history " +
-                "    WHERE created_at <= LAST_DAY(TO_DATE('2026-' || ? || '-01', 'YYYY-MM-DD')) " + // 선택월의 말일보다 이전인 데이터
-                "      AND created_at >= ADD_MONTHS(TO_DATE('2026-' || ? || '-01', 'YYYY-MM-DD'), -2) " + // 2개월 전부터
-                ") " +
-                "WHERE rn = 1 " +
-                "ORDER BY created_at ASC";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, selectedMonth);
-            pstmt.setInt(2, selectedMonth);
-            rs = pstmt.executeQuery();
-            while (rs.next()) {
-                trendData.put(rs.getString("month_label"), rs.getLong("current_asset"));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-        return trendData;
-    }
+//    public Map<String, Long> getAssetTrendData(int selectedMonth) {
+//        Map<String, Long> trendData = new LinkedHashMap<>();
+//        conn = connect();
+//
+//        // 선택한 월(selectedMonth)을 기준으로 그 포함 이전 3개월치 데이터를 가져오는 쿼리
+//        // 예: 4월 선택 시 -> 2, 3, 4월의 마지막 데이터 추출
+//        String sql = "SELECT TO_CHAR(created_at, 'MM') || '월' as month_label, current_asset " +
+//                "FROM ( " +
+//                "    SELECT created_at, current_asset, " +
+//                "           ROW_NUMBER() OVER (PARTITION BY TO_CHAR(created_at, 'MM') ORDER BY created_at DESC) as rn " +
+//                "    FROM asset_analysis_history " +
+//                "    WHERE created_at <= LAST_DAY(TO_DATE('2026-' || ? || '-01', 'YYYY-MM-DD')) " + // 선택월의 말일보다 이전인 데이터
+//                "      AND created_at >= ADD_MONTHS(TO_DATE('2026-' || ? || '-01', 'YYYY-MM-DD'), -2) " + // 2개월 전부터
+//                ") " +
+//                "WHERE rn = 1 " +
+//                "ORDER BY created_at ASC";
+//
+//        try {
+//            pstmt = conn.prepareStatement(sql);
+//            pstmt.setInt(1, selectedMonth);
+//            pstmt.setInt(2, selectedMonth);
+//            rs = pstmt.executeQuery();
+//            while (rs.next()) {
+//                trendData.put(rs.getString("month_label"), rs.getLong("current_asset"));
+//            }
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        } finally {
+//            closeAll();
+//        }
+//        return trendData;
+//    }
 
 }

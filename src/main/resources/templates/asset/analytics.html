@@ -76,35 +76,41 @@
         <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <div class="content-wrapper">
-
                 <div class="page-header">
                     <div class="month-selector" style="display: flex; align-items: center; gap: 15px;">
-                        <a th:href="@{/asset/analytics(month=${selectedMonth - 1})}" class="btn-month">
+
+                        <!-- 이전 버튼 비활성화 -->
+                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </div>
+
+                        <a th:if="${hasPrevData}" th:href="@{/asset/analytics(month=${selectedMonth == 1 ? 12 : prevMonth})}" class="btn-month">  <!--이전달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </a>
 
-                        <h1 style="margin: 0;">
-                            <span th:text="${selectedMonth}">4</span>월 소비분석
-                        </h1>
+                        <h1 style="margin: 0;"><span th:text="${selectedMonth}">4</span>월 소비분석</h1>   <!--현재달-->
 
-                        <a th:if="${selectedMonth < currentRealMonth}"
-                           th:href="@{/asset/analytics(month=${selectedMonth + 1})}" class="btn-month">
+                        <a th:if="${hasNextData}" th:href="@{/asset/analytics(month=${selectedMonth == 12 ? 1 : nextMonth})}" class="btn-month"> <!--다음달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </a>
 
-                        <div th:unless="${selectedMonth < currentRealMonth}" style="color: #ccc; cursor: not-allowed;">
+                        <!--다음버튼 비활성화-->
+                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </div>
                     </div>
-
                     <p class="page-subtitle" th:text="${selectedMonth} + '월의 소비 상태를 확인하세요'"></p>
                 </div>
+
+
 
                 <!-- 필수 vs 비필수 수평 바 차트 -->
                 <div class="card need-want-chart">
