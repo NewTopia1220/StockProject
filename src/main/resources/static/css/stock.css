@@ -315,6 +315,144 @@
     font-weight: 600;
 }
 
+/* ── AI 뉴스 종합 분석 추가 요소 ── */
+.aiArticleCount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 10px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+.aiArticleCount strong {
+    font-size: 16px;
+    font-weight: 800;
+    color: var(--primary-navy);
+}
+
+.statusBadge.badge-bull { background: #ecfdf5; color: #059669; }
+.statusBadge.badge-bear { background: #fef2f2; color: #dc2626; }
+.statusBadge.badge-warn { background: #fffbeb; color: #d97706; }
+
+/* 감성 게이지 색 (JS에서 덮어씀) */
+.gaugeFill.sentFill {
+    background: linear-gradient(90deg, #fbbf24, #f59e0b);
+}
+
+/* ── 전광판 클릭 링크 ── */
+.price-ticker-container a.t-item {
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.price-ticker-container a.t-item:hover span {
+    color: var(--primary-navy);
+}
+
+/* ── 종목 카드 그리드 ── */
+.stockCardGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+    margin-top: 24px;
+}
+
+.stockCard {
+    background: #fff;
+    border-radius: 18px;
+    padding: 18px 20px;
+    border: 1px solid var(--border-color);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+}
+
+.stockCard:hover {
+    transform: translateY(-3px);
+    border-color: var(--primary-navy);
+    box-shadow: 0 8px 20px rgba(14, 15, 55, 0.1);
+}
+
+.stockCardTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sectorBadge {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 110px;
+}
+
+.sentimentBadge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.sent-positive { background: #ecfdf5; color: #059669; }
+.sent-negative { background: #fef2f2; color: #dc2626; }
+.sent-neutral  { background: #f3f4f6; color: #6b7280; }
+
+.stockCardName {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.stockCardStats {
+    display: flex;
+    gap: 12px;
+}
+
+.statItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.statLabel {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.statItem strong {
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.emptyStocks {
+    margin-top: 24px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    padding: 40px;
+    background: #f8f9fa;
+    border-radius: 16px;
+}
+
 @media (max-width: 992px) {
     .marketTicker {
         grid-template-columns: 1fr;
@@ -324,7 +462,13 @@
         flex-direction: column;
     }
 
-    .stockList {
+    .stockCardGrid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    .stockCardGrid {
         grid-template-columns: 1fr;
     }
 }

@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Stoxle - 뉴스</title>
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/community/list.css}">
+    <link rel="stylesheet" th:href="@{/css/news/list.css}">
+    <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
+</head>
+<body class="withMainHeader">
+<div th:replace="~{fragments/header :: header('news')}"></div>
+
+<div class="pageContainer communityPage newsPage">
+
+    <!-- 히어로 -->
+    <section class="communityHero">
+        <div class="heroTop">
+            <div class="heroText">
+                <h1>AI가 분석한 오늘의 주식 뉴스</h1>
+                <p>섹터·종목별로 필터링하고, 신뢰도와 낚시성 분석을 한눈에 확인하세요.</p>
+            </div>
+        </div>
+        <form class="communitySearch" th:action="@{/news}" method="get">
+            <input type="text" name="company" th:value="${company}" placeholder="종목명으로 검색 (예: 삼성전자)">
+            <button type="submit">검색</button>
+        </form>
+    </section>
+
+    <div class="communityMain">
+
+        <!-- ── 왼쪽 사이드바 ── -->
+        <aside class="communitySidebar">
+            <div class="sidebarCard">
+                <div class="sidebarHeader">
+                    <h3>섹터 · 종목</h3>
+                    <p>원하는 섹터 또는 종목을 선택하세요.</p>
+                </div>
+
+                <nav class="categoryNav categoryAccordion">
+                    <!-- 전체 -->
+                    <div class="accordionItem open">
+                        <button type="button" class="accordionButton">
+                            <span>전체</span>
+                            <span class="accordionArrow">⌄</span>
+                        </button>
+                        <div class="accordionContent">
+                            <a th:href="@{/news}"
+                               class="navItem"
+                               th:classappend="${sector == null and company == null} ? ' active' : ''">
+                                <span class="navLabel">전체 뉴스</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- 섹터별 아코디언 -->
+                    <div class="accordionItem"
+                         th:each="entry : ${sectorMap}"
+                         th:classappend="${sector == entry.key} ? ' open' : ''">
+                        <button type="button" class="accordionButton">
+                            <span th:text="${entry.key}">섹터명</span>
+                            <span class="accordionArrow">⌄</span>
+                        </button>
+                        <div class="accordionContent">
+                            <!-- 섹터 전체 링크 -->
+                            <a th:href="@{/news(sector=${entry.key})}"
+                               class="navItem sectorLink"
+                               th:classappend="${sector == entry.key and company == null} ? ' active' : ''">
+                                <span class="navLabel" th:text="'· ' + ${entry.key} + ' 전체'">섹터 전체</span>
+                            </a>
+                            <!-- 종목별 링크 -->
+                            <a th:each="comp : ${entry.value}"
+                               th:href="@{/news(company=${comp})}"
+                               class="navItem companyLink"
+                               th:classappend="${company == comp} ? ' active' : ''">
+                                <span class="navLabel" th:text="${comp}">종목명</span>
+                            </a>
+                        </div>
+                    </div>
+                </nav>
+            </div>
+        </aside>
+
+        <!-- ── 중앙 콘텐츠 ── -->
+        <section class="communityContent">
+            <div class="contentTop">
+                <div class="contentWrap">
+                    <h2 th:text="${company != null ? company + ' 뉴스' : (sector != null ? sector + ' 섹터 뉴스' : '전체 뉴스')}">전체 뉴스</h2>
+                    <p class="contentDesc" th:text="'총 ' + ${totalCount} + '건의 기사가 있습니다.'">총 0건</p>
+                </div>
+            </div>
+
+            <!-- 뉴스 목록 -->
+            <div th:if="${newsList != null and not #lists.isEmpty(newsList)}">
+                <article class="newsItem" th:each="dto : ${newsList}">
+                    <div class="newsTopRow">
+                        <span class="boardCategory" th:text="${dto.sectorName}">섹터</span>
+                        <span class="companyTag" th:text="${dto.companyName}">종목</span>
+                        <span class="sentimentTag"
+                              th:classappend="${dto.sentiment == '호재'} ? ' sent-positive' : (${dto.sentiment == '악재'} ? ' sent-negative' : ' sent-neutral')"
+                              th:text="${dto.sentiment}">중립</span>
+                        <span class="newsDate" th:text="${dto.pubDate}">날짜</span>
+                    </div>
+
+                    <h3 class="newsTitle">
+                        <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer"
+                           th:text="${dto.title}">기사 제목</a>
+                    </h3>
+
+                    <p class="newsSummary" th:text="${dto.summary}">요약</p>
+
+                    <!-- AI 분석 지표 -->
+                    <div class="newsMetrics">
+                        <div class="metricItem">
+                            <span class="metricLabel">AI 신뢰도</span>
+                            <div class="metricBarWrap">
+                                <div class="metricBar metricBarBlue">
+                                    <div class="metricFill"
+                                         th:style="'width:' + ${#numbers.formatDecimal(dto.typeProb, 1, 1)} + '%'"></div>
+                                </div>
+                                <span class="metricVal" th:text="${dto.typeProbStr} + '%'">0%</span>
+                            </div>
+                            <span class="metricType" th:text="${dto.articleType}">사실형</span>
+                        </div>
+                        <div class="metricItem">
+                            <span class="metricLabel">낚시 확률</span>
+                            <div class="metricBarWrap">
+                                <div class="metricBar metricBarRed">
+                                    <div class="metricFill"
+                                         th:style="'width:' + ${#numbers.formatDecimal(dto.clickbaitProb, 1, 1)} + '%'"></div>
+                                </div>
+                                <span class="metricVal" th:text="${dto.clickbaitProbStr} + '%'">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="newsLinkRow">
+                        <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer" class="newsOrigLink">
+                            원문 보기 →
+                        </a>
+                    </div>
+                </article>
+            </div>
+
+            <!-- 뉴스 없음 -->
+            <div class="emptySection" th:if="${newsList == null or #lists.isEmpty(newsList)}">
+                <div class="emptyMainCard">
+                    <div class="emptyIcon">📰</div>
+                    <h3>해당 조건의 뉴스가 없습니다</h3>
+                    <p>다른 섹터 또는 종목을 선택해보세요.</p>
+                    <div class="emptyBtnArea">
+                        <a th:href="@{/news}" class="writeBtn">전체 뉴스 보기</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 페이징 -->
+            <div class="pagination" th:if="${totalPages > 1}">
+                <a th:if="${currentPage > 1}"
+                   th:href="@{/news(page=${currentPage - 1}, sector=${sector}, company=${company})}"
+                   class="pageBtn">‹ 이전</a>
+
+                <th:block th:each="i : ${#numbers.sequence(currentPage<4?1:(currentPage-3), currentPage+3)}">
+                    <a th:href="@{/news(page=${i}, sector=${sector}, company=${company})}"
+                       class="pageBtn"
+                       th:classappend="${i == currentPage} ? ' active' : ''"
+                       th:text="${i}">1</a>
+                </th:block>
+
+                <a th:if="${currentPage < totalPages}"
+                   th:href="@{/news(page=${currentPage + 1}, sector=${sector}, company=${company})}"
+                   class="pageBtn">다음 ›</a>
+            </div>
+        </section>
+
+        <!-- ── 오른쪽 패널 ── -->
+        <aside class="communityRight">
+            <div class="sideCard">
+                <div class="sideCardHeader">
+                    <h4>분석 기준 안내</h4>
+                </div>
+                <ol class="guideList">
+                    <li><strong>AI 신뢰도</strong> — 기사가 사실 기반으로 작성된 확률입니다.</li>
+                    <li><strong>낚시 확률</strong> — 클릭베이트성 제목일 가능성입니다.</li>
+                    <li><strong>감성</strong> — 호재·악재·중립으로 시장 영향도를 나타냅니다.</li>
+                </ol>
+            </div>
+            <div class="sideCard">
+                <div class="sideCardHeader">
+                    <h4>바로가기</h4>
+                </div>
+                <ul class="sideRankList">
+                    <li><span>→</span><a th:href="@{/stock}">메인 페이지</a></li>
+                    <li><span>→</span><a th:href="@{/community}">커뮤니티</a></li>
+                </ul>
+            </div>
+        </aside>
+
+    </div>
+</div>
+
+<script>
+    // 사이드바 아코디언
+    document.querySelectorAll('.accordionButton').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var item = this.closest('.accordionItem');
+            item.classList.toggle('open');
+        });
+    });
+</script>
+</body>
+</html>

@@ -14,6 +14,7 @@
 <div class="pageContainer">
     <div class="stockMainPage">
 
+        <!-- 지수 티커 -->
         <div class="marketTicker">
             <div class="tickerItem">
                 <span class="label">KOSPI</span>
@@ -38,6 +39,7 @@
             </div>
         </div>
 
+        <!-- 차트 + AI 분석 -->
         <div class="stockTop">
             <div class="chartBox">
                 <div class="boxHeader">
@@ -51,37 +53,50 @@
             <div class="analysisBox">
                 <div class="combinedAnalysis">
                     <div class="boxHeader">
-                        <h3>AI 종합 분석</h3>
-                        <span class="statusBadge" id="aiStatus">안정</span>
+                        <h3>AI 뉴스 종합 분석</h3>
+                        <span class="statusBadge"
+                              th:classappend="${statusBadge == '강세' ? ' badge-bull' : (statusBadge == '약세' ? ' badge-bear' : (statusBadge == '주의' ? ' badge-warn' : ''))}"
+                              th:text="${statusBadge}">중립</span>
                     </div>
 
+                    <div class="aiArticleCount">
+                        <span>오늘 분석된 기사</span>
+                        <strong th:text="${totalCount} + '건'">0건</strong>
+                    </div>
+
+                    <!-- 신뢰도 -->
                     <div class="gaugeWrapper">
                         <div class="gaugeLabel">
                             <span>AI 신뢰도</span>
-                            <strong id="confVal">0%</strong>
+                            <strong th:text="${typeProb} + '%'">0%</strong>
                         </div>
                         <div class="gaugeBar">
-                            <div class="gaugeFill positive" id="confBar" style="width: 0%;"></div>
+                            <div class="gaugeFill positive" id="confBar"
+                                 th:attr="data-value=${typeProb}" style="width: 0%;"></div>
                         </div>
                     </div>
 
+                    <!-- 정보 노이즈 -->
                     <div class="gaugeWrapper">
                         <div class="gaugeLabel">
                             <span>정보 노이즈(낚시)</span>
-                            <strong id="noiseVal">0%</strong>
+                            <strong th:text="${noiseProb} + '%'">0%</strong>
                         </div>
                         <div class="gaugeBar">
-                            <div class="gaugeFill negative" id="noiseBar" style="width: 0%;"></div>
+                            <div class="gaugeFill negative" id="noiseBar"
+                                 th:attr="data-value=${noiseProb}" style="width: 0%;"></div>
                         </div>
                     </div>
 
+                    <!-- 시장 감성 -->
                     <div class="gaugeWrapper">
                         <div class="gaugeLabel">
-                            <span>시장 감성 (Sentiment)</span>
-                            <strong id="sentLabel">중립</strong>
+                            <span>시장 감성</span>
+                            <strong th:text="${sentimentLabel}">중립</strong>
                         </div>
                         <div class="gaugeBar sentiment">
-                            <div class="gaugeFill positive" id="sentBar" style="width: 50%;"></div>
+                            <div class="gaugeFill sentFill" id="sentBar"
+                                 th:attr="data-value=${sentimentScore}" style="width: 0%;"></div>
                         </div>
                         <div class="gaugeRange">
                             <span>부정</span>
@@ -90,11 +105,12 @@
                         </div>
                     </div>
 
-                    <p class="analysisDesc" id="aiDesc">데이터를 분석하고 있습니다...</p>
+                    <p class="analysisDesc" th:text="${analysisDesc}">데이터를 분석하고 있습니다...</p>
                 </div>
             </div>
         </div>
 
+        <!-- 종목 전광판 (DB 기반) -->
         <div class="price-ticker-container">
             <div class="price-ticker-wrapper">
                 <div class="ticker-content">
@@ -115,49 +131,69 @@
                 </div>
             </div>
         </div>
-
+        <!-- 하단: 섹터별 종목 -->
         <div class="bottomSection">
             <div class="sectorWrap">
                 <div class="sector-header">
-                    <h2>섹터별 분석 핫이슈</h2>
-                    <span class="live-badge">LIVE 업데이트 중</span>
+                    <h2>섹터별 뉴스 핫이슈</h2>
+                    <a th:href="@{/news}" class="live-badge" style="text-decoration:none;">전체 뉴스 보기 →</a>
                 </div>
-                <div class="sectorList">
+                <div class="sectorList" id="sectorBtns">
                     <button class="active" data-sector="all">전체</button>
-                    <button data-sector="it">반도체·AI</button>
-                    <button data-sector="battery">2차전지</button>
-                    <button data-sector="bio">바이오</button>
-                    <button data-sector="finance">금융</button>
+                    <button th:each="entry : ${sectorCompanyMap}"
+                            th:attr="data-sector=${entry.key}"
+                            th:text="${entry.key}">섹터</button>
                 </div>
             </div>
 
-            <div class="stockList" id="stockListContainer">
-                <div class="stockItem">
-                    <div class="name">
-                        <h3>삼성전자</h3>
-                        <p>005930</p>
-                    </div>
-                    <div class="priceInfo">
-                        <strong>75,200원</strong>
-                        <span class="up">▲ 1.08%</span>
-                    </div>
-                </div>
-                <div class="stockItem">
-                    <div class="name">
-                        <h3>SK하이닉스</h3>
-                        <p>000660</p>
-                    </div>
-                    <div class="priceInfo">
-                        <strong>218,000원</strong>
-                        <span class="up">▲ 2.35%</span>
-                    </div>
-                </div>
+            <!-- 종목 카드 그리드 -->
+            <div class="stockCardGrid" id="stockCardGridReal"
+                 th:if="${sectorCompanyMap != null and not #maps.isEmpty(sectorCompanyMap)}">
+                <th:block th:each="sEntry : ${sectorCompanyMap}">
+                    <a class="stockCard"
+                       th:each="company : ${sEntry.value}"
+                       th:href="@{/news(company=${company['companyName']})}"
+                       th:attr="data-sector=${sEntry.key}">
+                        <div class="stockCardTop">
+                            <span class="sectorBadge" th:text="${sEntry.key}">섹터</span>
+                            <span class="sentimentBadge"
+                                  th:class="${company['dominantSentiment'] == '호재' ? 'sentimentBadge sent-positive' : (company['dominantSentiment'] == '악재' ? 'sentimentBadge sent-negative' : 'sentimentBadge sent-neutral')}"
+                                  th:text="${company['dominantSentiment']}">중립</span>
+                        </div>
+                        <h3 class="stockCardName" th:text="${company['companyName']}">종목명</h3>
+                        <div class="stockCardStats">
+                            <span class="statItem">
+                                <span class="statLabel">기사</span>
+                                <strong th:text="${company['articleCount']} + '건'">0건</strong>
+                            </span>
+                            <span class="statItem">
+                                <span class="statLabel">호재</span>
+                                <strong class="up" th:text="${company['positiveCount']}">0</strong>
+                            </span>
+                            <span class="statItem">
+                                <span class="statLabel">악재</span>
+                                <strong class="down" th:text="${company['negativeCount']}">0</strong>
+                            </span>
+                        </div>
+                    </a>
+                </th:block>
+            </div>
+
+            <div class="emptyStocks" th:if="${sectorCompanyMap == null or #maps.isEmpty(sectorCompanyMap)}">
+                <p>오늘 수집된 뉴스 종목이 없습니다.</p>
             </div>
         </div>
 
     </div>
 </div>
 
+<script th:inline="javascript">
+    window.STOCK_DATA = {
+        typeProb:       parseFloat(/*[[${typeProb}]]*/ '0'),
+        noiseProb:      parseFloat(/*[[${noiseProb}]]*/ '0'),
+        sentimentScore: parseFloat(/*[[${sentimentScore}]]*/ '50')
+    };
+</script>
 <script th:src="@{/js/stock.js}"></script>
 </body>
 </html>
