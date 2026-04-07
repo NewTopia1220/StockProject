@@ -52,7 +52,7 @@ public class AssetPlannerAnalysisService {
 
         ResponseEntity<AssetPlannerPredictionResponseDto> response =
                 restTemplate.postForEntity(
-                        "http://127.0.0.1:8000/api/asset/predict",
+                        "http://127.0.0.1:9000/api/asset/predict",
                         entity,
                         AssetPlannerPredictionResponseDto.class
                 );
