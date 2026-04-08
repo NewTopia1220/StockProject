@@ -209,47 +209,58 @@ async function initMainChart() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
+            interaction: {mode: 'index', intersect: false},
             plugins: {
-                legend: { display: false },
+                legend: {display: false},
                 title: {
                     display: true,
                     text: getChartTitle()
                 }
             },
             scales: {
-                x: { grid: { display: false } },
+                x: {grid: {display: false}},
                 y: {
-                    grid: { color: '#f3f4f6' },
-                    ticks: { callback: v => Number(v).toLocaleString() }
-
+                    grid: {color: '#f3f4f6'},
+                    ticks: {callback: v => Number(v).toLocaleString()}
+                }
+            }
+        }
+    });
+}
 
 /* ── 게이지 애니메이션 ── */
 function animateGauges() {
-    var d = window.STOCK_DATA || { typeProb: 0, noiseProb: 0, sentimentScore: 50 };
+    var d = window.STOCK_DATA || {typeProb: 0, noiseProb: 0, sentimentScore: 50};
 
-    var confBar  = document.getElementById('confBar');
+    var confBar = document.getElementById('confBar');
     var noiseBar = document.getElementById('noiseBar');
-    var sentBar  = document.getElementById('sentBar');
+    var sentBar = document.getElementById('sentBar');
 
     if (confBar) {
         var v = parseFloat(confBar.getAttribute('data-value') || d.typeProb) || 0;
-        setTimeout(function () { confBar.style.width = Math.min(v, 100) + '%'; }, 100);
+        setTimeout(function () {
+            confBar.style.width = Math.min(v, 100) + '%';
+        }, 100);
     }
     if (noiseBar) {
         var v2 = parseFloat(noiseBar.getAttribute('data-value') || d.noiseProb) || 0;
-        setTimeout(function () { noiseBar.style.width = Math.min(v2, 100) + '%'; }, 200);
+        setTimeout(function () {
+            noiseBar.style.width = Math.min(v2, 100) + '%';
+        }, 200);
     }
     if (sentBar) {
         var sv = parseFloat(sentBar.getAttribute('data-value') || d.sentimentScore) || 50;
         var color;
-        if (sv >= 60)      color = 'linear-gradient(90deg,#34d399,#10b981)';
+        if (sv >= 60) color = 'linear-gradient(90deg,#34d399,#10b981)';
         else if (sv <= 40) color = 'linear-gradient(90deg,#f87171,#ef4444)';
-        else               color = 'linear-gradient(90deg,#fbbf24,#f59e0b)';
+        else color = 'linear-gradient(90deg,#fbbf24,#f59e0b)';
         sentBar.style.background = color;
-        setTimeout(function () { sentBar.style.width = Math.min(sv, 100) + '%'; }, 300);
+        setTimeout(function () {
+            sentBar.style.width = Math.min(sv, 100) + '%';
+        }, 300);
     }
 }
+
 
 
 /**
