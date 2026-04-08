@@ -606,9 +606,9 @@ a{
     min-width: 42px;
     height: 42px;
     padding: 0 14px;
-    border: 1px solid #d9dfeb;
+/*    border: 1px solid #d9dfeb;
     border-radius: 12px;
-    background: #ffffff;
+    background: #ffffff; */
     color: #1d234f;
     font-size: 14px;
     font-weight: 700;
@@ -620,14 +620,14 @@ a{
 }
 
 .pageBtn:hover {
-    background: #f4f6ff;
-    border-color: #15164D;
+    /*background: #f4f6ff;*/
+    color: #d74b5a;
 }
 
 .pageBtn.active {
-    background: #15164D;
-    border-color: #15164D;
-    color: #ffffff;
+/*    background: #15164D;
+    border-color: #15164D;*/
+    color: #d74b5a;
 }
 
 .emptyBtnArea{
@@ -888,6 +888,7 @@ a{
 /* ══════════════════════════════════════
    다크 모드 — 커뮤니티/뉴스 공통 레이아웃
 ══════════════════════════════════════ */
+/*
 body.dark .communityHero            { background: #141720; border-color: #1e2235; }
 body.dark .heroText h1              { color: #f1f5f9; }
 body.dark .heroText p               { color: #8892a8; }
@@ -926,7 +927,7 @@ body.dark .boardStats               { color: #64748b; }
 
 body.dark .emptyMainCard            { background: #141720; border-color: #1e2235; }
 body.dark .emptyMainCard h3         { color: #e2e8f0; }
-body.dark .emptyMainCard p          { color: #64748b; }
+body.dark .emptyMainCard p          { color: #64748b; }*/
 
 /* RESPONSIVE */
 @media screen and (max-width:1200px){

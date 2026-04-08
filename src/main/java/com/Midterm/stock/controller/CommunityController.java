@@ -151,8 +151,22 @@ public class CommunityController {
         communityDao.updateViewcount(board_id);  // 조회수 증가
 
         CommunityDto dto = communityDao.getArticle(board_id);
+
         if (dto == null) {
             return "redirect:/community";
+        }
+
+        // 사용자별 게시글 수, 댓글 수
+        int userArticleCount = communityDao.getArticleCountByUserNum(dto.getUser_num());
+        int userCommentCount = communityDao.getCommentCountByUserNum(dto.getUser_num());
+
+        // 본인의 게시글만 삭제가능하도록
+        boolean isOwner = dto.getUser_num() == loginNum;
+
+        // 뉴스 링크 연결
+        String relatedNewsTitle = null;
+        if (dto.getNews_link() != null && !dto.getNews_link().isBlank()) {
+            relatedNewsTitle = communityDao.getNewsTitleByLink(dto.getNews_link());
         }
 
         boolean likedByMe = communityDao.existsLike(board_id, loginNum);
@@ -162,7 +176,15 @@ public class CommunityController {
         model.addAttribute("likedByMe", likedByMe);
         model.addAttribute("comments", comments);
         model.addAttribute("commentCount", comments.size());
+        model.addAttribute("isOwner", isOwner); // 본인만
         model.addAttribute("currentPage", "community");
+
+        // 게시글 & 댓글 수 조회
+        model.addAttribute("userArticleCount", userArticleCount);
+        model.addAttribute("userCommentCount", userCommentCount);
+
+        // 뉴스
+        model.addAttribute("relatedNewsTitle", relatedNewsTitle);
 
         return "community/detail";
     }
@@ -225,5 +247,31 @@ public class CommunityController {
         result.put("success", true);
         result.put("likeCount", likeCount);
         return result;
+    }
+
+    // 글 삭제
+    @PostMapping("/delete")
+    public String deleteProc(@RequestParam("board_id") int board_id,
+                             HttpSession session) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        CommunityDto dto = communityDao.getArticle(board_id);
+
+        if (dto == null) {
+            return "redirect:/community";
+        }
+
+        // 작성자 본인만 삭제 가능 // 한번 더 막아줌
+        if (dto.getUser_num() != loginNum) {
+            return "redirect:/community/detail?board_id=" + board_id;
+        }
+
+        communityDao.deleteArticle(board_id);
+        return "redirect:/community";
     }
 }

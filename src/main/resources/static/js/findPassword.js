@@ -60,9 +60,9 @@ document.addEventListener("DOMContentLoaded", function () {
                 return;
             }
 
-            if (phoneOnly.length < 10 || phoneOnly.length > 11) {
+            if (!isValidPhone(phoneOnly)) {
                 if (verifyMessage) {
-                    verifyMessage.textContent = "휴대폰 번호 형식을 확인해 주세요.";
+                    verifyMessage.textContent = "휴대폰 번호는 숫자 10~11자리로 입력해 주세요.";
                 }
                 return;
             }
@@ -167,6 +167,11 @@ function formatPhoneNumber(value) {
 }
 
 function isValidEmail(email) {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
     return emailPattern.test(email);
+}
+
+function isValidPhone(phone) {
+    const phonePattern = /^\d{10,11}$/;
+    return phonePattern.test(phone);
 }

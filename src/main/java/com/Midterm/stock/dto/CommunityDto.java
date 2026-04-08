@@ -14,6 +14,7 @@ public class CommunityDto {
     private int like_count;
     private Timestamp created_at;
     private Timestamp updated_at;
+    private String news_link;
 
     public CommunityDto() {
 
@@ -109,5 +110,13 @@ public class CommunityDto {
 
     public void setUpdated_at(Timestamp updated_at) {
         this.updated_at = updated_at;
+    }
+
+    public String getNews_link() {
+        return news_link;
+    }
+
+    public void setNews_link(String news_link) {
+        this.news_link = news_link;
     }
 }

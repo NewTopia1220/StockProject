@@ -45,3 +45,21 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+
+function toggleMoreMenu() {
+    const menu = document.getElementById("moreMenuDropdown");
+    if (menu) {
+        menu.classList.toggle("show");
+    }
+}
+
+document.addEventListener("click", function (event) {
+    const wrap = document.querySelector(".moreMenuWrap");
+    const menu = document.getElementById("moreMenuDropdown");
+
+    if (!wrap || !menu) return;
+
+    if (!wrap.contains(event.target)) {
+        menu.classList.remove("show");
+    }
+});

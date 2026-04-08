@@ -6,6 +6,8 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
 @Repository
 public class CommunityDao {
@@ -53,7 +55,7 @@ public class CommunityDao {
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
                 + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
                 + ") where rnum between ? and ?";
@@ -326,8 +328,8 @@ public class CommunityDao {
     public int insertArticle(CommunityDto dto) {
         connect();
         int count = -1;
-        String sql = "insert into community_board(board_id, user_num, category, title, content) "
-                + "values(community_board_seq.nextval, ?, ?, ?, ?)";
+        String sql = "insert into community_board(board_id, user_num, category, title, content, news_link) "
+                + "values(community_board_seq.nextval, ?, ?, ?, ?, ?)";
 
         try {
             pstmt = conn.prepareStatement(sql);
@@ -335,6 +337,8 @@ public class CommunityDao {
             pstmt.setString(2, dto.getCategory());
             pstmt.setString(3, dto.getTitle());
             pstmt.setString(4, dto.getContent());
+            pstmt.setString(5, dto.getNews_link());
+
             count = pstmt.executeUpdate();
         } catch (SQLException e) {
             e.printStackTrace();
@@ -349,7 +353,7 @@ public class CommunityDao {
         connect();
         CommunityDto dto = null;
         String sql = "select c.board_id, c.user_num, u.name as user_name, "
-                + "c.category, c.title, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + "c.category, c.title, c.content, c.news_link, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + "from community_board c "
                 + "join users u on c.user_num = u.num "
                 + "where c.board_id = ?";
@@ -583,7 +587,7 @@ public class CommunityDao {
         return count;
     }
 
-    // 수정
+    // 게시글 수정
     public int updateArticle(CommunityDto dto) {
         connect();
         int count = -1;
@@ -606,7 +610,7 @@ public class CommunityDao {
         return count;
     }
 
-    // 삭제
+    // 게시글 삭제
     public int deleteArticle(int board_id){
         connect();
         int count = -1;
@@ -622,6 +626,111 @@ public class CommunityDao {
             closeAll();
         }
         return count;
+    }
+
+    // 게시글 => detail.html => 사용자의 글 수 & 댓글 수
+    public int getArticleCountByUserNum(int user_num) {
+        connect();
+        int count = 0;
+
+        String sql = "select count(*) from community_board where user_num = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()){
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
+    public int getCommentCountByUserNum(int user_num) {
+        connect();
+        int count = 0;
+
+        String sql = "select count(*) from community_comment where user_num = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()){
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
+    // detail.html -> 뉴스 링크 => 뉴스 제목 조회
+    public String getNewsTitleByLink(String newsLink) {
+        connect();
+        String title = null;
+
+        String sql = "select title from news_data where link = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, newsLink);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                title = rs.getString("title");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return title;
+    }
+
+    public ArrayList<Map<String, String>> searchRelatedNews(String keyword) {
+        connect();
+        ArrayList<Map<String, String>> newsList = new ArrayList<>();
+
+        String sql = "select * from ( "
+                + " select link, title, summary, pub_date "
+                + " from news_data "
+                + " where title like ? or summary like ? "
+                + " order by pub_date desc "
+                + ") where rownum <= 5";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "%" + keyword + "%");
+            pstmt.setString(2, "%" + keyword + "%");
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Map<String, String> item = new HashMap<>();
+                item.put("link", rs.getString("link"));
+                item.put("title", rs.getString("title"));
+                item.put("summary", rs.getString("summary"));
+                item.put("pubDate", rs.getString("pub_date"));
+                newsList.add(item);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return newsList;
     }
 
     // 자원 해제 공통 메서드 (코드 중복 방지)

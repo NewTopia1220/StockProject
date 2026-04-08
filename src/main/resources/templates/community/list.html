@@ -256,7 +256,8 @@
                 <a class="pageBtn"
                    th:if="${currentPageNum > 1}"
                    th:href="@{/community(page=${currentPageNum - 1}, category=${param.category}, keyword=${param.keyword})}">
-                    이전
+                    <!--이전-->
+                    <
                 </a>
 
                 <a class="pageBtn"
@@ -270,7 +271,8 @@
                 <a class="pageBtn"
                    th:if="${currentPageNum < totalPages}"
                    th:href="@{/community(page=${currentPageNum + 1}, category=${param.category}, keyword=${param.keyword})}">
-                    다음
+                    <!--다음-->
+                    >
                 </a>
             </div>
         </section>
@@ -304,8 +306,8 @@
                 <div class="sideCardHeader">
                     <h4>실시간 투자 분석</h4>
                 </div>
-                <p class="analysisText">AI가 분석한 종목 정보를 확인하세요.</p>
-                <a th:href="@{/recommend}" class="analysisBtn">AI 추천 보기</a>
+                <p class="analysisText">AI가 분석한 뉴스 정보를 확인하세요.</p>
+                <a th:href="@{/news}" class="analysisBtn">AI 종합 분석 보기</a>
             </div>
 
             <div class="sideCard" id="pricePanel">
