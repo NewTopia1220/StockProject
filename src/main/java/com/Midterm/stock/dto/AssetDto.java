@@ -3,7 +3,8 @@ package com.Midterm.stock.dto;
 import java.time.LocalDate;
 
 public class AssetDto {
-
+    private int spend_id;
+    private int user_id;
     private int month;            // 월
     private LocalDate date;       // 일자
     private int amount;           // 금액
@@ -11,18 +12,17 @@ public class AssetDto {
     private String category;      // 최종카테고리
 
 
-
     public AssetDto() {}
 
-    public AssetDto(int month, LocalDate date, int amount, String vendor, String category) {
+    public AssetDto(int spend_id, int user_id, int month, LocalDate date, int amount, String vendor, String category) {
+        this.spend_id = spend_id;
+        this.user_id = user_id;
         this.month = month;
         this.date = date;
         this.amount = amount;
         this.vendor = vendor;
         this.category = category;
     }
-
-
 
     public int getMonth() {
         return month;
@@ -62,5 +62,21 @@ public class AssetDto {
 
     public void setCategory(String category) {
         this.category = category;
+    }
+
+    public int getSpend_id() {
+        return spend_id;
+    }
+
+    public void setSpend_id(int spend_id) {
+        this.spend_id = spend_id;
+    }
+
+    public int getUser_id() {
+        return user_id;
+    }
+
+    public void setUser_id(int user_id) {
+        this.user_id = user_id;
     }
 }

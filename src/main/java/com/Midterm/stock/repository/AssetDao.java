@@ -51,19 +51,20 @@ public class AssetDao {
 
 
     // dashboard - 최근 소비 조회 메서드
-    public List<AssetDto> getRecentTransactionsByMonth(int month) {
+    public List<AssetDto> getRecentTransactionsByMonth(int month, int loginNum) {
         List<AssetDto> list = new ArrayList<>();
         conn = connect();
 
         try {
 
             String sql = "SELECT month, transaction_date, amount, vendor, category " +
-                    "FROM asset_data " +
-                    "where month = ? " +
+                    "FROM spending_data " +
+                    "where month = ? and user_id = ? " +
                     "ORDER BY transaction_date DESC FETCH FIRST 10 ROWS ONLY";
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);
+            pstmt.setInt(2, loginNum);
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -97,17 +98,18 @@ public class AssetDao {
 
 
     // dashboard - 이번 달/저번 달 총 지출
-    public int getMonthSpending(int month) {
+    public int getMonthSpending(int month, int loginNum) {
         conn = connect();
         int total = -1;
 
         try {
 
-            String sql = "SELECT SUM(amount) FROM asset_data " +
-                    "WHERE month = ?";
+            String sql = "SELECT SUM(amount) FROM spending_data " +
+                    "WHERE month = ? and user_id = ? ";
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);  // 사용자가 선택한 month 바인딩
+            pstmt.setInt(2, loginNum);  // 사용자
             rs = pstmt.executeQuery();
 
             if (rs.next()) {
@@ -132,19 +134,20 @@ public class AssetDao {
 
 
     // analytics - 필수(Need) vs 비필수(Want) 금액 조회
-    public Map<String, Integer> getNeedWantSpending(int month) {
+    public Map<String, Integer> getNeedWantSpending(int month, int loginNum) {
         conn = connect();
         Map<String, Integer> result = new HashMap<>();
 
         // 식비, 의료, 교육, 교통, 생활은 필수(Need)로 분류하는 SQL - 그외는 비분류
         String sql = "SELECT SUM(CASE WHEN category LIKE '%식비%' OR category LIKE '%의료%' OR category LIKE '%교육%' OR category LIKE '%교통%' OR category LIKE '%생활%'  THEN amount ELSE 0 END) as need, " +
                 "SUM(CASE WHEN NOT (category LIKE '%식비%' OR category like '%의료%' OR category like '%교육%' OR category LIKE '%교통%' OR category LIKE '%생활%' ) THEN amount ELSE 0 END) as want " +
-                "FROM asset_data " +
-                "WHERE month = ?";
+                "FROM spending_data " +
+                "WHERE month = ? and user_id = ? ";
 
         try {
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);
+            pstmt.setInt(2, loginNum);
             rs = pstmt.executeQuery();
             if (rs.next()) {
                 result.put("need", rs.getInt("need"));
@@ -166,18 +169,19 @@ public class AssetDao {
     }
 
     // analytics - 카테고리별 합계 조회 (도넛 차트용)
-    public List<Map<String, Object>> getCategorySpending(int month) {
+    public List<Map<String, Object>> getCategorySpending(int month, int loginNum) {
         List<Map<String, Object>> list = new ArrayList<>();
         conn = connect();
 
         String sql = "SELECT category, SUM(amount) as total " +
-                "FROM asset_data " +
-                "WHERE month = ? " +
+                "FROM spending_data " +
+                "WHERE month = ? and user_id = ? " +
                 "GROUP BY category " +
                 "ORDER BY total DESC";
         try {
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);
+            pstmt.setInt(2, loginNum);
             ResultSet rs = pstmt.executeQuery();
             while (rs.next()) {
                 Map<String, Object> map = new HashMap<>();
@@ -204,13 +208,14 @@ public class AssetDao {
 
 
     // analytics - 변동사항이 큰 3개 카테고리 가져와서 카드 출력
-    public Map<String, Integer> getCategoryMapByMonth(int month) {
+    public Map<String, Integer> getCategoryMapByMonth(int month, int loginNum) {
         Map<String, Integer> map = new HashMap<>();
-        String sql = "SELECT category, SUM(amount) as total FROM asset_data WHERE month = ? GROUP BY category";
+        String sql = "SELECT category, SUM(amount) as total FROM spending_data WHERE month = ? and user_id = ? GROUP BY category";
 
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, month);
+            pstmt.setInt(2, loginNum);
             try (ResultSet rs = pstmt.executeQuery()) {
                 while (rs.next()) {
                     map.put(rs.getString("category"), rs.getInt("total"));
@@ -223,46 +228,49 @@ public class AssetDao {
     }
 
 
-    public int insertAnalysisHistory(AssetPlannerAnalysisDto dto) {
+    public int insertAnalysisHistory(AssetPlannerAnalysisDto dto, int loginNum) {
         connect();
         int count = -1;
 
         String sql = "insert into asset_analysis_history ("
-                + "analysis_id, current_asset, monthly_income, monthly_expense, monthly_saving, "
+                + "analysis_id, user_id, current_asset, monthly_income, monthly_expense, monthly_saving, "
                 + "goal_amount, goal_months, expected_return, age, job_type, risk_preference, "
                 + "prediction, prediction_label, tone_title, model_prediction, model_prediction_label, model_probability, "
                 + "required_monthly_saving, estimated_final_asset, goal_gap, message, created_at"
                 + ") values ("
-                + "asset_analysis_history_seq.nextval, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate"
+                + "asset_analysis_history_seq.nextval, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, sysdate"
                 + ")";
 
         try {
             pstmt = conn.prepareStatement(sql);
-            pstmt.setLong(1, dto.getCurrentAsset());
-            pstmt.setLong(2, dto.getMonthlyIncome());
-            pstmt.setLong(3, dto.getMonthlyExpense());
-            pstmt.setDouble(4, dto.getMonthlySaving());
-            pstmt.setLong(5, dto.getGoalAmount());
-            pstmt.setInt(6, dto.getGoalMonths());
-            pstmt.setDouble(7, dto.getExpectedReturn());
-            pstmt.setInt(8, dto.getAge());
-            pstmt.setString(9, dto.getJobType());
-            pstmt.setString(10, dto.getRiskPreference());
+            pstmt.setInt(1, loginNum);
+            pstmt.setLong(2, dto.getCurrentAsset());
+            pstmt.setLong(3, dto.getMonthlyIncome());
+            pstmt.setLong(4, dto.getMonthlyExpense());
+            pstmt.setDouble(5, dto.getMonthlySaving());
+            pstmt.setLong(6, dto.getGoalAmount());
+            pstmt.setInt(7, dto.getGoalMonths());
+            pstmt.setDouble(8, dto.getExpectedReturn());
+            pstmt.setInt(9, dto.getAge());
+            pstmt.setString(10, dto.getJobType());
+            pstmt.setString(11, dto.getRiskPreference());
 
-            pstmt.setInt(11, dto.getPrediction());
-            pstmt.setString(12, dto.getPredictionLabel());
-            pstmt.setString(13, dto.getToneTitle());
+            pstmt.setInt(12, dto.getPrediction());
+            pstmt.setString(13, dto.getPredictionLabel());
+            pstmt.setString(14, dto.getToneTitle());
 
-            pstmt.setInt(14, dto.getModelPrediction());
-            pstmt.setString(15, dto.getModelPredictionLabel());
-            pstmt.setDouble(16, dto.getModelProbability());
+            pstmt.setInt(15, dto.getModelPrediction());
+            pstmt.setString(16, dto.getModelPredictionLabel());
+            pstmt.setDouble(17, dto.getModelProbability());
 
-            pstmt.setLong(17, dto.getRequiredMonthlySaving());
-            pstmt.setLong(18, dto.getEstimatedFinalAsset());
-            pstmt.setLong(19, dto.getGoalGap());
-            pstmt.setString(20, dto.getMessage());
+            pstmt.setLong(18, dto.getRequiredMonthlySaving());
+            pstmt.setLong(19, dto.getEstimatedFinalAsset());
+            pstmt.setLong(20, dto.getGoalGap());
+            pstmt.setString(21, dto.getMessage());
 
             count = pstmt.executeUpdate();
+            System.out.println("insert count = " + count);
+//            conn.commit(); // executeUpdate 후 추가
 
         } catch (SQLException e) {
             e.printStackTrace();
@@ -274,7 +282,7 @@ public class AssetDao {
     }
 
 
-    public ArrayList<AssetPlannerAnalysisDto> getAnalysisHistory() {
+    public ArrayList<AssetPlannerAnalysisDto> getAnalysisHistory(int loginNum) {
         connect();
         ArrayList<AssetPlannerAnalysisDto> lists = new ArrayList<>();
 
@@ -283,11 +291,13 @@ public class AssetDao {
                 + "prediction, prediction_label, tone_title, model_prediction, model_prediction_label, model_probability, "
                 + "required_monthly_saving, estimated_final_asset, goal_gap, message, created_at "
                 + "from asset_analysis_history "
+                + "where user_id = ? "
                 + "order by analysis_id desc "
                 + "fetch first 10 rows only";
 
         try {
             pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, loginNum);
             rs = pstmt.executeQuery();
 
             while (rs.next()) {

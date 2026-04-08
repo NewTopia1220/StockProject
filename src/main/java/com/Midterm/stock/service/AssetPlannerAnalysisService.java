@@ -33,7 +33,7 @@ public class AssetPlannerAnalysisService {
         this.predictionApiUrl = predictionApiUrl;
     }
 
-    public AssetPlannerAnalysisDto analyzeAndSave(AssetPlannerAnalysisDto formDto) throws Exception {
+    public AssetPlannerAnalysisDto analyzeAndSave(AssetPlannerAnalysisDto formDto, int loginNum) throws Exception {
 
         AssetPlannerPredictionRequestDto requestDto = new AssetPlannerPredictionRequestDto();
         requestDto.setCurrent_asset(formDto.getCurrentAsset());
@@ -124,12 +124,12 @@ public class AssetPlannerAnalysisService {
             resultDto.setMessage("분석 결과를 받아오지 못했습니다.");
         }
 
-        assetDao.insertAnalysisHistory(resultDto);
+        assetDao.insertAnalysisHistory(resultDto, loginNum);
 
         return resultDto;
     }
 
-    public ArrayList<AssetPlannerAnalysisDto> getHistory() {
-        return assetDao.getAnalysisHistory();
+    public ArrayList<AssetPlannerAnalysisDto> getHistory(int loginNum) {
+        return assetDao.getAnalysisHistory(loginNum);
     }
 }
