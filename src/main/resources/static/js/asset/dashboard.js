@@ -115,3 +115,17 @@ function animateCards() {
 window.addEventListener('load', animateCards);
 
 
+// 사이드 바에 사용자 성이름 아이콘 가져오기
+document.addEventListener('DOMContentLoaded', () => {
+    const userNameEl = document.querySelector('.user-name');
+    const userAvatarEl = document.querySelector('.user-avatar');
+
+    if (userNameEl && userAvatarEl) {
+        const fullName = userNameEl.textContent.trim();
+        userAvatarEl.textContent = fullName.charAt(0) || '';
+    }
+});
+
+
+
+

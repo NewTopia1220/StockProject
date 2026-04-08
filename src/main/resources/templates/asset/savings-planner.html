@@ -6,6 +6,8 @@
     <title>Stoxle - 저축 플래너</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
+
+<!--    <script th:src="@{/js/asset/savings-planner.js}" defer></script>-->
 </head>
 
 
@@ -58,7 +60,7 @@
             </nav>
             <div class="sidebar-user">
                 <div class="user-info">
-                    <div class="user-avatar">김</div>
+                    <div class="user-avatar" id="userAvatar">김</div>
                     <div class="user-details">
                         <p class="user-name" th:text="${userName} ?: '김철수'">김철수</p>
                         <p class="user-email" th:text="${userEmail} ?: 'chulsoo@email.com'">chulsoo@email.com</p>
@@ -109,7 +111,8 @@
                             <div class="input-group">
                                 <label class="input-label">목표 금액</label>
                                 <div class="input-wrapper">
-                                    <input type="number" id="goalAmount" th:field="*{goalAmount}" class="input-field" min="0" placeholder="0" required>
+                                    <input type="text" id="goalAmount" th:field="*{goalAmount}" class="input-field money" placeholder="0" required>
+<!--                                    <input type="number" id="goalAmount" th:field="*{goalAmount}" class="input-field" min="0" placeholder="0" required>-->
     <!--                                <input type="number" th:field="*{goalAmount}" id="targetAmount" class="input-field" step="1000000">-->
                                     <span class="input-unit">원</span>
                                 </div>
@@ -129,7 +132,8 @@
                             <div class="input-group">
                                 <label class="input-label">현재 자산</label>
                                 <div class="input-wrapper">
-                                    <input type="number" id="currentAsset" th:field="*{currentAsset}" class="input-field" min="0" placeholder="0" required>
+                                    <input type="text" id="currentAsset" th:field="*{currentAsset}" class="input-field money" placeholder="0" required>
+<!--                                    <input type="number" id="currentAsset" th:field="*{currentAsset}" class="input-field" min="0" placeholder="0" required>-->
     <!--                                <input type="number" th:field="*{currentAsset}" id="currentAsset" class="input-field">-->
                                     <span class="input-unit">원</span>
                                 </div>
@@ -138,7 +142,8 @@
                             <div class="input-group">
                                 <label class="input-label">월 소득</label>
                                 <div class="input-wrapper">
-                                    <input type="number" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field" min="0" placeholder="0" required>
+                                    <input type="text" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field money" placeholder="0" required>
+<!--                                    <input type="number" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field" min="0" placeholder="0" required>-->
     <!--                                <input type="number" th:field="*{monthlyIncome}" id="monthPay" class="input-field">-->
                                     <span class="input-unit">원</span>
                                 </div>
@@ -244,7 +249,7 @@
                         <div class="analysis-item highlight warning" id="gapItem">
                             <span class="analysis-label strong"
                                   th:text="${assetDto.goalGap < 0 ? '목표보다 초과 금액' : '목표까지 부족 금액'}">입력하세요</span>
-                            <span class="analysis-value accent"
+                            <span class="analysis-value accent id=gapValue"
                                   th:text="${assetDto.goalGap < 0 ? '+' + #numbers.formatInteger(assetDto.goalGap*-1, 3, 'COMMA') : #numbers.formatInteger(assetDto.goalGap*-1, 3, 'COMMA')} + '원'"></span>
                         </div>
 
@@ -334,4 +339,5 @@
     </div>
 </div>
 </body>
+<script src="/js/asset/savings-planner.js"></script>
 </html>
