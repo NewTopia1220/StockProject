@@ -53,6 +53,24 @@
                                th:classappend="${param.category == null} ? ' active' : ''">
                                 <span class="navLabel">전체 게시판</span>
                             </a>
+
+                            <a th:href="@{/community(category='free')}"
+                               class="navItem"
+                               th:classappend="${param.category != null and param.category[0] == 'free'} ? ' active' : ''">
+                                <span class="navLabel">자유게시판</span>
+                            </a>
+
+                            <a th:href="@{/community(category='topic')}"
+                               class="navItem"
+                               th:classappend="${param.category != null and param.category[0] == 'topic'} ? ' active' : ''">
+                                <span class="navLabel">종목토론</span>
+                            </a>
+
+                            <a th:href="@{/community(category='beginner')}"
+                               class="navItem"
+                               th:classappend="${param.category != null and param.category[0] == 'beginner'} ? ' active' : ''">
+                                <span class="navLabel">초보질문</span>
+                            </a>
                         </div>
                     </div>
 
@@ -187,6 +205,7 @@
             <!-- 게시글 있음 -->
             <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
                 <article class="boardItem" th:each="dto : ${lists}">
+                    <!-- 게시글 클릭 시 상세 페이지로 이동 -->
                     <a class="boardLink" th:href="@{/community/detail(board_id=${dto.board_id})}">
                         <div class="boardTopRow">
                             <span class="boardCategory" th:text="${dto.category}">카테고리</span>
@@ -230,6 +249,29 @@
                         <a th:href="@{/community(category='beginner')}" class="ghostBtn">초보질문 보러가기</a>
                     </div>
                 </div>
+            </div>
+
+            <!-- 페이지 번호 -->
+            <div class="pagination" th:if="${totalPages != null and totalPages > 1}">
+                <a class="pageBtn"
+                   th:if="${currentPageNum > 1}"
+                   th:href="@{/community(page=${currentPageNum - 1}, category=${param.category}, keyword=${param.keyword})}">
+                    이전
+                </a>
+
+                <a class="pageBtn"
+                   th:each="i : ${#numbers.sequence(1, totalPages)}"
+                   th:href="@{/community(page=${i}, category=${param.category}, keyword=${param.keyword})}"
+                   th:text="${i}"
+                   th:classappend="${i == currentPageNum} ? ' active' : ''">
+                    1
+                </a>
+
+                <a class="pageBtn"
+                   th:if="${currentPageNum < totalPages}"
+                   th:href="@{/community(page=${currentPageNum + 1}, category=${param.category}, keyword=${param.keyword})}">
+                    다음
+                </a>
             </div>
         </section>
 
