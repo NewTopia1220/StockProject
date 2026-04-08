@@ -5,6 +5,8 @@ import java.sql.Timestamp;
 public class CommunityDto {
     private int board_id;
     private int user_num;
+    private String userName;  // detail.html 에서 사용
+
     private String category;
     private String title;
     private String content;
@@ -43,6 +45,14 @@ public class CommunityDto {
 
     public void setUser_num(int user_num) {
         this.user_num = user_num;
+    }
+
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
     }
 
     public String getCategory() {
