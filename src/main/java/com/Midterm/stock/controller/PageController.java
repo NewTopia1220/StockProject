@@ -1,7 +1,6 @@
 package com.Midterm.stock.controller;
 
-import com.Midterm.stock.dto.AssetAnalysisDto;
-import com.Midterm.stock.service.StockService;
+import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,7 +13,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 public class PageController {
 
     @Autowired
-    private StockService stockService;
+    private StockPriceService stockPriceService;
 
     // 로그인 화면
     @GetMapping("/login")
@@ -47,10 +46,10 @@ public class PageController {
         }
 
         // 초기 렌더링용 데이터 (JS 폴링 전 빈 화면 방지)
-        model.addAttribute("stockInfo", stockService.getCurrentPrice(code));
-        model.addAttribute("chartData", stockService.getDailyPrice(code));
-        model.addAttribute("kospiInfo", stockService.getKospiIndex());
-        model.addAttribute("kosdaqInfo", stockService.getKosdaqIndex());
+        model.addAttribute("stockInfo", stockPriceService.getCurrentPrice(code));
+        model.addAttribute("chartData", stockPriceService.getDailyPrice(code));
+        model.addAttribute("kospiInfo", stockPriceService.getKospiIndex());
+        model.addAttribute("kosdaqInfo", stockPriceService.getKosdaqIndex());
         model.addAttribute("stockCode", code);
 
         return "stock";

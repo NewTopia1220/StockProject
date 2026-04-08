@@ -1,7 +1,7 @@
 package com.Midterm.stock.scheduler;
 
 import com.Midterm.stock.repository.StockRepository;
-import com.Midterm.stock.service.StockService;
+import com.Midterm.stock.service.stock.StockSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -17,7 +17,7 @@ import org.springframework.stereotype.Component;
 @RequiredArgsConstructor
 public class StockScheduler {
 
-    private final StockService stockService;
+    private final StockSearchService stockSearchService;
     private final StockRepository stockRepository;
 
     /**
@@ -29,7 +29,7 @@ public class StockScheduler {
     public void onStartup() {
         if (stockRepository.count() == 0) {
             System.out.println("서버 시작 - 종목 목록 초기 로드");
-            stockService.refreshStockListToDB();
+            stockSearchService.refreshStockListToDB();
         } else {
             System.out.println("서버 시작 - DB 종목 있음: " + stockRepository.count() + "개");
         }
@@ -42,6 +42,6 @@ public class StockScheduler {
     @Scheduled(cron = "0 0 6 * * MON-FRI")
     public void refreshStockList() {
         System.out.println("종목 목록 자동 갱신 시작...");
-        stockService.refreshStockListToDB();
+        stockSearchService.refreshStockListToDB();
     }
 }

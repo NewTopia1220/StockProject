@@ -2,7 +2,9 @@ package com.Midterm.stock.controller;
 
 import com.Midterm.stock.dto.StockChartDto;
 import com.Midterm.stock.dto.StockResponseDto;
-import com.Midterm.stock.service.StockService;
+import com.Midterm.stock.service.stock.ExchangeService;
+import com.Midterm.stock.service.stock.StockPriceService;
+import com.Midterm.stock.service.stock.StockSearchService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
@@ -20,7 +22,9 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class StockController {
 
-    private final StockService stockService;
+    private final StockPriceService stockPriceService;   // 시세/지수/순위
+    private final StockSearchService stockSearchService; // 종목 검색
+    private final ExchangeService exchangeService;       // 환율
 
     // ── 종목 시세 API ────────────────────────────────────────
 
@@ -32,7 +36,7 @@ public class StockController {
     @GetMapping("/api/stock/{code}")
     @ResponseBody
     public StockResponseDto getStockApi(@PathVariable String code) {
-        return stockService.getCurrentPrice(code);
+        return stockPriceService.getCurrentPrice(code);
     }
 
     /**
@@ -42,7 +46,7 @@ public class StockController {
     @GetMapping("/api/stock/{code}/chart")
     @ResponseBody
     public StockChartDto getChartApi(@PathVariable String code) {
-        return stockService.getDailyPrice(code);
+        return stockPriceService.getDailyPrice(code);
     }
 
     /**
@@ -54,9 +58,9 @@ public class StockController {
     @ResponseBody
     public StockChartDto getTimeChart(@PathVariable String code) {
         if (!isMarketOpen()) {
-            return stockService.getDailyPrice(code);
+            return stockPriceService.getDailyPrice(code);
         }
-        return stockService.getTimePrice(code);
+        return stockPriceService.getTimePrice(code);
     }
 
     /**
@@ -68,9 +72,9 @@ public class StockController {
     @ResponseBody
     public StockChartDto getMinuteChart(@PathVariable String code) {
         if (!isMarketOpen()) {
-            return stockService.getDailyPrice(code);
+            return stockPriceService.getDailyPrice(code);
         }
-        return stockService.getMinutePrice(code);
+        return stockPriceService.getMinutePrice(code);
     }
 
     /**
@@ -81,7 +85,7 @@ public class StockController {
     @ResponseBody
     public List<Map<String, String>> searchStock(@RequestParam String keyword) {
         try {
-            return stockService.searchStock(keyword);
+            return stockSearchService.searchStock(keyword);
         } catch (Exception e) {
             return new ArrayList<>();
         }
@@ -95,7 +99,7 @@ public class StockController {
     @GetMapping("/api/stock/top-fluctuation")
     @ResponseBody
     public List<StockResponseDto> getTopFluctuation() {
-        return stockService.getTopFluctuation();
+        return stockPriceService.getTopFluctuation();
     }
 
     /**
@@ -107,7 +111,7 @@ public class StockController {
     @ResponseBody
     public String refreshStocks() {
         try {
-            stockService.refreshStockListToDB();
+            stockSearchService.refreshStockListToDB();
             return "DB 갱신 완료";
         } catch (Exception e) {
             return "오류: " + e.getMessage();
@@ -123,7 +127,7 @@ public class StockController {
     @GetMapping("/api/kospi")
     @ResponseBody
     public StockResponseDto getKospiApi() {
-        return stockService.getKospiIndex();
+        return stockPriceService.getKospiIndex();
     }
 
     /**
@@ -133,7 +137,7 @@ public class StockController {
     @GetMapping("/api/kospi/chart")
     @ResponseBody
     public StockChartDto getKospiChartApi() {
-        return stockService.getKospiChart();
+        return stockPriceService.getKospiChart();
     }
 
     /**
@@ -143,7 +147,7 @@ public class StockController {
     @GetMapping("/api/kosdaq")
     @ResponseBody
     public StockResponseDto getKosdaqApi() {
-        return stockService.getKosdaqIndex();
+        return stockPriceService.getKosdaqIndex();
     }
 
     // ── 환율 API ─────────────────────────────────────────────
@@ -158,7 +162,7 @@ public class StockController {
     @ResponseBody
     public StockResponseDto getExchangeApi(
             @RequestParam(defaultValue = "USD") String currency) {
-        return stockService.getExchangeRate(currency);
+        return exchangeService.getExchangeRate(currency);
     }
 
     // ── 헬퍼 메서드 ──────────────────────────────────────────

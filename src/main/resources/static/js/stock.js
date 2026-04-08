@@ -1,3 +1,12 @@
+
+// 지수/종목 폴링 : 5초
+// 등락률 순위 : 30초
+// 차트 업데이트 : 10초(장중만)
+// 환율  : 60초
+// 시간별/분별 장외 : 자동 일별 전환 + 안내
+
+
+
 // ════════════════════════════════════════════════════════
 //  전역 상태 변수
 // ════════════════════════════════════════════════════════
@@ -44,8 +53,20 @@ document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('.chartTab').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             currentTab = btn.dataset.tab;
+
+            // 장 외 시간에 시간별/분별 클릭 시 안내
+            if ((currentTab === 'time' || currentTab === 'minute') && !isMarketOpen()) {
+                alert('시간별/분별 차트는 장 운영시간(09:00~15:30)에만 제공됩니다.');
+                currentTab = 'daily';
+                document.querySelectorAll('.chartTab').forEach(b => {
+                    b.classList.toggle('active', b.dataset.tab === 'daily');
+                });
+            }
+
             await updateMainChart();
         });
+
+        startPolling();
     });
 
     // 종목 검색 입력 이벤트 (300ms 디바운싱)
@@ -137,14 +158,14 @@ document.addEventListener('DOMContentLoaded', function () {
 async function fetchMainChartData() {
     let tab = currentTab;
 
-    // 장 외 시간에는 시간별/분별 대신 일별로 대체
+    // 장 외 시간이면 시간별/분별 → 일별로 자동 전환
     if ((tab === 'time' || tab === 'minute') && !isMarketOpen()) {
         console.log('장 외 시간 - 일별 차트로 대체');
         tab = 'daily';
+        currentTab = 'daily';
         document.querySelectorAll('.chartTab').forEach(b => {
             b.classList.toggle('active', b.dataset.tab === 'daily');
         });
-        currentTab = 'daily';
     }
 
     const endpoints = {
@@ -157,8 +178,14 @@ async function fetchMainChartData() {
         const res = await fetch(endpoints[tab]);
         const data = await res.json();
 
-        // 빈 데이터 응답 시 일별로 fallback
+        // 데이터 비어있으면 일별로 fallback
         if (!data.labels || data.labels.length === 0) {
+            console.log('데이터 없음 - 일별로 fallback');
+            // 탭도 일별로 복귀
+            currentTab = 'daily';
+            document.querySelectorAll('.chartTab').forEach(b => {
+                b.classList.toggle('active', b.dataset.tab === 'daily');
+            });
             const fallback = await fetch(`/api/stock/${currentCode}/chart`);
             return await fallback.json();
         }
@@ -448,18 +475,26 @@ async function startPolling() {
     await updateExchange();
     await updateTopStocks();
 
-    // 지수/종목/등락률: 3초마다
+    // 지수/종목정보: 5초마다 (3초는 API 부하 큼)
     setInterval(async () => {
         await updateTicker();
         await updateStockInfo();
+    }, 5000);
+
+    // 등락률 순위: 30초마다 (자주 안 바뀜)
+    setInterval(async () => {
         await updateTopStocks();
+    }, 30000);
+
+    // 차트: 장 중에만 10초마다
+    setInterval(async () => {
         if (isMarketOpen()) {
             await updateMainChart();
         }
-    }, 3000);
+    }, 10000);
 
-    // 환율: 30초마다
+    // 환율: 60초마다
     setInterval(async () => {
         await updateExchange();
-    }, 30000);
+    }, 60000);
 }
