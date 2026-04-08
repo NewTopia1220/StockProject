@@ -11,8 +11,6 @@
 <body class="withMainHeader">
 <div th:replace="~{fragments/header :: header('news')}"></div>
 
-<!-- 다크모드 버튼 -->
-<button class="darkModeBtn" id="darkModeBtn" title="다크모드 전환">🌙</button>
 
 <div class="pageContainer communityPage newsPage">
 
@@ -101,30 +99,17 @@
                     <h3>섹터 필터</h3>
                 </div>
                 <nav class="categoryNav categoryAccordion">
-                    <div class="accordionItem open">
-                        <button type="button" class="accordionButton">
-                            <span>전체</span><span class="accordionArrow">⌄</span>
-                        </button>
-                        <div class="accordionContent">
-                            <a th:href="@{/news}" class="navItem"
-                               th:classappend="${sector == null and keyword == null} ? ' active' : ''">
-                                <span class="navLabel">전체 뉴스</span>
-                            </a>
-                        </div>
+                    <div class="accordionContent">
+                        <a th:href="@{/news}" class="navItem"
+                           th:classappend="${sector == null and keyword == null} ? ' active' : ''">
+                            <span class="navLabel">전체 뉴스</span>
+                        </a>
                     </div>
-                    <div class="accordionItem"
-                         th:each="entry : ${sectorMap}"
-                         th:classappend="${sector == entry.key} ? ' open' : ''">
-                        <button type="button" class="accordionButton">
-                            <span th:text="${entry.key}">섹터</span>
-                            <span class="accordionArrow">⌄</span>
-                        </button>
-                        <div class="accordionContent">
-                            <a th:href="@{/news(sector=${entry.key})}" class="navItem sectorLink"
-                               th:classappend="${sector == entry.key} ? ' active' : ''">
-                                <span class="navLabel" th:text="${entry.key} + ' 전체'">섹터 전체</span>
-                            </a>
-                        </div>
+                    <div class="accordionContent" th:each="entry : ${sectorMap}">
+                        <a th:href="@{/news(sector=${entry.key})}" class="navItem sectorLink"
+                           th:classappend="${sector == entry.key} ? ' active' : ''">
+                            <span class="navLabel" th:text="${entry.key} + ' 전체'">섹터 전체</span>
+                        </a>
                     </div>
                 </nav>
             </div>
@@ -174,7 +159,6 @@
                                 </div>
                                 <span class="metricVal" th:text="${dto.typeProbStr} + '%'">0%</span>
                             </div>
-                            <span class="metricType" th:text="${dto.articleType}">사실형</span>
                         </div>
                         <div class="metricItem">
                             <span class="metricLabel">낚시 확률</span>
@@ -186,6 +170,7 @@
                                 <span class="metricVal" th:text="${dto.clickbaitProbStr} + '%'">0%</span>
                             </div>
                         </div>
+                        <span class="metricType" th:text="${dto.articleType}">사실형</span>
                     </div>
 
                     <!-- 하단: 원문 + 좋아요 + 댓글 토글 -->
@@ -251,16 +236,6 @@
             </div>
         </section>
 
-        <!-- 오른쪽 패널 -->
-        <aside class="communityRight">
-            <div class="sideCard">
-                <div class="sideCardHeader"><h4>바로가기</h4></div>
-                <ul class="sideRankList">
-                    <li><span>→</span><a th:href="@{/stock}">메인 페이지</a></li>
-                    <li><span>→</span><a th:href="@{/community}">커뮤니티</a></li>
-                </ul>
-            </div>
-        </aside>
 
     </div>
 </div>
@@ -269,20 +244,6 @@
     var CTX_USER_NUM = /*[[${session.loginNum}]]*/ 0;
 </script>
 <script>
-/* ── 다크모드 ── */
-(function () {
-    var btn = document.getElementById('darkModeBtn');
-    if (localStorage.getItem('darkMode') === 'on') {
-        document.body.classList.add('dark');
-        btn.textContent = '☀️';
-    }
-    btn.addEventListener('click', function () {
-        document.body.classList.toggle('dark');
-        var isDark = document.body.classList.contains('dark');
-        btn.textContent = isDark ? '☀️' : '🌙';
-        localStorage.setItem('darkMode', isDark ? 'on' : 'off');
-    });
-})();
 
 /* ── 원형 차트 애니메이션 ── */
 (function () {
@@ -297,12 +258,6 @@
     });
 })();
 
-/* ── 사이드바 아코디언 ── */
-document.querySelectorAll('.accordionButton').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        this.closest('.accordionItem').classList.toggle('open');
-    });
-});
 
 /* ── 좋아요 토글 ── */
 function toggleLike(btn) {

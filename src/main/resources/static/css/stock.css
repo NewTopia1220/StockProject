@@ -454,7 +454,7 @@ body.dark .scSectorName { background: rgba(99,102,241,0.15); }
 .fill-pos { background: linear-gradient(90deg, #34d399, #10b981); }
 .fill-neg { background: linear-gradient(90deg, #f87171, #ef4444); }
 .scGaugeLabel { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
-.scNoData { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; background: var(--bg-page); border-radius: 8px; border: 1px dashed var(--border); }
+.scNoData { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; background: var(--bg-page); border-radius: 8px; border: 1px dashed var(--border); height: 100%; display: flex; justify-content: center; align-items: center; }
 
 .scStats { display: flex; align-items: center; gap: 0; background: var(--bg-page); border-radius: 12px; padding: 10px 14px; border: 1px solid var(--border); }
 .scStat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
