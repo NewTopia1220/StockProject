@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <title>로그인</title>
 
-    <link rel="stylesheet" th:href="@{/css/guestHeader.css}">
+    <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/login.css}">
 
     <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
@@ -12,7 +12,8 @@
 </head>
 <body>
 
-<div th:replace="fragments/guestHeader :: guestHeader('login')"></div>
+
+<div th:replace="~{fragments/guestHeader :: guestHeader('login')}"></div>
 
 <div class="page">
     <div class="loginWrap">
@@ -22,7 +23,7 @@
                 실시간 투자 인사이트 서비스를 시작해보세요.
             </p>
 
-            <form name="loginForm" id="loginForm" th:action="@{/login}" method="post" onsubmit="return check();">
+            <form name="loginForm" id="loginForm" th:action="@{/login}" method="post" onsubmit="return checkLogin();">
                 <div class="field">
                     <label for="userEmail" class="fieldLabel">이메일</label>
                     <input type="email" name="userEmail" id="userEmail" class="inputBox" placeholder="이메일 입력">
@@ -34,20 +35,22 @@
                 </div>
 
                 <button type="submit" class="loginBtn">로그인</button>
-            </form>
 
-            <div class="loginOptionRow">
-                <label class="saveId">
-                    <input type="checkbox" name="saveId" id="saveId">
-                    <span>아이디 저장</span>
-                </label>
 
-                <div class="findLinks">
-                    <a th:href="@{/find/id}">아이디 찾기</a>
-                    <span>|</span>
-                    <a th:href="@{/find/password}">비밀번호 찾기</a>
+                <div class="loginOptionRow">
+                    <label class="saveId">
+                        <input type="checkbox" name="saveId" id="saveId">
+                        <span>이메일 저장</span>
+                    </label>
+
+                    <div class="findLinks">
+                        <a th:href="@{/findEmail}">이메일 찾기</a>
+                        <span>|</span>
+                        <a th:href="@{/findPassword}">비밀번호 찾기</a>
+                    </div>
                 </div>
-            </div>
+
+            </form>
 
             <div class="bottomArea">
                 아직 회원이 아니신가요?

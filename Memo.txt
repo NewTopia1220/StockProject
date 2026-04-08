@@ -23,6 +23,16 @@ create sequence user_seq
     nocache;
 
 -- =========================
+-- 1. 회원 인증용 테이블
+-- =========================
+
+CREATE TABLE saved_email_token (
+    token       VARCHAR2(100) PRIMARY KEY,
+    email       VARCHAR2(100) NOT NULL,
+    expires_at  TIMESTAMP NOT NULL
+);
+
+-- =========================
 -- 1. 기존 테이블 / 시퀀스 삭제
 -- =========================
 

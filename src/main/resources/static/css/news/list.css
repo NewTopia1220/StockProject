@@ -1,0 +1,552 @@
+@charset "UTF-8";
+
+/* ── 뉴스 페이지 기본 오버라이드 ── */
+.newsPage .heroText h1 { font-size: 26px; }
+
+/* ══════════════════════════════════════
+   사이드바 AI 분석 패널
+══════════════════════════════════════ */
+.sideAiPanel { padding: 18px 16px 14px; }
+
+.aiCircleRow {
+    display: flex;
+    justify-content: space-around;
+    gap: 8px;
+    margin: 14px 0 10px;
+}
+
+.aiCircleItem {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+}
+
+.circleChart {
+    width: 72px;
+    height: 72px;
+    transform: rotate(-90deg);
+}
+
+.circleBg {
+    fill: none;
+    stroke: #e5e7eb;
+    stroke-width: 7;
+}
+
+.circleFg {
+    fill: none;
+    stroke-width: 7;
+    stroke-linecap: round;
+}
+
+.circleBlue  { stroke: #3b82f6; }
+.circleRed   { stroke: #ef4444; }
+.circleGreen { stroke: #10b981; }
+
+.aiCircleLabel {
+    text-align: center;
+    line-height: 1.3;
+}
+
+.aiCircleLabel strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 800;
+    color: #111827;
+}
+
+.aiCircleLabel span {
+    font-size: 10px;
+    color: #6b7280;
+    font-weight: 600;
+}
+
+/* 분석 기준 가이드 박스 */
+.aiGuideBox {
+    margin-top: 12px;
+    padding: 12px 14px;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+}
+
+.aiGuideTitle {
+    font-size: 11px;
+    font-weight: 800;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 8px;
+}
+
+.aiGuideList {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aiGuideList li {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    font-size: 11px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+
+.aiDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 3px;
+}
+.dotBlue  { background: #3b82f6; }
+.dotRed   { background: #ef4444; }
+.dotGreen { background: #10b981; }
+
+/* ══════════════════════════════════════
+   뉴스 아이템
+══════════════════════════════════════ */
+.newsItem {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 22px 24px;
+    margin-bottom: 14px;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+
+.newsItem:hover {
+    box-shadow: 0 6px 20px rgba(14, 15, 55, 0.08);
+    border-color: #0E0F37;
+}
+
+/* 상단 태그 행 */
+.newsTopRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.companyTag {
+    font-size: 12px;
+    font-weight: 700;
+    color: #0E0F37;
+    background: #eef2ff;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.sentimentTag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+.sent-positive { background: #ecfdf5; color: #059669; }
+.sent-negative { background: #fef2f2; color: #dc2626; }
+.sent-neutral  { background: #f3f4f6; color: #6b7280; }
+
+.newsDate {
+    font-size: 12px;
+    color: #9ca3af;
+    margin-left: auto;
+}
+
+/* 제목 */
+.newsTitle {
+    margin: 0 0 10px;
+    font-size: 17px;
+    font-weight: 800;
+    line-height: 1.5;
+}
+
+.newsTitle a {
+    color: #111827;
+    text-decoration: none;
+}
+
+.newsTitle a:hover {
+    color: #0E0F37;
+    text-decoration: underline;
+}
+
+/* 요약 */
+.newsSummary {
+    margin: 0 0 14px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #4b5563;
+}
+
+/* AI 분석 지표 */
+.newsMetrics {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 14px;
+    padding: 14px 16px;
+    background: #f8f9fa;
+    border-radius: 12px;
+}
+
+.metricItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
+    min-width: 0;
+}
+
+.metricLabel {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6b7280;
+    white-space: nowrap;
+    width: 60px;
+    flex-shrink: 0;
+}
+
+.metricBarWrap {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+    min-width: 0;
+}
+
+.metricBar {
+    flex: 1;
+    height: 8px;
+    border-radius: 999px;
+    overflow: hidden;
+    background: #e5e7eb;
+    min-width: 40px;
+}
+
+.metricBarBlue .metricFill { background: linear-gradient(90deg, #60a5fa, #2563eb); }
+.metricBarRed  .metricFill { background: linear-gradient(90deg, #fca5a5, #ef4444); }
+
+.metricFill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.8s ease;
+}
+
+.metricVal {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+    white-space: nowrap;
+    width: 42px;
+    flex-shrink: 0;
+    text-align: right;
+}
+
+.metricType {
+    font-size: 11px;
+    font-weight: 600;
+    color: #2563eb;
+    background: #eff6ff;
+    padding: 2px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* 원문 링크 */
+.newsOrigLink {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0E0F37;
+    text-decoration: none;
+    border: 1px solid #d1d5db;
+    padding: 6px 14px;
+    border-radius: 8px;
+    transition: background 0.2s;
+}
+
+.newsOrigLink:hover {
+    background: #0E0F37;
+    color: #fff;
+    border-color: #0E0F37;
+}
+
+/* 사이드바 링크 */
+.companyLink .navLabel {
+    padding-left: 8px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.sectorLink .navLabel {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* 페이징 */
+.pagination {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 28px;
+    flex-wrap: wrap;
+}
+
+.pageBtn {
+    display: inline-block;
+    padding: 8px 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #374151;
+    background: #fff;
+    text-decoration: none;
+    transition: 0.2s;
+}
+
+.pageBtn:hover { border-color: #0E0F37; color: #0E0F37; }
+.pageBtn.active { background: #0E0F37; color: #fff; border-color: #0E0F37; }
+
+.communitySidebar {
+    position: sticky;
+    top: 120px;
+    align-self: start;
+}
+
+/* ── 다크모드 버튼 ── */
+.darkModeBtn {
+    position: fixed;
+    bottom: 28px; right: 28px;
+    z-index: 999;
+    width: 48px; height: 48px;
+    border-radius: 50%;
+    border: 2px solid #e5e7eb;
+    background: #fff;
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center; justify-content: center;
+    transition: transform 0.2s;
+}
+.darkModeBtn:hover { transform: scale(1.12); }
+
+/* ── 하단 액션 행 ── */
+.newsActionRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid #f3f4f6;
+    margin-top: 4px;
+}
+.newsActions { display: flex; gap: 10px; align-items: center; }
+
+/* 좋아요 버튼 */
+.likeBtn {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    color: #374151;
+}
+.likeBtn:hover    { border-color: #ef4444; color: #ef4444; }
+.likeBtn.liked    { background: #fef2f2; border-color: #ef4444; color: #ef4444; }
+.likeCount        { font-weight: 700; min-width: 14px; }
+
+/* 댓글 토글 버튼 */
+.commentToggleBtn {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 20px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #374151;
+    transition: all 0.2s;
+}
+.commentToggleBtn:hover { border-color: #0E0F37; color: #0E0F37; }
+
+.commentCountBadge {
+    font-weight: 700;
+    font-size: 13px;
+}
+
+/* 댓글 섹션 */
+.commentSection {
+    margin-top: 14px;
+    background: #f8f9fa;
+    border-radius: 14px;
+    padding: 16px;
+    border: 1px solid #e5e7eb;
+}
+.commentList { margin-bottom: 12px; }
+
+.commentItem {
+    padding: 10px 14px;
+    background: #fff;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    margin-bottom: 8px;
+}
+.commentMeta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+.commentUser  { font-size: 13px; font-weight: 700; color: #0E0F37; }
+.commentDate  { font-size: 11px; color: #9ca3af; margin-left: auto; }
+.commentContent { margin: 0; font-size: 14px; color: #374151; line-height: 1.6; }
+
+.commentDeleteBtn {
+    font-size: 11px;
+    color: #ef4444;
+    background: none;
+    border: 1px solid #fca5a5;
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+.commentDeleteBtn:hover { background: #fef2f2; }
+
+.noComment { font-size: 13px; color: #9ca3af; text-align: center; padding: 16px; }
+
+/* 댓글 입력 */
+.commentForm { display: flex; gap: 10px; align-items: flex-end; }
+.commentInput {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 13px;
+    resize: none;
+    background: #fff;
+    color: #111827;
+    transition: border-color 0.2s;
+    font-family: inherit;
+}
+.commentInput:focus { outline: none; border-color: #0E0F37; }
+.commentSubmitBtn {
+    padding: 10px 18px;
+    background: #0E0F37;
+    color: #fff;
+    border: none;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.commentSubmitBtn:hover { background: #1e2060; }
+
+/* ══════════════════════════════════════
+   다크 모드 — 전체 배경 + 모든 요소
+══════════════════════════════════════ */
+
+/* 전체 배경 */
+body.dark                           { background: #0b0d14 !important; color: #f1f5f9; }
+body.dark .pageContainer            { background: transparent; }
+body.dark .communityPage            { background: transparent; }
+
+/* 히어로 섹션 */
+body.dark .communityHero            { background: #141720; border-color: #1e2235; }
+body.dark .heroText h1              { color: #f1f5f9; }
+body.dark .heroText p               { color: #8892a8; }
+body.dark .communitySearch input    { background: #0b0d14; border-color: #1e2235; color: #f1f5f9; }
+body.dark .communitySearch input::placeholder { color: #4a5568; }
+body.dark .communitySearch button   { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+
+/* 사이드바 카드 */
+body.dark .sidebarCard              { background: #141720; border-color: #1e2235; }
+body.dark .sidebarHeader h3        { color: #f1f5f9; }
+body.dark .sidebarHeader p         { color: #8892a8; }
+body.dark .accordionItem            { background: #141720; border-color: #1e2235; }
+body.dark .accordionButton          { background: #141720; color: #f1f5f9; }
+body.dark .accordionArrow           { color: #8892a8; }
+body.dark .navItem                  { color: #94a3b8; }
+body.dark .navItem:hover            { background: #1a1e2e; border-color: #2a3050; }
+body.dark .navItem.active           { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; }
+
+/* AI 분석 패널 */
+body.dark .aiGuideBox               { background: #0b0d14; border-color: #1e2235; }
+body.dark .aiGuideTitle             { color: #64748b; }
+body.dark .aiGuideList li           { color: #94a3b8; }
+body.dark .aiCircleLabel strong     { color: #f1f5f9; }
+body.dark .aiCircleLabel span       { color: #64748b; }
+body.dark .circleBg                 { stroke: #1e2235; }
+
+/* 뉴스 카드 */
+body.dark .newsItem                 { background: #141720; border-color: #1e2235; }
+body.dark .newsItem:hover           { border-color: #6366f1; box-shadow: 0 6px 24px rgba(99,102,241,0.15); }
+body.dark .newsTitle a              { color: #e2e8f0; }
+body.dark .newsTitle a:hover        { color: #a5b4fc; }
+body.dark .newsSummary              { color: #8892a8; }
+body.dark .newsMetrics              { background: #0b0d14; }
+body.dark .metricBar                { background: #1e2235; }
+body.dark .metricVal                { color: #e2e8f0; }
+body.dark .metricLabel              { color: #64748b; }
+body.dark .metricType               { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+body.dark .newsDate                 { color: #4a5568; }
+body.dark .companyTag               { background: rgba(99,102,241,0.15); color: #a5b4fc; }
+body.dark .sent-positive            { background: rgba(16,185,129,0.15); color: #34d399; }
+body.dark .sent-negative            { background: rgba(239,68,68,0.15); color: #f87171; }
+body.dark .sent-neutral             { background: #1e2235; color: #94a3b8; }
+
+/* 액션 행 */
+body.dark .newsActionRow            { border-color: #1e2235; }
+body.dark .newsOrigLink             { color: #a5b4fc; border-color: #1e2235; }
+body.dark .newsOrigLink:hover       { background: #6366f1; color: #fff; border-color: #6366f1; }
+body.dark .likeBtn                  { background: #0b0d14; border-color: #1e2235; color: #e2e8f0; }
+body.dark .likeBtn:hover            { border-color: #ef4444; color: #f87171; }
+body.dark .likeBtn.liked            { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #f87171; }
+body.dark .commentToggleBtn         { background: #0b0d14; border-color: #1e2235; color: #e2e8f0; }
+body.dark .commentToggleBtn:hover   { border-color: #6366f1; color: #a5b4fc; }
+
+/* 댓글 영역 */
+body.dark .commentSection           { background: #0b0d14; border-color: #1e2235; }
+body.dark .commentItem              { background: #141720; border-color: #1e2235; }
+body.dark .commentUser              { color: #a5b4fc; }
+body.dark .commentContent           { color: #cbd5e1; }
+body.dark .commentDate              { color: #4a5568; }
+body.dark .commentInput             { background: #141720; border-color: #1e2235; color: #f1f5f9; }
+body.dark .commentInput:focus       { border-color: #6366f1; }
+body.dark .commentSubmitBtn         { background: #4f46e5; }
+body.dark .commentSubmitBtn:hover   { background: #6366f1; }
+body.dark .noComment                { color: #4a5568; }
+
+/* 다크모드 버튼 */
+body.dark .darkModeBtn              { background: #141720; border-color: #1e2235; color: #f1f5f9; }
+
+/* 페이지버튼 */
+body.dark .pageBtn                  { background: #141720; border-color: #1e2235; color: #94a3b8; }
+body.dark .pageBtn:hover            { border-color: #6366f1; color: #a5b4fc; }
+body.dark .pageBtn.active           { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+
+/* 빈 상태 */
+body.dark .emptyMainCard            { background: #141720; border-color: #1e2235; color: #94a3b8; }
+body.dark .emptyMainCard h3         { color: #e2e8f0; }
+
+/* 오른쪽 사이드 패널 */
+body.dark .sideCard                 { background: #141720; border-color: #1e2235; }
+body.dark .sideCardHeader h4        { color: #f1f5f9; }
+body.dark .sideRankList li          { color: #94a3b8; border-color: #1e2235; }
+body.dark .sideRankList a           { color: #a5b4fc; }

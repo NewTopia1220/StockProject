@@ -29,23 +29,7 @@ let searchTimer = null;
 
 document.addEventListener('DOMContentLoaded', function () {
 
-    // 섹터 버튼 클릭 시 활성 상태 토글
-    const sectorBtns = document.querySelectorAll('.sectorList button');
-    sectorBtns.forEach(btn => {
-        btn.addEventListener('click', function () {
-            sectorBtns.forEach(b => b.classList.remove('active'));
-            this.classList.add('active');
-        });
-    });
-
-    // AI 분석 더미 데이터 (추후 실제 ML 모델 연동 예정)
-    updateAIAnalysis({
-        confidence: 88,
-        noise: 12,
-        sentiment: 75,
-        status: '안정',
-        desc: '현재 시장 트렌드는 매우 안정적이며, AI 신뢰도가 높게 유지되고 있습니다.'
-    });
+    animateGauges();
 
     // 차트 탭 전환 이벤트
     document.querySelectorAll('.chartTab').forEach(btn => {
@@ -238,11 +222,35 @@ async function initMainChart() {
                 y: {
                     grid: { color: '#f3f4f6' },
                     ticks: { callback: v => Number(v).toLocaleString() }
-                }
-            }
-        }
-    });
+
+
+/* ── 게이지 애니메이션 ── */
+function animateGauges() {
+    var d = window.STOCK_DATA || { typeProb: 0, noiseProb: 0, sentimentScore: 50 };
+
+    var confBar  = document.getElementById('confBar');
+    var noiseBar = document.getElementById('noiseBar');
+    var sentBar  = document.getElementById('sentBar');
+
+    if (confBar) {
+        var v = parseFloat(confBar.getAttribute('data-value') || d.typeProb) || 0;
+        setTimeout(function () { confBar.style.width = Math.min(v, 100) + '%'; }, 100);
+    }
+    if (noiseBar) {
+        var v2 = parseFloat(noiseBar.getAttribute('data-value') || d.noiseProb) || 0;
+        setTimeout(function () { noiseBar.style.width = Math.min(v2, 100) + '%'; }, 200);
+    }
+    if (sentBar) {
+        var sv = parseFloat(sentBar.getAttribute('data-value') || d.sentimentScore) || 50;
+        var color;
+        if (sv >= 60)      color = 'linear-gradient(90deg,#34d399,#10b981)';
+        else if (sv <= 40) color = 'linear-gradient(90deg,#f87171,#ef4444)';
+        else               color = 'linear-gradient(90deg,#fbbf24,#f59e0b)';
+        sentBar.style.background = color;
+        setTimeout(function () { sentBar.style.width = Math.min(sv, 100) + '%'; }, 300);
+    }
 }
+
 
 /**
  * 차트 데이터 업데이트 (폴링 or 탭/종목 변경 시)

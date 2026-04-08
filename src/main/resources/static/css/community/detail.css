@@ -1,0 +1,264 @@
+@charset "UTF-8";
+
+body {
+    margin: 0;
+    background: #f6f7fb;
+    color: #111827;
+    font-family: "Noto Sans KR", sans-serif;
+}
+
+.detailPage {
+    max-width: 950px;
+    margin: 56px auto 80px;
+    padding: 76PX 20px;
+}
+
+.postCard,
+.commentCard {
+    background: #ffffff;
+    border: 1px solid #e9edf3;
+    border-radius: 22px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.postCard {
+    padding: 32px;
+}
+
+.postTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.categoryBadge {
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #1e2a5a;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.postRate {
+    color: #ef4444;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.postTitle {
+    margin: 0 0 28px;
+    font-size: 30px;
+    line-height: 1.35;
+    font-weight: 800;
+    color: #0f1b4c;
+    word-break: break-word;
+}
+
+.postWriterRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding-bottom: 24px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #eceff5;
+}
+
+.writerInfo {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.writerAvatar,
+.commentAvatar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #17174b;
+    color: #ffffff;
+    font-weight: 700;
+}
+
+.writerAvatar {
+    width: 56px;
+    height: 56px;
+    font-size: 14px;
+}
+
+.writerMeta {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.writerMeta strong {
+    font-size: 14px;
+    color: #111827;
+}
+
+.writerMeta span {
+    font-size: 14px;
+    color: #9ca3af;
+}
+
+.likeBox {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    border-radius: 16px;
+    background: #f8fafc;
+    color: #111827;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.postContent {
+    padding-bottom: 28px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #eceff5;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #374151;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.postBottom {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    color: #c0c6d1;
+    font-size: 14px;
+}
+
+.commentCard {
+    margin-top: 26px;
+    padding: 32px;
+}
+
+.commentTitle {
+    margin: 0 0 26px;
+    font-size: 24px;
+    font-weight: 800;
+    color: #0f1b4c;
+}
+
+.commentWriteBox {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.commentAvatar {
+    width: 44px;
+    height: 44px;
+    font-size: 14px;
+    flex-shrink: 0;
+}
+
+.commentInputArea {
+    flex: 1;
+}
+
+.commentInputArea textarea {
+    width: 100%;
+    height: 120px;
+    resize: none;
+    padding: 18px 20px;
+    border: 1px solid #dde3ec;
+    border-radius: 16px;
+    outline: none;
+    font-size: 14px;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+
+.commentInputArea textarea:focus {
+    border-color: #1e2a5a;
+}
+
+.commentWriteBottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 14px;
+}
+
+.commentWriteBottom span {
+    color: #c0c6d1;
+    font-size: 14px;
+}
+
+.commentWriteBottom button {
+    min-width: 132px;
+    height: 48px;
+    border: none;
+    border-radius: 14px;
+    background: #17174b;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.commentWriteBottom button:hover {
+    background: #10103a;
+}
+
+.commentEmpty {
+    padding: 28px 0 8px;
+    color: #94a3b8;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .detailPage {
+        margin: 24px auto 48px;
+        padding: 0 14px;
+    }
+
+    .postCard,
+    .commentCard {
+        padding: 20px;
+        border-radius: 18px;
+    }
+
+    .postTitle {
+        font-size: 20px;
+    }
+
+    .postContent {
+        font-size: 14px;
+    }
+
+    .postBottom {
+        font-size: 14px;
+        gap: 14px;
+    }
+
+    .commentTitle {
+        font-size: 20px;
+    }
+
+    .commentWriteBox {
+        flex-direction: column;
+    }
+
+    .commentWriteBottom {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .commentWriteBottom button {
+        width: 100%;
+    }
+}

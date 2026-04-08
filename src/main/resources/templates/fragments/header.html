@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <body>
+
 <header class="topHeader" th:fragment="header(currentPage)">
     <div class="topBar">
         <div class="inner">
@@ -8,45 +9,45 @@
                 <a class="brandText" th:href="@{/stock}">Stoxle</a>
             </div>
 
-            <div class="search">
-                <form class="searchForm" th:action="@{/stock/search}" method="get">
-                    <input type="text" name="keyword" class="searchInput" placeholder="주식을 입력하시오">
-                </form>
-            </div>
-
             <div class="menu">
                 <th:block th:if="${session.loginUser == null}">
-                    <a th:href="@{/login}" class="btnLogin">로그인</a>
-                    <a th:href="@{/user}" class="btnUser">인증</a>
+                    <a th:href="@{/login}" class="menuBtn menuBtnOutline">로그인</a>
+                    <a th:href="@{/register}" class="menuBtn menuBtnFill">회원가입</a>
                 </th:block>
 
                 <th:block th:if="${session.loginUser != null}">
-                    <span class="userText" th:text="${#strings.arraySplit(session.loginUser, '@')[0]} + '님'"></span>
-                    <a th:href="@{/logout}" class="btnLogin">로그아웃</a>
-                    <a th:href="@{/user}" class="btnUser">인증</a>
+                    <span class="userText"
+                          th:text="${#strings.arraySplit(session.loginUser, '@')[0]} + '님'"></span>
+                    <a th:href="@{/logout}" class="menuBtn menuBtnOutline">로그아웃</a>
+                    <a th:href="@{/mypage}" class="menuBtn menuBtnFill">마이페이지</a>
                 </th:block>
             </div>
         </div>
     </div>
 
     <div class="categoryBar">
-        <div class="inner">
+        <div class="inner categoryInner">
             <ul class="categoryMenu">
                 <li>
-                    <a th:href="@{/recommend}" th:classappend="${currentPage == 'recommend'} ? 'active' : ''">AI 추천</a>
+                    <a th:href="@{/news}"
+                       th:classappend="${currentPage == 'news'} ? 'active' : ''">뉴스</a>
                 </li>
                 <li>
-                    <a th:href="@{/community}" th:classappend="${currentPage == 'community'} ? 'active' : ''">커뮤니티</a>
+                    <a th:href="@{/community}"
+                       th:classappend="${currentPage == 'community'} ? 'active' : ''">커뮤니티</a>
                 </li>
                 <li>
-                    <a th:href="@{/asset}" th:classappend="${currentPage == 'asset'} ? 'active' : ''">자산 관리</a>
+                    <a th:href="@{/asset/dashboard}"
+                       th:classappend="${currentPage == 'asset/dashboard'} ? 'active' : ''">자산 관리</a>
                 </li>
                 <li>
-                    <a th:href="@{/mypage}" th:classappend="${currentPage == 'mypage'} ? 'active' : ''">마이페이지</a>
+                    <a th:href="@{/mypage}"
+                       th:classappend="${currentPage == 'mypage'} ? 'active' : ''">마이페이지</a>
                 </li>
             </ul>
         </div>
     </div>
 </header>
+
 </body>
 </html>

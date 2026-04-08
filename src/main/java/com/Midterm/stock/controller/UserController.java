@@ -2,11 +2,22 @@ package com.Midterm.stock.controller;
 
 import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.UserDao;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.bind.annotation.*;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
 
 // 로그인/회원가입 처리
 @Controller
@@ -15,18 +26,26 @@ public class UserController {
     @Autowired
     private UserDao userDao;
 
+    // 프로그램 공통 상수
+    private static final String REMEMBER_EMAIL_COOKIE = "REMEMBER_EMAIL_TOKEN";
+    private static final int REMEMBER_EMAIL_COOKIE_AGE = 60 * 60 * 24 * 7; // 7일
+
     // 로그인 처리
     @PostMapping("/login")
     public String login(
             @RequestParam(value = "userEmail", required = false) String email,
             @RequestParam(value = "userPassword", required = false) String pw,
-            HttpSession session
+            @RequestParam(value = "saveId", required = false) String saveId,
+            HttpSession session,
+            HttpServletRequest request,
+            HttpServletResponse response
     ) {
         if (email == null || pw == null) {
             return "redirect:/login?error=1";
+//            session.setAttribute("loginNum", loginUserDto.getNum()); //  이 번호가 마이페이지의 열쇠입니다.
         }
 
-        email = email.trim();
+        email = email.trim().toLowerCase();   // 대소문자 무시
         pw = pw.trim();
 
         if (email.equals("") || pw.equals("")) {
@@ -36,8 +55,40 @@ public class UserController {
         boolean loginResult = userDao.loginCheck(email, pw);
 
         if (loginResult) {
-            session.setAttribute("loginUser", email);
+
+            UserDto loginUserInfo = userDao.getUserInfoByEmail(email);  // 사용자 정보조회
+            if (loginUserInfo == null) {
+                return "redirect:/login?error=1";
+            }
+
+            session.setAttribute("loginNum", loginUserInfo.getNum());   // 세션 저장
+            session.setAttribute("loginUser", loginUserInfo.getEmail());
+
+            // 이전에 저장된 토큰O -> 정리
+            String oldToken = getCookieValue(request, REMEMBER_EMAIL_COOKIE);
+            if (oldToken != null && !oldToken.trim().equals("")) {
+                userDao.deleteSavedEmailToken(oldToken);
+            }
+
+            // 이메일 저장 체크 여부
+            if (saveId != null) {
+                // UUID = 거의 고유한 랜덤한 문자열
+                String newToken = UUID.randomUUID().toString();
+                int saveResult = userDao.insertSavedEmailToken(newToken, email);
+
+                if (saveResult > 0) { // 저장 성공 시
+                    Cookie cookie = new Cookie(REMEMBER_EMAIL_COOKIE, newToken);
+                    cookie.setPath("/"); // 사이트 전체 허용
+                    cookie.setHttpOnly(true); // 보안
+                    cookie.setMaxAge(REMEMBER_EMAIL_COOKIE_AGE);
+                    response.addCookie(cookie);
+                }
+            } else {
+                removeSavedEmailCookie(request, response);
+            }
             return "redirect:/stock";
+
+
         } else {
             return "redirect:/login?error=1";
         }
@@ -49,18 +100,20 @@ public class UserController {
             @RequestParam(value = "userName", required = false) String name,
             @RequestParam(value = "userEmail", required = false) String email,
             @RequestParam(value = "userPassword", required = false) String pw,
-            @RequestParam(value = "reUserPassword", required = false) String repw
+            @RequestParam(value = "reUserPassword", required = false) String repw,
+            @RequestParam(value = "userPhone", required = false) String phone
     ) {
         if (name == null || email == null || pw == null || repw == null) {
             return "redirect:/register?error=1";
         }
 
         name = name.trim();
-        email = email.trim();
+        email = email.trim().toLowerCase();  // 대소문자 무시
         pw = pw.trim();
         repw = repw.trim();
+        phone = phone.trim().replaceAll("[^0-9]", "");
 
-        if (name.equals("") || email.equals("") || pw.equals("") || repw.equals("")) {
+        if (name.equals("") || email.equals("") || pw.equals("") || repw.equals("") || phone.equals("")) {
             return "redirect:/register?error=1";
         }
 
@@ -88,6 +141,7 @@ public class UserController {
         dto.setEmail(email);
         dto.setPassword(pw);
         dto.setRole("user");
+        dto.setPhone(phone);
 
         int result = userDao.insertUser(dto);
 
@@ -96,5 +150,238 @@ public class UserController {
         } else {
             return "redirect:/register?error=1";
         }
+    }
+
+    // 마이페이지 이름, 비번 변경
+    @PostMapping("/user/update-profile")
+    @ResponseBody
+    public String updateProfile(@RequestParam int num, @RequestParam String type, @RequestParam String value, HttpSession session) {
+        // 보안 체크: 세션의 유저와 수정하려는 유저가 같은지 확인하면 더 좋습니다.
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        if (loginNum == null || loginNum != num) return "error";
+
+        if ("name".equals(type)) {
+            userDao.updateName(num, value);
+            return "success";
+
+        } else if ("phone".equals(type)) {
+            // 간단 검증 (숫자만)
+            if (!value.matches("\\d{10,11}")) {
+                return "invalid";
+            }
+            userDao.updatePhone(num, value);
+            return "success";
+
+        } else if ("password".equals(type)) {
+            // 비밀번호 변경 로직
+            if (value.length() < 4) return "too_short"; // 간단한 유효성 검사
+            userDao.updatePassword(num, value);
+            return "success";
+        }
+        return "fail";
+    }
+
+
+
+    // 마이페이지 - 회원탈퇴
+    // UserController.java
+    @PostMapping("/user/withdraw")
+    public String withdraw(HttpSession session) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+
+        // 세션 체크
+        if (loginNum == null) {
+            return "redirect:/login";
+        }
+
+        // DB 삭제 및 세션 제거
+        userDao.deleteUser(loginNum);
+        session.invalidate();
+
+
+        // 3. 메인 화면이나 로그인 화면으로 이동
+        return "redirect:/login?withdraw=1";
+    }
+
+    // UserController.java
+    @GetMapping("/logout")
+    public String logout(HttpSession session) {
+        // 1. 현재 세션을 완전히 무효화 (안의 모든 데이터 삭제)
+        session.invalidate();
+
+        // 2. 로그아웃 후 로그인 페이지로 이동 (알림용 파라미터 추가 가능)
+        return "redirect:/login?logout=1";
+    }
+
+
+    // 저장된 이메일 조회
+    @GetMapping("/login/saved-email")
+    @ResponseBody
+    public Map<String, String> getSavedEmail(HttpServletRequest request) {
+        Map<String, String> result = new HashMap<>();
+
+        String token = getCookieValue(request, REMEMBER_EMAIL_COOKIE);
+        String savedEmail = "";
+
+        if (token != null && !token.trim().equals("")){
+            String dbEmail = userDao.getSavedEmailByToken(token);
+            if (dbEmail != null){
+                savedEmail = dbEmail;
+            }
+        }
+
+        result.put("savedEmail", savedEmail);
+        return result;
+    }
+
+    // 저장된 이메일 삭제
+    @DeleteMapping("/login/saved-email")
+    @ResponseBody
+    public Map<String, String> deleteSavedEmail(HttpServletRequest request, HttpServletResponse response) {
+        removeSavedEmailCookie(request, response);
+
+        Map<String, String> result = new HashMap<>();
+        result.put("message", "saved email deleted");
+        return result;
+    }
+
+    // 이메일 찾기
+    @PostMapping("/findEmail")
+    public String findEmail(@RequestParam(value = "userName", required = false) String name,
+                            @RequestParam(value = "userPhone", required = false) String phone,
+                            Model model) {
+        if (name == null || phone == null) {
+            model.addAttribute("errorMessage", "이름과 전화번호를 입력해주세요");
+            return "findEmail";
+        }
+
+        name = name.trim();
+        phone = phone.trim().replaceAll("[^0-9]", "");
+
+        if (name.equals("") || phone.equals("")) {
+            model.addAttribute("errorMessage", "이름과 전화번호를 입력해주세요");
+            return "findEmail";
+        }
+
+        String email = userDao.findEmailByNameAndPhone(name, phone);
+
+        if (email == null) {
+            model.addAttribute("errorMessage", "일치하는 회원 정보가 없습니다");
+        } else {
+            model.addAttribute("maskedEmail", maskEmail(email));
+        }
+
+        return "findEmail";
+    }
+
+    // 비밀번호 찾기   // 본인 확인 후 바로 새 비밀번호 입력
+    @PostMapping("/findPassword")
+    public String findPassword(@RequestParam(value = "userName", required = false) String name,
+                               @RequestParam(value = "userEmail", required = false) String email,
+                               @RequestParam(value = "userPhone", required = false) String phone,
+                               @RequestParam(value = "newPassword", required = false) String newPassword,
+                               @RequestParam(value = "reNewPassword", required = false) String reNewPassword,
+                               Model model) {
+        if (name == null || email == null || phone == null || newPassword == null || reNewPassword == null) {
+            model.addAttribute("errorMessage", "모든 값을 입력해주세요");
+            return "findPassword";
+        }
+
+        name = name.trim();
+        email = email.trim().toLowerCase();  // 대소문자 무시
+        phone = phone.trim().replaceAll("[^0-9]", "");
+        newPassword = newPassword.trim();
+        reNewPassword = reNewPassword.trim();
+
+        if (name.equals("") || email.equals("") || phone.equals("") || newPassword.equals("") || reNewPassword.equals("")) {
+            model.addAttribute("errorMessage", "모든 값을 입력해주세요");
+            return "findPassword";
+        }
+
+        if (!newPassword.equals(reNewPassword)) {
+            model.addAttribute("errorMessage", "새 비밀번호가 일치하지 않습니다.");
+            return "findPassword";
+        }
+
+        if (newPassword.length() < 5 || newPassword.length() > 8) {
+            model.addAttribute("errorMessage", "비밀번호는 5자 이상 8자 이하로 입력해주세요.");
+            return "findPassword";
+        }
+
+        try {
+            Integer.parseInt(newPassword);
+        } catch (Exception e) {
+            model.addAttribute("errorMessage", "비밀번호는 숫자만 입력해주세요.");
+            return "findPassword";
+        }
+
+        System.out.println("findPassword start");
+        System.out.println("name = " + name);
+        System.out.println("email = " + email);
+        System.out.println("phone = " + phone);
+
+        System.out.println("before resetPasswordByUserInfo");
+        int result = userDao.resetPasswordByUserInfo(name, email, phone, newPassword);
+        System.out.println("after resetPasswordByUserInfo: " + result);
+
+        if (result > 0) {
+            return "redirect:/login?reset=1";
+        } else {
+            model.addAttribute("errorMessage", "일치하는 회원 정보가 없거나 비밀번호 변경에 실패했습니다.");
+            return "findPassword";
+        }
+    }
+
+    private String maskEmail(String email) {
+        if (email == null || email.trim().equals("") || !email.contains("@")) {
+            return "";
+        }
+
+        String[] parts = email.split("@");
+        String local = parts[0];    // ex. ya
+        String domain = parts[1];   // ex. naver.com
+
+        if (local.length() == 1) {
+            return local + "***@" + domain;
+        }
+
+        if (local.length() == 2) {  // y***@naver.com
+            return local.substring(0, 1) + "***@" + domain;
+        }
+
+        return local.substring(0, 3) + "***@" + domain;
+    }
+
+
+    private void removeSavedEmailCookie(HttpServletRequest request, HttpServletResponse response) {
+        String token = getCookieValue(request, REMEMBER_EMAIL_COOKIE);
+
+        if (token != null && !token.trim().equals("")) {
+            userDao.deleteSavedEmailToken(token);
+        }
+
+        // 삭제용 쿠키 생성
+        Cookie cookie = new Cookie(REMEMBER_EMAIL_COOKIE, "");
+        cookie.setPath("/");
+        cookie.setHttpOnly(true);
+        cookie.setMaxAge(0);   // 0 = 즉시 삭제
+        response.addCookie(cookie);
+    }
+
+    // 쿠키 찾는
+    private String getCookieValue(HttpServletRequest request, String cookieName) {
+        Cookie[] cookies = request.getCookies();
+
+        if (cookies == null) {
+            return null;
+        }
+
+        for (Cookie cookie : cookies) {
+            if (cookieName.equals(cookie.getName())) {
+                return cookie.getValue(); // 값만 반환
+            }
+        }
+
+        return null;  // 못 찾음
     }
 }

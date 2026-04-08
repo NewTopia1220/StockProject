@@ -101,7 +101,7 @@ body{
 }
 
 .inputBox:focus{
-    border-color:#1f2a44;
+    border-color:#15164D;
     box-shadow:0 0 0 4px rgba(31, 42, 68, 0.10);
     background:#fff;
 }
@@ -112,7 +112,7 @@ body{
     margin-top:10px;
     border:none;
     border-radius:16px;
-    background:linear-gradient(135deg, #1f2a44 0%, #2e4068 100%);
+    background:linear-gradient(135deg, #15164D 0%, #2e4068 100%);
     color:#ffffff;
     font-size:16px;
     font-weight:800;
@@ -133,7 +133,7 @@ body{
 }
 
 .loginOptionRow{
-    margin-top:18px;
+    margin-top:25px;
     display:flex;
     justify-content:space-between;
     align-items:center;
@@ -167,7 +167,7 @@ body{
 }
 
 .findLinks a:hover{
-    color:#1f2a44;
+    color:#15164D;
     text-decoration:underline;
 }
 
@@ -181,7 +181,7 @@ body{
 .bottomArea a{
     margin-left:6px;
     text-decoration:none;
-    color:#1f2a44;
+    color:#15164D;
     font-weight:800;
 }
 

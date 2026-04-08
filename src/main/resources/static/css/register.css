@@ -41,11 +41,9 @@ body{
     align-items:stretch;
 }
 
-/* =========================
-   LEFT PANEL
-========================= */
+/* left panel */
 .introPanel{
-    background: linear-gradient(-45deg, #1f2a44, #2c1f44, #233657, #1f2a44);
+    background: linear-gradient(-45deg, #15164D, #2c1f44, #233657, #15164D);
     background-size: 400% 400%;
     animation: gradientBG 14s ease infinite;
     color:#fff;
@@ -143,7 +141,7 @@ body{
 
 .introStatValue{
     margin:0;
-    font-size:20px;
+    font-size:18px;
     font-weight:800;
     color:#ffffff;
 }
@@ -195,9 +193,7 @@ body{
     color:rgba(255,255,255,0.85);
 }
 
-/* =========================
-   RIGHT CARD
-========================= */
+/* right panel */
 .registerCard{
     background:rgba(255,255,255,0.92);
     border:1px solid rgba(229,231,235,0.9);
@@ -272,7 +268,7 @@ body{
 }
 
 .inputBox:focus{
-    border-color:#1f2a44;
+    border-color:#15164D;
     box-shadow:0 0 0 4px rgba(31, 42, 68, 0.10);
     background:#fff;
 }
@@ -290,7 +286,7 @@ body{
     margin-top:10px;
     border:none;
     border-radius:16px;
-    background:linear-gradient(135deg, #1f2a44 0%, #2e4068 100%);
+    background:linear-gradient(135deg, #15164D 0%, #2e4068 100%);
     color:#ffffff;
     font-size:16px;
     font-weight:800;
@@ -320,7 +316,7 @@ body{
 .bottomArea a{
     margin-left:6px;
     text-decoration:none;
-    color:#1f2a44;
+    color:#15164D;
     font-weight:800;
 }
 
@@ -328,9 +324,7 @@ body{
     text-decoration:underline;
 }
 
-/* =========================
-   RESPONSIVE
-========================= */
+/* 반응형 */
 @media (max-width: 1024px){
     .registerLayout{
         grid-template-columns:1fr;

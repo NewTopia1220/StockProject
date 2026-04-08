@@ -1,4 +1,4 @@
-function check(){
+function check() {
 
 	const registerForm = document.forms["registerForm"];
 
@@ -59,6 +59,13 @@ function check(){
 		alert("비밀번호가 일치하지 않습니다.");
 		registerForm.reUserPassword.select();
 		return false;
+	}
+
+	// 전화번호 일치 여부
+	if (registerForm.userPhone.value == ""){
+	    alert("전화번호 누락");
+	    registerForm.userPhone.focus();
+	    return false;
 	}
 
 	return true;

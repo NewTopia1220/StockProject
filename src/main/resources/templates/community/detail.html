@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>게시글 상세보기</title>
+
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/community/detail.css}">
+</head>
+<body>
+<div th:replace="~{fragments/header :: header('community')}"></div>
+
+<div class="detailPage">
+
+    <div class="postCard">
+        <div class="postTop">
+            <span class="categoryBadge" th:text="${dto.category}"></span>
+            <span class="postRate">+2.3%</span>    <!-- 주식 시세 연결 가능하면 -->
+        </div>
+
+        <h1 class="postTitle" th:text="${dto.title}"></h1>
+
+        <div class="postWriterRow">
+            <div class="writerInfo">
+                <div class="writerMeta">
+                    <strong th:text="'작성자 ' + ${dto.user_name}"></strong>
+                    <span th:text="'조회 ' + ${dto.view_count}"></span>
+                </div>
+            </div>
+
+            <div class="likeBox">
+                <span>♡</span>
+                <strong th:text="${dto.like_count}"></strong>
+            </div>
+        </div>
+
+        <div class="postContent" th:text="${dto.content}"></div>
+
+        <div class="postBottom">
+            <span th:text="'조회 ' + ${dto.view_count}"></span>
+            <span th:text="'좋아요 ' + ${dto.like_count}"></span>
+            <span>댓글 0</span>
+            <span th:text="'작성일 ' + ${dto.created_at}"></span>
+        </div>
+    </div>
+
+    <div class="commentCard">
+        <h2 class="commentTitle">댓글 0개</h2>
+
+        <div class="commentWriteBox">
+            <div class="commentAvatar">투</div>
+            <div class="commentInputArea">
+                <textarea placeholder="댓글을 입력하세요..."></textarea>
+                <div class="commentWriteBottom">
+                    <span>0/500</span>
+                    <button type="button">댓글 작성</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="commentEmpty">
+            아직 댓글이 없습니다.
+        </div>
+    </div>
+</div>
+</body>
+</html>
