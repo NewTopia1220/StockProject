@@ -199,16 +199,19 @@ async function initMainChart() {
         vol.push([ts, +(data.volumes || [])[i] || 0]);
     }
 
+    const isIntraday = (currentTab === 'time' || currentTab === 'minute');
+    const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
+
     try {
     mainChart = Highcharts.stockChart('mainChart', {
         chart: {
             backgroundColor: '#fff',
             style: { fontFamily: 'inherit' },
             animation: false,
-            height: 340   // 명시적 높이 필수
+            height: 340
         },
         credits: { enabled: false },
-        rangeSelector: {
+        rangeSelector: isIntraday ? { enabled: false } : {
             selected: 1,
             inputEnabled: false,
             buttons: [
@@ -222,14 +225,14 @@ async function initMainChart() {
                 states: { select: { fill: '#0E0F37', style: { color: '#fff' } } }
             }
         },
-        navigator: { enabled: true },
+        navigator: { enabled: !isIntraday },
         scrollbar: { enabled: false },
         title: { text: '' },
         tooltip: {
             split: false, shared: true,
             formatter: function () {
                 const pts = this.points || [];
-                let s = `<b>${Highcharts.dateFormat('%Y-%m-%d', this.x)}</b><br/>`;
+                let s = `<b>${Highcharts.dateFormat(timeFmt, this.x)}</b><br/>`;
                 pts.forEach(p => {
                     if (p.series.type === 'candlestick') {
                         s += `시가 ${p.point.open?.toLocaleString()} · 고가 ${p.point.high?.toLocaleString()} · 저가 ${p.point.low?.toLocaleString()} · 종가 <b>${p.point.close?.toLocaleString()}</b>원<br/>`;
@@ -242,7 +245,12 @@ async function initMainChart() {
                 return s;
             }
         },
-        xAxis: { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' },
+        xAxis: {
+            type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb',
+            dateTimeLabelFormats: isIntraday
+                ? { minute: '%H:%M', hour: '%H:%M' }
+                : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
+        },
         yAxis: [{
             labels: {
                 align: 'left',

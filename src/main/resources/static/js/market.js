@@ -364,17 +364,17 @@ function buildOhlcv(data) {
     return { ohlc, vol, hasOhlc };
 }
 
-/** Highcharts 공통 옵션 */
-function hcBaseOptions(name, ohlc, vol, hasOhlc, compact) {
-    return {
-        chart: {
-            backgroundColor: '#fff',
-            style: { fontFamily: 'inherit' },
-            animation: false,
-            height: compact ? 220 : 340   // 명시적 높이 필수
-        },
-        credits: { enabled: false },
-        rangeSelector: compact ? { enabled: false } : {
+/** Highcharts 공통 옵션
+ * @param tab 'daily' | 'time' | 'minute'  → tooltip/rangeSelector 포맷 결정
+ */
+function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
+    const isIntraday = (tab === 'time' || tab === 'minute');
+    const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
+
+    // 일별: 1개월/3개월/전체  |  장중: rangeSelector 끔
+    const rangeSelector = compact || isIntraday
+        ? { enabled: false }
+        : {
             selected: 1,
             inputEnabled: false,
             buttons: [
@@ -387,8 +387,18 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact) {
                 style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
                 states: { select: { fill: '#0E0F37', style: { color: '#fff' } } }
             }
+        };
+
+    return {
+        chart: {
+            backgroundColor: '#fff',
+            style: { fontFamily: 'inherit' },
+            animation: false,
+            height: compact ? 220 : 340   // 명시적 높이 필수
         },
-        navigator: { enabled: !compact },
+        credits: { enabled: false },
+        rangeSelector,
+        navigator: { enabled: !compact && !isIntraday },
         scrollbar: { enabled: false },
         tooltip: {
             split: false,
@@ -396,7 +406,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact) {
             valueDecimals: 0,
             formatter: function () {
                 const pts = this.points || [];
-                let s = `<b>${Highcharts.dateFormat('%Y-%m-%d', this.x)}</b><br/>`;
+                let s = `<b>${Highcharts.dateFormat(timeFmt, this.x)}</b><br/>`;
                 pts.forEach(p => {
                     if (p.series.type === 'candlestick') {
                         s += `시가 ${p.point.open?.toLocaleString()} · 고가 ${p.point.high?.toLocaleString()} · 저가 ${p.point.low?.toLocaleString()} · 종가 <b>${p.point.close?.toLocaleString()}</b>원<br/>`;
@@ -409,7 +419,13 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact) {
                 return s;
             }
         },
-        xAxis: { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' },
+        xAxis: {
+            type: 'datetime',
+            lineColor: '#e5e7eb', tickColor: '#e5e7eb',
+            dateTimeLabelFormats: isIntraday
+                ? { minute: '%H:%M', hour: '%H:%M' }
+                : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
+        },
         yAxis: [{
             labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
                       formatter: function() { return this.value.toLocaleString(); } },
@@ -458,7 +474,7 @@ async function initPanelChart() {
     if (!el) return;
     const { ohlc, vol, hasOhlc } = buildOhlcv(data);
     panelChart = Highcharts.stockChart('panelChart',
-        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true));
+        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
 }
 
 async function updatePanelChart() {
@@ -468,7 +484,7 @@ async function updatePanelChart() {
     if (!el) return;
     const { ohlc, vol, hasOhlc } = buildOhlcv(data);
     panelChart = Highcharts.stockChart('panelChart',
-        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true));
+        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
 }
 
 async function fetchPanelChartData() {
@@ -594,7 +610,7 @@ async function initDetailChart(code) {
     const name = el.dataset.name || code;
     const { ohlc, vol, hasOhlc } = buildOhlcv(data);
     detailChart = Highcharts.stockChart('detailChart',
-        hcBaseOptions(name, ohlc, vol, hasOhlc, false));
+        hcBaseOptions(name, ohlc, vol, hasOhlc, false, detailTab));
 }
 
 async function updateDetailChart(code) {
@@ -605,7 +621,7 @@ async function updateDetailChart(code) {
     const name = el.dataset.name || code;
     const { ohlc, vol, hasOhlc } = buildOhlcv(data);
     detailChart = Highcharts.stockChart('detailChart',
-        hcBaseOptions(name, ohlc, vol, hasOhlc, false));
+        hcBaseOptions(name, ohlc, vol, hasOhlc, false, detailTab));
 }
 
 async function fetchDetailChartData(code) {

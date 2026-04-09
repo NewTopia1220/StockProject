@@ -10,6 +10,7 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,11 +67,24 @@ public class StockPriceService {
             dto.setHighPrice(o.get("stck_hgpr").asText());
             dto.setLowPrice(o.get("stck_lwpr").asText());
             dto.setVolume(o.get("acml_vol").asText());
-            dto.setChangeRate(o.path("prdy_ctrt").asText("0"));
+            String changeRateStr = o.path("prdy_ctrt").asText("0");
+            dto.setChangeRate(changeRateStr);
             String vrssSign = o.path("prdy_vrss_sign").asText("3");
             String vrss     = o.path("prdy_vrss").asText("0");
             if (vrss.isBlank()) vrss = "0";
             boolean negative = vrssSign.equals("4") || vrssSign.equals("5");
+            // prdy_vrss가 0인데 등락률은 있는 경우 → 현재가×등락률로 역산
+            if (vrss.equals("0")) {
+                try {
+                    double cp = Double.parseDouble(o.get("stck_prpr").asText("0"));
+                    double cr = Double.parseDouble(changeRateStr) / 100.0;
+                    if (cr != 0) {
+                        long calc = Math.round(cp * cr / (1.0 + cr));
+                        negative = calc < 0;
+                        vrss = String.valueOf(Math.abs(calc));
+                    }
+                } catch (Exception ignored) {}
+            }
             dto.setPriceChange(negative ? "-" + vrss : vrss);
         } catch (Exception e) {
             System.out.println("현재가 조회 실패 [" + stockCode + "]: " + e.getMessage());
@@ -112,7 +126,7 @@ public class StockPriceService {
                     .queryParam("FID_PW_DATA_INCU_YN", "Y")
                     .build(), "FHKST03010200");
             if (response == null || response.get("output2") == null) return emptyChart();
-            return parseTimeChart(response.get("output2"));
+            return parseHourlyChart(response.get("output2"));  // 시간 단위 OHLCV 집계
         } catch (Exception e) {
             System.out.println("시간별 차트 실패 [" + stockCode + "]: " + e.getMessage());
             return emptyChart();
@@ -133,7 +147,7 @@ public class StockPriceService {
                     .queryParam("FID_PW_DATA_INCU_YN", "N")
                     .build(), "FHKST03010200");
             if (response == null || response.get("output2") == null) return emptyChart();
-            return parseTimeChart(response.get("output2"));
+            return parseMinuteChart(response.get("output2"));  // 분 단위 OHLCV 집계
         } catch (Exception e) {
             System.out.println("분별 차트 실패 [" + stockCode + "]: " + e.getMessage());
             return emptyChart();
@@ -373,25 +387,88 @@ public class StockPriceService {
         return dto;
     }
 
-    /** 시간별/분별 차트 파싱 (HHmmss → HH:mm 변환) */
-    private StockChartDto parseTimeChart(JsonNode array) {
-        List<String> labels = new ArrayList<>();
-        List<String> closes = new ArrayList<>();
-        List<String> volumes = new ArrayList<>();
-        for (JsonNode item : array) {
+    /**
+     * 시간별 차트: tick 데이터를 5분 단위로 OHLCV 집계
+     * (KIS API가 장중 전체가 아닌 제한된 구간만 반환하므로
+     *  1시간 버킷 대신 5분 버킷으로 더 많은 캔들 생성)
+     */
+    private StockChartDto parseHourlyChart(JsonNode array) {
+        List<JsonNode> items = new ArrayList<>();
+        array.forEach(items::add);
+        Collections.reverse(items); // 오래된 것부터
+
+        Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
+        Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
+
+        for (JsonNode item : items) {
             String raw = item.get("stck_cntg_hour").asText();
-            labels.add(raw.substring(0, 2) + ":" + raw.substring(2, 4));
-            closes.add(item.get("stck_prpr").asText());
-            volumes.add(item.get("cntg_vol").asText());
+            int hh  = parseIntSafe(raw.substring(0, 2));
+            int mm  = parseIntSafe(raw.substring(2, 4));
+            int mm5 = (mm / 5) * 5; // 5분 단위로 내림 (0,5,10,15...)
+            String key = String.format("%02d:%02d", hh, mm5);
+            int price = parseIntSafe(item.get("stck_prpr").asText("0"));
+            int vol   = parseIntSafe(item.get("cntg_vol").asText("0"));
+            priceGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(price);
+            volGroups.computeIfAbsent(key,   k -> new ArrayList<>()).add(vol);
         }
-        Collections.reverse(labels);
-        Collections.reverse(closes);
-        Collections.reverse(volumes);
+        return buildOhlcvDto(priceGroups, volGroups);
+    }
+
+    /**
+     * 분별 차트: tick 데이터를 분(HH:mm) 단위로 OHLCV 집계
+     */
+    private StockChartDto parseMinuteChart(JsonNode array) {
+        List<JsonNode> items = new ArrayList<>();
+        array.forEach(items::add);
+        Collections.reverse(items);
+
+        Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
+        Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
+
+        for (JsonNode item : items) {
+            String raw   = item.get("stck_cntg_hour").asText();
+            String minKey = raw.substring(0, 2) + ":" + raw.substring(2, 4);
+            int price = parseIntSafe(item.get("stck_prpr").asText("0"));
+            int vol   = parseIntSafe(item.get("cntg_vol").asText("0"));
+            priceGroups.computeIfAbsent(minKey, k -> new ArrayList<>()).add(price);
+            volGroups.computeIfAbsent(minKey,   k -> new ArrayList<>()).add(vol);
+        }
+        return buildOhlcvDto(priceGroups, volGroups);
+    }
+
+    /** 그룹별 가격/거래량 → OHLCV DTO 빌드 */
+    private StockChartDto buildOhlcvDto(Map<String, List<Integer>> priceGroups,
+                                        Map<String, List<Integer>> volGroups) {
+        List<String> labels  = new ArrayList<>();
+        List<String> opens   = new ArrayList<>();
+        List<String> highs   = new ArrayList<>();
+        List<String> lows    = new ArrayList<>();
+        List<String> closes  = new ArrayList<>();
+        List<String> volumes = new ArrayList<>();
+
+        for (Map.Entry<String, List<Integer>> entry : priceGroups.entrySet()) {
+            List<Integer> prices = entry.getValue();
+            List<Integer> vols   = volGroups.get(entry.getKey());
+            labels.add(entry.getKey());
+            opens.add(String.valueOf(prices.get(0)));
+            closes.add(String.valueOf(prices.get(prices.size() - 1)));
+            highs.add(String.valueOf(prices.stream().mapToInt(Integer::intValue).max().orElse(0)));
+            lows.add(String.valueOf(prices.stream().mapToInt(Integer::intValue).min().orElse(0)));
+            volumes.add(String.valueOf(vols.stream().mapToInt(Integer::intValue).sum()));
+        }
+
         StockChartDto dto = new StockChartDto();
         dto.setLabels(labels);
+        dto.setOpenPrices(opens);
+        dto.setHighPrices(highs);
+        dto.setLowPrices(lows);
         dto.setClosePrices(closes);
         dto.setVolumes(volumes);
         return dto;
+    }
+
+    private int parseIntSafe(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
     }
 
     /** 빈 차트 DTO (API 실패 시 Fallback) */
