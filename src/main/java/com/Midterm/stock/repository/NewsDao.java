@@ -206,6 +206,70 @@ public class NewsDao {
         return list;
     }
 
+    public Map<String, Map<String, Object>> getNewsSignalMap(List<String> links) {
+        Map<String, Map<String, Object>> result = new HashMap<>();
+        if (links == null || links.isEmpty()) {
+            return result;
+        }
+
+        List<String> uniqueLinks = new ArrayList<>(new LinkedHashSet<>(links));
+        String placeholders = String.join(",", Collections.nCopies(uniqueLinks.size(), "?"));
+
+        Connection conn = connect();
+        if (conn == null) {
+            return result;
+        }
+
+        String stockMapSql =
+            "SELECT link, stock_code FROM ( " +
+            "    SELECT link, stock_code, " +
+            "           ROW_NUMBER() OVER (PARTITION BY link ORDER BY NVL(match_score, 0) DESC, id DESC) AS rn " +
+            "    FROM NEWS_STOCK_MAP " +
+            "    WHERE link IN (" + placeholders + ") " +
+            ") WHERE rn = 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(stockMapSql)) {
+            bindLinkParams(ps, uniqueLinks);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String link = rs.getString("link");
+                    Map<String, Object> row = result.computeIfAbsent(link, key -> new HashMap<>());
+                    row.put("stockCode", rs.getString("stock_code"));
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("getNewsSignalMap(stock): " + e.getMessage());
+        }
+
+        String impactSql =
+            "SELECT link, impact_30m FROM ( " +
+            "    SELECT link, impact_30m, " +
+            "           ROW_NUMBER() OVER (PARTITION BY link ORDER BY created_at DESC NULLS LAST, id DESC) AS rn " +
+            "    FROM NEWS_IMPACT " +
+            "    WHERE link IN (" + placeholders + ") " +
+            ") WHERE rn = 1";
+
+        try (PreparedStatement ps = conn.prepareStatement(impactSql)) {
+            bindLinkParams(ps, uniqueLinks);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    String link = rs.getString("link");
+                    Map<String, Object> row = result.computeIfAbsent(link, key -> new HashMap<>());
+                    double impact = rs.getDouble("impact_30m");
+                    if (!rs.wasNull()) {
+                        row.put("impact30m", impact);
+                    }
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("getNewsSignalMap(impact): " + e.getMessage());
+        } finally {
+            try { conn.close(); } catch (Exception ignore) {}
+        }
+
+        return result;
+    }
+
     /** 좋아요·댓글 수를 한 번에 로드해서 dto에 세팅 */
     private void loadLikeCommentCounts(List<NewsDto> list, int userNum) {
         Connection conn = connect(); if (conn == null) return;
@@ -427,6 +491,12 @@ public class NewsDao {
         if (sector  != null && !sector.trim().isEmpty())  ps.setString(idx++, "%(" + sector + ")%");
         if (keyword != null && !keyword.trim().isEmpty()) ps.setString(idx++, "%" + keyword + "%");
         return idx;
+    }
+
+    private void bindLinkParams(PreparedStatement ps, List<String> links) throws SQLException {
+        for (int i = 0; i < links.size(); i++) {
+            ps.setString(i + 1, links.get(i));
+        }
     }
 
     private String formatPubDate(ResultSet rs, String col) {

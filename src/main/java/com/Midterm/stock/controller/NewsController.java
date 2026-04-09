@@ -1,7 +1,9 @@
 package com.Midterm.stock.controller;
 
+import com.Midterm.stock.dto.AiPredictionDto;
 import com.Midterm.stock.dto.NewsDto;
 import com.Midterm.stock.repository.NewsDao;
+import com.Midterm.stock.service.stock.StockAiService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +19,9 @@ public class NewsController {
 
     @Autowired
     private NewsDao newsDao;
+
+    @Autowired
+    private StockAiService stockAiService;
 
     @GetMapping({"", "/"})
     public String newsList(
@@ -34,6 +39,7 @@ public class NewsController {
         int end   = page * pageSize;
 
         List<NewsDto> newsList = newsDao.getNewsList(sector, keyword, start, end, uid);
+        enrichPredictionSignals(newsList);
         int totalCount         = newsDao.getNewsCount(sector, keyword);
         int totalPages         = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
 
@@ -65,6 +71,63 @@ public class NewsController {
         model.addAttribute("currentMenu","news");
 
         return "news/list";
+    }
+
+    private void enrichPredictionSignals(List<NewsDto> newsList) {
+        if (newsList == null || newsList.isEmpty()) {
+            return;
+        }
+
+        List<String> links = new ArrayList<>();
+        for (NewsDto dto : newsList) {
+            if (dto.getLink() != null && !dto.getLink().isBlank()) {
+                links.add(dto.getLink());
+            }
+        }
+
+        Map<String, Map<String, Object>> signalMap = newsDao.getNewsSignalMap(links);
+        for (NewsDto dto : newsList) {
+            Map<String, Object> signal = signalMap.get(dto.getLink());
+            if (signal == null) {
+                continue;
+            }
+
+            Object stockCode = signal.get("stockCode");
+            if (stockCode != null) {
+                dto.setStockCode(stockCode.toString());
+            }
+
+            Object impact30m = signal.get("impact30m");
+            if (impact30m instanceof Number number) {
+                dto.setStockImpactPercent(number.doubleValue());
+                dto.setStockImpactSource("기사 영향 모델");
+            }
+        }
+
+        Map<String, AiPredictionDto> stockPredictions = new HashMap<>();
+        for (NewsDto dto : newsList) {
+            String stockCode = dto.getStockCode();
+            if (stockCode == null || stockCode.isBlank() || stockPredictions.containsKey(stockCode)) {
+                continue;
+            }
+
+            try {
+                stockPredictions.put(stockCode, stockAiService.predict(stockCode));
+            } catch (Exception ignored) {
+                stockPredictions.put(stockCode, null);
+            }
+        }
+
+        for (NewsDto dto : newsList) {
+            AiPredictionDto prediction = stockPredictions.get(dto.getStockCode());
+            if (prediction == null || !prediction.isValid()) {
+                continue;
+            }
+
+            dto.setRiseProbability(prediction.getProbability());
+            dto.setRisePrediction(prediction.getPrediction());
+            dto.setRiseConfidence(prediction.getConfidence());
+        }
     }
 
     @PostMapping("/like")

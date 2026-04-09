@@ -1,10 +1,15 @@
 package com.Midterm.stock.controller;
 
-import com.Midterm.stock.service.stock.StockPriceService;
+import com.Midterm.stock.dto.AiPredictionDto;
 import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.NewsDao;
 import com.Midterm.stock.repository.UserDao;
+import com.Midterm.stock.service.stock.ExchangeService;
+import com.Midterm.stock.service.stock.StockAiService;
+import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -13,11 +18,19 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.*;
 
+@Slf4j
 @Controller
+@RequiredArgsConstructor
 public class PageController {
 
     @Autowired
     private StockPriceService stockPriceService;
+
+    @Autowired
+    private ExchangeService exchangeService;
+
+    @Autowired
+    private StockAiService stockAiService;
 
     // 고정 8섹터 순서 정의 (DB 섹터명과 매핑)
     private static final List<String[]> FIXED_SECTORS = Arrays.asList(
@@ -75,6 +88,7 @@ public class PageController {
         model.addAttribute("chartData", stockPriceService.getDailyPrice(code));
         model.addAttribute("kospiInfo", stockPriceService.getKospiIndex());
         model.addAttribute("kosdaqInfo", stockPriceService.getKosdaqIndex());
+        model.addAttribute("exchangeInfo", exchangeService.getExchangeRate("USD"));
         model.addAttribute("stockCode", code);
 
 
@@ -120,11 +134,17 @@ public class PageController {
             int neg = dbData != null ? (int)dbData.get("negativeCount") : 0;
             int neu = dbData != null ? (int)dbData.get("neutralCount")  : 0;
             double atp = dbData != null ? (double)dbData.get("avgTypeProb") : 0.0;
+            double acp = dbData != null ? (double)dbData.get("avgClickbaitProb") : 0.0;
 
             String dominant = articleCount == 0 ? "없음"
                 : (pos>=neg && pos>=neu) ? "호재"
                 : (neg>=pos && neg>=neu) ? "악재" : "중립";
             int posRatio = articleCount > 0 ? (int)Math.round((double)pos/articleCount*100) : 0;
+            // 메인 화면의 상승 점수는 기사 방향성, 기사 수, AI 신뢰도, 낚시성,
+            // 중립 기사 비중을 함께 반영한 참고용 휴리스틱 점수입니다.
+            int trendScore = calculateSectorTrendScore(articleCount, pos, neg, neu, atp, acp);
+            String trendDirection = resolveTrendDirection(trendScore);
+            String trendLabel = resolveTrendLabel(trendScore);
 
             Map<String, Object> card = new LinkedHashMap<>();
             card.put("sectorKey",    dbKey);
@@ -137,6 +157,10 @@ public class PageController {
             card.put("dominant",     dominant);
             card.put("posRatio",     posRatio);
             card.put("avgTypeProb",  String.format("%.1f", atp));
+            card.put("avgClickbaitProb", String.format("%.1f", acp));
+            card.put("trendScore",   trendScore);
+            card.put("trendDirection", trendDirection);
+            card.put("trendLabel",   trendLabel);
             sectorCards.add(card);
         }
 
@@ -153,6 +177,15 @@ public class PageController {
         model.addAttribute("sectorCards",     sectorCards);
         model.addAttribute("currentPage",     "stock");
 
+        // ── AI 예측 추가 ────────────────────────────────────────
+        try {
+            AiPredictionDto aiResult = stockAiService.predict(code);
+            model.addAttribute("aiPrediction", aiResult);
+        } catch (Exception e) {
+            log.warn("[PageController] AI 예측 실패 (페이지 렌더링은 계속): {}", e.getMessage());
+            model.addAttribute("aiPrediction", null);
+        }
+
         return "stock";
     }
 
@@ -166,6 +199,52 @@ public class PageController {
             if (dn.contains(kn) || kn.contains(dn)) return e.getValue();
         }
         return null;
+    }
+
+    /**
+     * 섹터 뉴스 흐름을 0~100 점수로 환산합니다.
+     * 50을 기준으로 높으면 상승 우세, 낮으면 하락 우세로 해석합니다.
+     */
+    private int calculateSectorTrendScore(int articleCount, int pos, int neg, int neu,
+                                          double avgTypeProb, double avgClickbaitProb) {
+        if (articleCount <= 0) {
+            // 기사 자체가 없으면 방향성을 주지 않고 중립 50점으로 둡니다.
+            return 50;
+        }
+
+        // 호재와 악재의 차이입니다. 호재가 많을수록 양수, 악재가 많을수록 음수가 됩니다.
+        double sentimentBias = (double) (pos - neg) / articleCount;
+
+        // 기사 수가 적을 때 점수가 과하게 튀지 않도록 완만하게 보정합니다.
+        double articleSupport = Math.min(1.0, Math.log1p(articleCount) / Math.log(12));
+
+        // 기사 품질 보정입니다.
+        // AI 신뢰도는 높을수록 좋고, 낚시성 확률은 낮을수록 좋게 반영합니다.
+        double reliability = ((avgTypeProb / 100.0) * 0.7)
+                + ((1.0 - (avgClickbaitProb / 100.0)) * 0.3);
+
+        // 중립 기사가 많으면 방향성이 약하다고 보고 최종 점수를 조금 깎습니다.
+        double neutralPenalty = 1.0 - (((double) neu / articleCount) * 0.35);
+
+        // 50점을 기준점으로 두고 각 보정치를 곱해 상승/하락 방향으로 이동시킵니다.
+        double score = 50.0 + (38.0 * sentimentBias * articleSupport * reliability * neutralPenalty);
+        return (int) Math.round(Math.max(0, Math.min(100, score)));
+    }
+
+    private String resolveTrendDirection(int trendScore) {
+        // UI 색상용 방향값입니다.
+        if (trendScore >= 58) return "up";
+        if (trendScore <= 42) return "down";
+        return "neutral";
+    }
+
+    // UI에 보여줄 텍스트 라벨입니다.
+    private String resolveTrendLabel(int trendScore) {
+        if (trendScore >= 72) return "강한 상승";
+        if (trendScore >= 58) return "상승 우세";
+        if (trendScore <= 28) return "강한 하락";
+        if (trendScore <= 42) return "하락 우세";
+        return "중립";
     }
 
     // 마이페이지

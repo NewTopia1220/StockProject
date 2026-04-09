@@ -154,10 +154,171 @@
 .sent-negative { background: #fef2f2; color: #dc2626; }
 .sent-neutral  { background: #f3f4f6; color: #6b7280; }
 
-.newsDate {
+.impactTag {
     font-size: 12px;
-    color: #9ca3af;
+    font-weight: 800;
+    padding: 3px 10px;
+    border-radius: 999px;
+    letter-spacing: -0.1px;
+}
+.impactHoverWrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+.impactHoverCard {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    min-width: 260px;
+    max-width: 320px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    background: #fff;
+    border: 1px solid #3b82f6;
+    box-shadow: 0 12px 24px rgba(14, 15, 55, 0.12);
+    z-index: 20;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(6px);
+    transition: opacity 0.18s ease, transform 0.18s ease, visibility 0.18s ease;
+}
+.impactHoverWrap:hover .impactHoverCard,
+.impactHoverWrap:focus-within .impactHoverCard {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+.impactHoverHead {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+.impactHoverHead strong {
+    font-size: 14px;
+    font-weight: 800;
+    color: #27500A;
+}
+.impactHoverCard.hover-negative .impactHoverHead strong { color: #A22929; }
+.impactHoverCard.hover-neutral .impactHoverHead strong { color: #4B5563; }
+.impactHoverHead span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+    white-space: nowrap;
+}
+.impactHoverBody {
+    margin: 0;
+    font-size: 12px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+.impactHoverSub {
+    margin: 8px 0 0;
+    font-size: 12px;
+    color: #4b5563;
+    line-height: 1.5;
+}
+.impactHoverMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid #e5e7eb;
+}
+.impactHoverMeta span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #6b7280;
+}
+.impactHoverMeta strong {
+    font-size: 14px;
+    font-weight: 800;
+    color: #111827;
+}
+.impact-positive { background: #fef2f2; color: #dc2626; }
+.impact-negative { background: #eff6ff; color: #2563eb; }
+.impact-neutral  { background: #f3f4f6; color: #6b7280; }
+
+.impactSignalWrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     margin-left: auto;
+}
+
+.impactPill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #f8fafc;
+    border: 1px solid #dbe3ef;
+}
+
+.impactPillLabel {
+    font-size: 10px;
+    font-weight: 700;
+    color: #64748b;
+}
+
+.impactPill strong {
+    font-size: 11px;
+    font-weight: 800;
+    color: #0f172a;
+}
+
+.impactPill.tone-positive {
+    background: #fef2f2;
+    border-color: #fecaca;
+}
+
+.impactPill.tone-positive .impactPillLabel,
+.impactPill.tone-positive strong {
+    color: #b91c1c;
+}
+
+.impactPill.tone-negative {
+    background: #eff6ff;
+    border-color: #bfdbfe;
+}
+
+.impactPill.tone-negative .impactPillLabel,
+.impactPill.tone-negative strong {
+    color: #1d4ed8;
+}
+
+.impactPill.tone-neutral {
+    background: #f3f4f6;
+    border-color: #e5e7eb;
+}
+
+.impactPill.tone-neutral .impactPillLabel,
+.impactPill.tone-neutral strong {
+    color: #4b5563;
+}
+
+.impactHoverCard.tone-positive {
+    border-color: #ef4444;
+}
+
+.impactHoverCard.tone-negative {
+    border-color: #3b82f6;
+}
+
+.impactHoverCard.tone-neutral {
+    border-color: #9ca3af;
+}
+
+.newsDate {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-left: 6px;
 }
 
 /* 제목 */
@@ -232,7 +393,6 @@
 
 .metricBarBlue .metricFill { background: linear-gradient(90deg, #60a5fa, #2563eb); }
 .metricBarRed  .metricFill { background: linear-gradient(90deg, #fca5a5, #ef4444); }
-
 .metricFill {
     height: 100%;
     border-radius: 999px;
@@ -510,6 +670,31 @@ body.dark .companyTag               { background: rgba(99,102,241,0.15); color: 
 body.dark .sent-positive            { background: rgba(16,185,129,0.15); color: #34d399; }
 body.dark .sent-negative            { background: rgba(239,68,68,0.15); color: #f87171; }
 body.dark .sent-neutral             { background: #1e2235; color: #94a3b8; }
+body.dark .impact-positive          { background: rgba(239,68,68,0.15); color: #fca5a5; }
+body.dark .impact-negative          { background: rgba(59,130,246,0.15); color: #93c5fd; }
+body.dark .impact-neutral           { background: #1e2235; color: #94a3b8; }
+body.dark .impactHoverCard          { background: #141720; border-color: #60a5fa; box-shadow: 0 12px 24px rgba(0,0,0,0.32); }
+body.dark .impactHoverHead strong   { color: #c7f0a4; }
+body.dark .impactHoverCard.hover-negative .impactHoverHead strong { color: #FCA5A5; }
+body.dark .impactHoverCard.hover-neutral .impactHoverHead strong { color: #CBD5E1; }
+body.dark .impactHoverHead span     { color: #94a3b8; }
+body.dark .impactHoverBody          { color: #cbd5e1; }
+body.dark .impactHoverSub           { color: #cbd5e1; }
+body.dark .impactHoverMeta          { border-color: #1e2235; }
+body.dark .impactHoverMeta span     { color: #94a3b8; }
+body.dark .impactHoverMeta strong   { color: #f1f5f9; }
+body.dark .impactPill               { background: #0b0d14; border-color: #1e2235; }
+body.dark .impactPillLabel          { color: #94a3b8; }
+body.dark .impactPill strong        { color: #f1f5f9; }
+body.dark .impactPill.tone-positive { background: rgba(239,68,68,0.12); border-color: rgba(239,68,68,0.35); }
+body.dark .impactPill.tone-positive .impactPillLabel,
+body.dark .impactPill.tone-positive strong { color: #fca5a5; }
+body.dark .impactPill.tone-negative { background: rgba(59,130,246,0.12); border-color: rgba(59,130,246,0.35); }
+body.dark .impactPill.tone-negative .impactPillLabel,
+body.dark .impactPill.tone-negative strong { color: #93c5fd; }
+body.dark .impactPill.tone-neutral  { background: #1e2235; border-color: #334155; }
+body.dark .impactPill.tone-neutral .impactPillLabel,
+body.dark .impactPill.tone-neutral strong { color: #cbd5e1; }
 
 /* 액션 행 */
 body.dark .newsActionRow            { border-color: #1e2235; }
