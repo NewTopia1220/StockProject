@@ -190,6 +190,8 @@ body {
 }
 
 .page-subtitle {
+    margin-top: 25px;
+    padding-left: 25px;
     color: var(--muted-foreground);
     font-size: 16px;
 }
@@ -1188,7 +1190,7 @@ body {
     right: 0;
     bottom: 0;
     background-color: var(--muted);
-    transition: 2s ease-out;
+    transition: 0.2s ease-out;
     border-radius: 24px;
 }
 
@@ -1200,7 +1202,7 @@ body {
     left: 2px;
     bottom: 2px;
     background-color: white;
-    transition: 2s ease-out;
+    transition: 0.2s ease-out;
     border-radius: 50%;
 }
 
@@ -1419,4 +1421,85 @@ body {
     color: var(--primary);
     text-decoration: none;
     font-weight: 500;
+}
+
+/* 지출 입력받기 */
+/* 모달 레이아웃 */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.modal-content {
+    width: 100%;
+    max-width: 500px;
+    margin-bottom: 0; /* 기존 카드 마진 제거 */
+    animation: slideUp 0.3s ease-out;
+}
+
+.btn-close {
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--muted-foreground);
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* 월별 지출 입력받기*/
+
+#monthlyChart {
+    background: #F8F9FA;
+    padding: 20px;
+    margin-top: 20px;
+    border-radius: 16px;
+}
+
+
+
+/*지출입력받기 버튼 스타일 추가*/
+.add-transaction-btn {
+    width: 100%;
+    /* 세로 높이를 대폭 늘려 존재감 확보 */
+    padding: 50px;
+    margin-bottom: 25px;
+    margin-top: 2px;
+
+    /* 배경색: 아주 연한 파란색 계열로 변경하여 시선 집중 */
+    background-color: #eff6ff;
+
+    /* 테두리: 점선 유지하되 색상을 조금 더 진하게 */
+    border: 2px dashed #3b82f6;
+    border-radius: 16px;
+
+    /* 텍스트 스타일 */
+    color: #2563eb;
+    font-size: 1.1rem;
+    font-weight: 600;
+
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+
+    /* 미세한 그림자로 입체감 추가 */
+    box-shadow: 0 2px 4px rgba(59, 130, 246, 0.05);
+}
+
+/* 지출입력받기 마우스를 올렸을 때 반응 */
+.add-transaction-btn:hover {
+    background-color: #dbeafe;
+    border-style: solid; /* 마우스 올리면 실선으로 변하게 하여 클릭 유도 */
+    transform: translateY(-2px); /* 살짝 위로 뜨는 효과 */
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }

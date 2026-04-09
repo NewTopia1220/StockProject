@@ -5,7 +5,8 @@ import java.time.LocalDate;
 public class AssetDto {
     private int spend_id;
     private int user_id;
-    private int month;            // 월
+    private int month;  // 월
+    private int year;
     private LocalDate date;       // 일자
     private int amount;           // 금액
     private String vendor;        // 구매처
@@ -14,10 +15,11 @@ public class AssetDto {
 
     public AssetDto() {}
 
-    public AssetDto(int spend_id, int user_id, int month, LocalDate date, int amount, String vendor, String category) {
+    public AssetDto(int spend_id, int user_id, int month, int year, LocalDate date, int amount, String vendor, String category) {
         this.spend_id = spend_id;
         this.user_id = user_id;
         this.month = month;
+        this.year = year;
         this.date = date;
         this.amount = amount;
         this.vendor = vendor;
@@ -30,6 +32,14 @@ public class AssetDto {
 
     public void setMonth(int month) {
         this.month = month;
+    }
+
+    public int getYear() {
+        return year;
+    }
+
+    public void setYear(int year) {
+        this.year = year;
     }
 
     public LocalDate getDate() {

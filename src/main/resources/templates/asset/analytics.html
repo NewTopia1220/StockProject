@@ -87,15 +87,17 @@
                             </svg>
                         </div>
 
-                        <a th:if="${hasPrevData}" th:href="@{/asset/analytics(month=${selectedMonth == 1 ? 12 : prevMonth})}" class="btn-month">  <!--이전달-->
+                        <a th:if="${hasPrevData}" th:href="@{/asset/dashboard(month=${prevMonth}, year=${prevYear})}" class="btn-month"> <!--이전달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </a>
 
-                        <h1 style="margin: 0;"><span th:text="${selectedMonth}">4</span>월 소비분석</h1>   <!--현재달-->
+                        <h1 style="margin: 0;">
+                            <span th:text="|${selectedYear}년 ${selectedMonth}월|">2025년 4월 소비분석</span>   <!--현재달-->
+                        </h1>
 
-                        <a th:if="${hasNextData}" th:href="@{/asset/analytics(month=${selectedMonth == 12 ? 1 : nextMonth})}" class="btn-month"> <!--다음달-->
+                            <a th:if="${hasNextData}" th:href="@{/asset/dashboard(month=${nextMonth}, year=${nextYear})}" class="btn-month">  <!--다음달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
@@ -108,7 +110,8 @@
                             </svg>
                         </div>
                     </div>
-                    <p class="page-subtitle" th:text="${selectedMonth} + '월의 소비 상태를 확인하세요'"></p>
+
+                    <p class="page-subtitle" th:text="|${selectedYear}년 ${selectedMonth}월의 소비 상태를 확인하세요|"></p>
                 </div>
 
 
@@ -205,7 +208,7 @@
                 <div class="card">
                     <div class="card-title-section">
                         <h3>최근 소비 내역</h3>
-                        <a href="#" class="link-primary">전체보기</a>
+<!--                        <a href="#" class="link-primary">전체보기</a>-->
                     </div>
 
                     <div class="transaction-list">

@@ -74,6 +74,7 @@ body.withGuestHeader {
     display: flex;
     align-items: center;
     min-width: 120px;
+    gap: 4px;  /*이거만 추가*/
 }
 
 .brandText {
@@ -82,6 +83,11 @@ body.withGuestHeader {
     font-weight: 800;
     letter-spacing: -0.4px;
     line-height: 1;
+}
+
+.logo-header {
+    display: flex;
+    align-items: center;
 }
 
 .menu {
