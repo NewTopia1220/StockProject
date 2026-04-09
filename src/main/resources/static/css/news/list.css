@@ -294,29 +294,40 @@
 .pagination {
     display: flex;
     justify-content: center;
-    gap: 8px;
+    align-items: center;
+    gap: 10px;
     margin-top: 28px;
-    flex-wrap: wrap;
+    margin-bottom: 8px;
 }
 
 .pageBtn {
-    display: inline-block;
-    padding: 8px 14px;
-    border: 1px solid #e5e7eb;
-    border-radius: 10px;
-    font-size: 14px;
-    font-weight: 600;
-    color: #374151;
-    background: #fff;
-    text-decoration: none;
-    transition: 0.2s;
+    min-width: 42px;
+    height: 42px;
+    padding: 0 14px;
+    /*    border: 1px solid #d9dfeb;
+        border-radius: 12px;
+        background: #ffffff; /
+        color: #1d234f;
+        font-size: 14px;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        transition: all 0.2s ease;
+    }
+
+    .pageBtn:hover {
+        /background: #f4f6ff;/
+        color: #d74b5a;
+    }
+
+    .pageBtn.active {
+    /    background: #15164D;
+        border-color: #15164D;*/
+    color: #d74b5a;
 }
-
-.pageBtn:hover { border-color: #0E0F37; color: #0E0F37; }
-.pageBtn.active { background: #0E0F37; color: #fff; border-color: #0E0F37; }
-
 .communitySidebar {
-    position: sticky;
     top: 120px;
     align-self: start;
 }
@@ -458,95 +469,18 @@
 }
 .commentSubmitBtn:hover { background: #1e2060; }
 
-/* ══════════════════════════════════════
-   다크 모드 — 전체 배경 + 모든 요소
-══════════════════════════════════════ */
+.communityMain {
+    grid-template-columns: 260px minmax(0, 1fr);
+}
 
-/* 전체 배경 */
-body.dark                           { background: #0b0d14 !important; color: #f1f5f9; }
-body.dark .pageContainer            { background: transparent; }
-body.dark .communityPage            { background: transparent; }
+.accordionContent{
+    display:block;
+}
 
-/* 히어로 섹션 */
-body.dark .communityHero            { background: #141720; border-color: #1e2235; }
-body.dark .heroText h1              { color: #f1f5f9; }
-body.dark .heroText p               { color: #8892a8; }
-body.dark .communitySearch input    { background: #0b0d14; border-color: #1e2235; color: #f1f5f9; }
-body.dark .communitySearch input::placeholder { color: #4a5568; }
-body.dark .communitySearch button   { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.categoryNav.categoryAccordion{
+    display:block;
+}
 
-/* 사이드바 카드 */
-body.dark .sidebarCard              { background: #141720; border-color: #1e2235; }
-body.dark .sidebarHeader h3        { color: #f1f5f9; }
-body.dark .sidebarHeader p         { color: #8892a8; }
-body.dark .accordionItem            { background: #141720; border-color: #1e2235; }
-body.dark .accordionButton          { background: #141720; color: #f1f5f9; }
-body.dark .accordionArrow           { color: #8892a8; }
-body.dark .navItem                  { color: #94a3b8; }
-body.dark .navItem:hover            { background: #1a1e2e; border-color: #2a3050; }
-body.dark .navItem.active           { background: linear-gradient(135deg, #4f46e5, #6366f1); color: #fff; }
-
-/* AI 분석 패널 */
-body.dark .aiGuideBox               { background: #0b0d14; border-color: #1e2235; }
-body.dark .aiGuideTitle             { color: #64748b; }
-body.dark .aiGuideList li           { color: #94a3b8; }
-body.dark .aiCircleLabel strong     { color: #f1f5f9; }
-body.dark .aiCircleLabel span       { color: #64748b; }
-body.dark .circleBg                 { stroke: #1e2235; }
-
-/* 뉴스 카드 */
-body.dark .newsItem                 { background: #141720; border-color: #1e2235; }
-body.dark .newsItem:hover           { border-color: #6366f1; box-shadow: 0 6px 24px rgba(99,102,241,0.15); }
-body.dark .newsTitle a              { color: #e2e8f0; }
-body.dark .newsTitle a:hover        { color: #a5b4fc; }
-body.dark .newsSummary              { color: #8892a8; }
-body.dark .newsMetrics              { background: #0b0d14; }
-body.dark .metricBar                { background: #1e2235; }
-body.dark .metricVal                { color: #e2e8f0; }
-body.dark .metricLabel              { color: #64748b; }
-body.dark .metricType               { background: rgba(99,102,241,0.15); color: #a5b4fc; }
-body.dark .newsDate                 { color: #4a5568; }
-body.dark .companyTag               { background: rgba(99,102,241,0.15); color: #a5b4fc; }
-body.dark .sent-positive            { background: rgba(16,185,129,0.15); color: #34d399; }
-body.dark .sent-negative            { background: rgba(239,68,68,0.15); color: #f87171; }
-body.dark .sent-neutral             { background: #1e2235; color: #94a3b8; }
-
-/* 액션 행 */
-body.dark .newsActionRow            { border-color: #1e2235; }
-body.dark .newsOrigLink             { color: #a5b4fc; border-color: #1e2235; }
-body.dark .newsOrigLink:hover       { background: #6366f1; color: #fff; border-color: #6366f1; }
-body.dark .likeBtn                  { background: #0b0d14; border-color: #1e2235; color: #e2e8f0; }
-body.dark .likeBtn:hover            { border-color: #ef4444; color: #f87171; }
-body.dark .likeBtn.liked            { background: rgba(239,68,68,0.1); border-color: #ef4444; color: #f87171; }
-body.dark .commentToggleBtn         { background: #0b0d14; border-color: #1e2235; color: #e2e8f0; }
-body.dark .commentToggleBtn:hover   { border-color: #6366f1; color: #a5b4fc; }
-
-/* 댓글 영역 */
-body.dark .commentSection           { background: #0b0d14; border-color: #1e2235; }
-body.dark .commentItem              { background: #141720; border-color: #1e2235; }
-body.dark .commentUser              { color: #a5b4fc; }
-body.dark .commentContent           { color: #cbd5e1; }
-body.dark .commentDate              { color: #4a5568; }
-body.dark .commentInput             { background: #141720; border-color: #1e2235; color: #f1f5f9; }
-body.dark .commentInput:focus       { border-color: #6366f1; }
-body.dark .commentSubmitBtn         { background: #4f46e5; }
-body.dark .commentSubmitBtn:hover   { background: #6366f1; }
-body.dark .noComment                { color: #4a5568; }
-
-/* 다크모드 버튼 */
-body.dark .darkModeBtn              { background: #141720; border-color: #1e2235; color: #f1f5f9; }
-
-/* 페이지버튼 */
-body.dark .pageBtn                  { background: #141720; border-color: #1e2235; color: #94a3b8; }
-body.dark .pageBtn:hover            { border-color: #6366f1; color: #a5b4fc; }
-body.dark .pageBtn.active           { background: #4f46e5; border-color: #4f46e5; color: #fff; }
-
-/* 빈 상태 */
-body.dark .emptyMainCard            { background: #141720; border-color: #1e2235; color: #94a3b8; }
-body.dark .emptyMainCard h3         { color: #e2e8f0; }
-
-/* 오른쪽 사이드 패널 */
-body.dark .sideCard                 { background: #141720; border-color: #1e2235; }
-body.dark .sideCardHeader h4        { color: #f1f5f9; }
-body.dark .sideRankList li          { color: #94a3b8; border-color: #1e2235; }
-body.dark .sideRankList a           { color: #a5b4fc; }
+.sidebarHeader h3{
+    margin:22px;
+}

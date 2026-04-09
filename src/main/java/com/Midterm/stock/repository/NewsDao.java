@@ -418,14 +418,30 @@ public class NewsDao {
     /** sector = 섹터 필터("IT/플랫폼"), keyword = 제목 키워드, tableAlias 미사용 */
     private String buildWhere(String sector, String keyword, String alias) {
         List<String> conditions = new ArrayList<>();
-        if (sector  != null && !sector.trim().isEmpty())  conditions.add("category LIKE ?");
-        if (keyword != null && !keyword.trim().isEmpty()) conditions.add("title LIKE ?");
-        return conditions.isEmpty() ? "" : "WHERE " + String.join(" AND ", conditions);
+
+        // 1. 섹터 조건 (괄호 추출 로직 적용)
+        if (sector != null && !sector.trim().isEmpty()) {
+            // category 전체에서 찾는게 아니라 추출된 sector_name과 정확히 일치하는지 확인
+            conditions.add("(CASE WHEN INSTR(category,'(')>0 " +
+                    "THEN TRIM(SUBSTR(category, INSTR(category,'(')+1, INSTR(category,')')-INSTR(category,'(')-1)) " +
+                    "ELSE TRIM(category) END) = ?");
+        }
+
+        // 2. 키워드 조건
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            conditions.add("title LIKE ?");
+        }
+
+        return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
     }
 
     private int setWhereParams(PreparedStatement ps, int idx, String sector, String keyword) throws SQLException {
-        if (sector  != null && !sector.trim().isEmpty())  ps.setString(idx++, "%(" + sector + ")%");
-        if (keyword != null && !keyword.trim().isEmpty()) ps.setString(idx++, "%" + keyword + "%");
+        if (sector != null && !sector.trim().isEmpty()) {
+            ps.setString(idx++, sector); // LIKE가 아니면 %를 붙이지 않습니다.
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            ps.setString(idx++, "%" + keyword + "%");
+        }
         return idx;
     }
 

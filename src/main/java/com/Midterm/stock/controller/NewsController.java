@@ -37,6 +37,21 @@ public class NewsController {
         int totalCount         = newsDao.getNewsCount(sector, keyword);
         int totalPages         = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
 
+        // --- 여기부터 출력 코드 추가 ---
+        System.out.println("=========================================");
+        System.out.println("[DEBUG] 가져온 뉴스 개수: " + (newsList != null ? newsList.size() : 0));
+
+        if (newsList != null && !newsList.isEmpty()) {
+            for (NewsDto dto : newsList) {
+                // DTO의 getPubDate() 메서드를 통해 날짜만 출력
+                System.out.println("기사 날짜: " + dto.getPubDate() + " | 제목: " + dto.getTitle());
+            }
+        } else {
+            System.out.println("[경고] 검색된 뉴스 데이터가 없습니다.");
+        }
+        System.out.println("=========================================");
+        // --- 여기까지 ---
+
         LinkedHashMap<String, List<String>> sectorMap = newsDao.getSidebarSectorMap();
 
         // 사이드바 AI 분석 (현재 필터 기준)
