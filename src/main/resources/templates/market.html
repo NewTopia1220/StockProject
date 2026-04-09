@@ -5,7 +5,8 @@
     <title>Stoxle - 종목 순위</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/market.css}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js"></script>
 </head>
 <body class="withMainHeader">
 
@@ -113,7 +114,7 @@
                     </div>
 
                     <div class="panelChartArea">
-                        <canvas id="panelChart"></canvas>
+                        <div id="panelChart" style="width:100%;height:100%;"></div>
                     </div>
 
                     <a id="panelDetailLink" href="#" class="panelDetailLink">

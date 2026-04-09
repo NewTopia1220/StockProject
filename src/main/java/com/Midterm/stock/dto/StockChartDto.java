@@ -10,12 +10,21 @@ import java.util.List;
 @Data
 public class StockChartDto {
 
-    /** X축 레이블 목록 (날짜 또는 시각) ex) ["2026-04-01", "2026-04-02", ...] */
+    /** X축 레이블 목록 (날짜: YYYYMMDD, 시각: HH:mm) */
     private List<String> labels;
 
-    /** Y축 종가/가격 목록 ex) ["75200", "76400", ...] */
+    /** 시가 (Open) */
+    private List<String> openPrices;
+
+    /** 고가 (High) */
+    private List<String> highPrices;
+
+    /** 저가 (Low) */
+    private List<String> lowPrices;
+
+    /** 종가/현재가 (Close) */
     private List<String> closePrices;
 
-    /** 거래량 목록 (추후 거래량 차트 활용 가능) */
+    /** 거래량 (Volume) */
     private List<String> volumes;
 }

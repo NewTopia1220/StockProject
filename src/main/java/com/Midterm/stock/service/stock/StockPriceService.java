@@ -66,9 +66,10 @@ public class StockPriceService {
             dto.setHighPrice(o.get("stck_hgpr").asText());
             dto.setLowPrice(o.get("stck_lwpr").asText());
             dto.setVolume(o.get("acml_vol").asText());
-            dto.setChangeRate(o.get("prdy_ctrt").asText());
+            dto.setChangeRate(o.path("prdy_ctrt").asText("0"));
             String vrssSign = o.path("prdy_vrss_sign").asText("3");
             String vrss     = o.path("prdy_vrss").asText("0");
+            if (vrss.isBlank()) vrss = "0";
             boolean negative = vrssSign.equals("4") || vrssSign.equals("5");
             dto.setPriceChange(negative ? "-" + vrss : vrss);
         } catch (Exception e) {
@@ -339,40 +340,57 @@ public class StockPriceService {
 
     // ── 차트 파싱 헬퍼 ───────────────────────────────────────
 
-    /** 일별/지수 차트 파싱 (최신→과거 순서를 과거→최신으로 reverse) */
+    /** 일별/지수 차트 파싱 (OHLCV, 최신→과거를 과거→최신으로 reverse) */
     private StockChartDto parseChartFromArray(JsonNode array, String dateField, String priceField, String volField) {
         List<String> labels = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
+        List<String> opens  = new ArrayList<>();
+        List<String> highs  = new ArrayList<>();
+        List<String> lows   = new ArrayList<>();
+        List<String> closes = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
         for (JsonNode item : array) {
             labels.add(item.get(dateField).asText());
-            prices.add(item.get(priceField).asText());
+            closes.add(item.get(priceField).asText());
             volumes.add(item.get(volField).asText());
+            // OHLCV (일별 주가 API에만 존재, 지수 등은 "0" 처리)
+            opens.add(item.path("stck_oprc").asText("0"));
+            highs.add(item.path("stck_hgpr").asText("0"));
+            lows.add(item.path("stck_lwpr").asText("0"));
         }
         Collections.reverse(labels);
-        Collections.reverse(prices);
+        Collections.reverse(opens);
+        Collections.reverse(highs);
+        Collections.reverse(lows);
+        Collections.reverse(closes);
         Collections.reverse(volumes);
         StockChartDto dto = new StockChartDto();
-        dto.setLabels(labels); dto.setClosePrices(prices); dto.setVolumes(volumes);
+        dto.setLabels(labels);
+        dto.setOpenPrices(opens);
+        dto.setHighPrices(highs);
+        dto.setLowPrices(lows);
+        dto.setClosePrices(closes);
+        dto.setVolumes(volumes);
         return dto;
     }
 
     /** 시간별/분별 차트 파싱 (HHmmss → HH:mm 변환) */
     private StockChartDto parseTimeChart(JsonNode array) {
         List<String> labels = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
+        List<String> closes = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
         for (JsonNode item : array) {
             String raw = item.get("stck_cntg_hour").asText();
             labels.add(raw.substring(0, 2) + ":" + raw.substring(2, 4));
-            prices.add(item.get("stck_prpr").asText());
+            closes.add(item.get("stck_prpr").asText());
             volumes.add(item.get("cntg_vol").asText());
         }
         Collections.reverse(labels);
-        Collections.reverse(prices);
+        Collections.reverse(closes);
         Collections.reverse(volumes);
         StockChartDto dto = new StockChartDto();
-        dto.setLabels(labels); dto.setClosePrices(prices); dto.setVolumes(volumes);
+        dto.setLabels(labels);
+        dto.setClosePrices(closes);
+        dto.setVolumes(volumes);
         return dto;
     }
 
@@ -380,6 +398,9 @@ public class StockPriceService {
     private StockChartDto emptyChart() {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(new ArrayList<>());
+        dto.setOpenPrices(new ArrayList<>());
+        dto.setHighPrices(new ArrayList<>());
+        dto.setLowPrices(new ArrayList<>());
         dto.setClosePrices(new ArrayList<>());
         dto.setVolumes(new ArrayList<>());
         return dto;

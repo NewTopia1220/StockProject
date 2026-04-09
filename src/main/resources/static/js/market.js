@@ -312,17 +312,18 @@ async function updatePanelPrice() {
         const data = await res.json();
 
         const price  = Number(data.currentPrice || 0);
-        // 전일 대비 등락률/변동금액을 API에서 직접 사용 (시가 대비 계산 X)
-        const change = Number(data.priceChange || 0);
-        const rate   = parseFloat(data.changeRate || '0').toFixed(2);
-        const sign   = change >= 0 ? '+' : '';
-        const arrow  = change >= 0 ? '▲' : '▼';
-        const cls    = change >= 0 ? 'up' : 'down';
+        const change = parseFloat(data.priceChange) || 0;
+        const rate   = parseFloat(data.changeRate)  || 0;
+        // rate 기준으로 방향 결정 (priceChange가 0으로 오는 경우 대비)
+        const dir    = rate !== 0 ? rate : change;
+        const sign   = dir >= 0 ? '+' : '';
+        const arrow  = dir >= 0 ? '▲' : '▼';
+        const cls    = dir >= 0 ? 'up' : 'down';
 
         setEl('panelCurrentPrice', `${price.toLocaleString()}원`);
         const rateEl = document.getElementById('panelChangeRate');
         if (rateEl) {
-            rateEl.textContent = `${sign}${change.toLocaleString()} (${sign}${rate}%) ${arrow}`;
+            rateEl.textContent = `${sign}${change.toLocaleString()} (${sign}${rate.toFixed(2)}%) ${arrow}`;
             rateEl.className   = `panelChangeRate ${cls}`;
         }
         setEl('panelOpen', Number(data.openPrice  || 0).toLocaleString());
@@ -332,52 +333,142 @@ async function updatePanelPrice() {
     } catch (e) {}
 }
 
-// ── 패널 차트 ────────────────────────────────────────────
+// ── Highcharts 공통 유틸 ────────────────────────────────
+
+/** "YYYYMMDD" → UTC timestamp */
+function dateStrToTs(s) {
+    if (!s) return 0;
+    if (s.includes(':')) {
+        // "HH:mm" → 오늘 날짜 + 시간 (KST → UTC)
+        const [h, m] = s.split(':').map(Number);
+        const d = new Date();
+        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), h, m) - 9 * 3600000;
+    }
+    return Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8));
+}
+
+/** OHLCV 배열 빌드 */
+function buildOhlcv(data) {
+    const ohlc = [], vol = [];
+    const labels = data.labels || [];
+    const hasOhlc = data.openPrices && data.openPrices.length > 0 && data.openPrices[0] !== '0';
+    for (let i = 0; i < labels.length; i++) {
+        const ts = dateStrToTs(labels[i]);
+        if (hasOhlc) {
+            ohlc.push([ts, +data.openPrices[i], +data.highPrices[i], +data.lowPrices[i], +data.closePrices[i]]);
+        } else {
+            ohlc.push([ts, +data.closePrices[i]]);
+        }
+        vol.push([ts, +(data.volumes || [])[i] || 0]);
+    }
+    return { ohlc, vol, hasOhlc };
+}
+
+/** Highcharts 공통 옵션 */
+function hcBaseOptions(name, ohlc, vol, hasOhlc, compact) {
+    return {
+        chart: {
+            backgroundColor: '#fff',
+            style: { fontFamily: 'inherit' },
+            animation: false,
+            height: compact ? 220 : 340   // 명시적 높이 필수
+        },
+        credits: { enabled: false },
+        rangeSelector: compact ? { enabled: false } : {
+            selected: 1,
+            inputEnabled: false,
+            buttons: [
+                { type: 'month', count: 1, text: '1개월' },
+                { type: 'month', count: 3, text: '3개월' },
+                { type: 'all',              text: '전체'   }
+            ],
+            buttonTheme: {
+                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
+                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
+                states: { select: { fill: '#0E0F37', style: { color: '#fff' } } }
+            }
+        },
+        navigator: { enabled: !compact },
+        scrollbar: { enabled: false },
+        tooltip: {
+            split: false,
+            shared: true,
+            valueDecimals: 0,
+            formatter: function () {
+                const pts = this.points || [];
+                let s = `<b>${Highcharts.dateFormat('%Y-%m-%d', this.x)}</b><br/>`;
+                pts.forEach(p => {
+                    if (p.series.type === 'candlestick') {
+                        s += `시가 ${p.point.open?.toLocaleString()} · 고가 ${p.point.high?.toLocaleString()} · 저가 ${p.point.low?.toLocaleString()} · 종가 <b>${p.point.close?.toLocaleString()}</b>원<br/>`;
+                    } else if (p.series.type === 'column') {
+                        s += `거래량 ${p.y?.toLocaleString()}<br/>`;
+                    } else {
+                        s += `${p.y?.toLocaleString()}원<br/>`;
+                    }
+                });
+                return s;
+            }
+        },
+        xAxis: { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' },
+        yAxis: [{
+            labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
+                      formatter: function() { return this.value.toLocaleString(); } },
+            height: '72%',
+            gridLineColor: '#f3f4f6',
+            resize: { enabled: !compact }
+        }, {
+            labels: { align: 'left', style: { color: '#9ca3af', fontSize: '10px' } },
+            top: '72%', height: '28%', offset: 0,
+            gridLineColor: '#f9fafb'
+        }],
+        series: [
+            hasOhlc ? {
+                type: 'candlestick', name,
+                data: ohlc,
+                color: '#3b82f6',    upColor: '#ef4444',
+                lineColor: '#3b82f6', upLineColor: '#ef4444',
+                dataGrouping: { enabled: false }
+            } : {
+                type: 'line', name,
+                data: ohlc,
+                color: '#0E0F37', lineWidth: 2,
+                marker: { enabled: false },
+                dataGrouping: { enabled: false }
+            },
+            {
+                type: 'column', name: '거래량',
+                data: vol, yAxis: 1,
+                color: '#e5e7eb',
+                dataGrouping: { enabled: false }
+            }
+        ],
+        responsive: {
+            rules: [{ condition: { maxWidth: 500 },
+                chartOptions: { rangeSelector: { inputEnabled: false } } }]
+        }
+    };
+}
+
+// ── 패널 차트 (market 페이지 오른쪽 패널) ────────────────
 
 async function initPanelChart() {
     const data = await fetchPanelChartData();
     if (panelChart) { panelChart.destroy(); panelChart = null; }
-
-    const canvas = document.getElementById('panelChart');
-    if (!canvas) return;
-
-    panelChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                data: (data.closePrices || []).map(Number),
-                borderColor: '#0E0F37',
-                backgroundColor: 'rgba(14,15,55,0.07)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false }, ticks: { font: { size: 10 } } },
-                y: {
-                    grid: { color: '#f3f4f6' },
-                    ticks: { callback: v => Number(v).toLocaleString(), font: { size: 10 } }
-                }
-            }
-        }
-    });
+    const el = document.getElementById('panelChart');
+    if (!el) return;
+    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
+    panelChart = Highcharts.stockChart('panelChart',
+        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true));
 }
 
 async function updatePanelChart() {
     const data = await fetchPanelChartData();
-    if (!panelChart) return;
-    panelChart.data.labels = data.labels;
-    panelChart.data.datasets[0].data = (data.closePrices || []).map(Number);
-    panelChart.update();
+    if (panelChart) { panelChart.destroy(); panelChart = null; }
+    const el = document.getElementById('panelChart');
+    if (!el) return;
+    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
+    panelChart = Highcharts.stockChart('panelChart',
+        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true));
 }
 
 async function fetchPanelChartData() {
@@ -498,45 +589,23 @@ function initDetailPage(code) {
 async function initDetailChart(code) {
     const data = await fetchDetailChartData(code);
     if (detailChart) { detailChart.destroy(); detailChart = null; }
-    const canvas = document.getElementById('detailChart');
-    if (!canvas) return;
-    detailChart = new Chart(canvas.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                data: (data.closePrices || []).map(Number),
-                borderColor: '#0E0F37',
-                backgroundColor: 'rgba(14,15,55,0.07)',
-                borderWidth: 2,
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 5
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { display: false } },
-                y: {
-                    grid: { color: '#f3f4f6' },
-                    ticks: { callback: v => Number(v).toLocaleString() }
-                }
-            }
-        }
-    });
+    const el = document.getElementById('detailChart');
+    if (!el) return;
+    const name = el.dataset.name || code;
+    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
+    detailChart = Highcharts.stockChart('detailChart',
+        hcBaseOptions(name, ohlc, vol, hasOhlc, false));
 }
 
 async function updateDetailChart(code) {
     const data = await fetchDetailChartData(code);
-    if (!detailChart) return;
-    detailChart.data.labels = data.labels;
-    detailChart.data.datasets[0].data = (data.closePrices || []).map(Number);
-    detailChart.update();
+    if (detailChart) { detailChart.destroy(); detailChart = null; }
+    const el = document.getElementById('detailChart');
+    if (!el) return;
+    const name = el.dataset.name || code;
+    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
+    detailChart = Highcharts.stockChart('detailChart',
+        hcBaseOptions(name, ohlc, vol, hasOhlc, false));
 }
 
 async function fetchDetailChartData(code) {
@@ -566,14 +635,15 @@ async function updateDetailPrice(code) {
         const data = await res.json();
         const price  = Number(data.currentPrice || 0);
         const change = Number(data.priceChange  || 0);
-        const rate   = parseFloat(data.changeRate || '0').toFixed(2);
-        const sign   = change >= 0 ? '+' : '';
-        const arrow  = change >= 0 ? '▲' : '▼';
+        const rate   = parseFloat(data.changeRate || '0');
+        const dir    = rate !== 0 ? rate : change;
+        const sign   = dir >= 0 ? '+' : '';
+        const arrow  = dir >= 0 ? '▲' : '▼';
         setEl('detailCurrentPrice', `${price.toLocaleString()} KRW`);
         const cel = document.getElementById('detailPriceChange');
         if (cel) {
-            cel.textContent = `${sign}${change.toLocaleString()} (${sign}${rate}%) ${arrow}`;
-            cel.className   = 'detailPriceChange ' + (change >= 0 ? 'up' : 'down');
+            cel.textContent = `${sign}${change.toLocaleString()} (${sign}${rate.toFixed(2)}%) ${arrow}`;
+            cel.className   = 'detailPriceChange ' + (dir >= 0 ? 'up' : 'down');
         }
         setEl('detailOpenPrice', Number(data.openPrice || 0).toLocaleString());
         setEl('detailHighPrice', Number(data.highPrice || 0).toLocaleString());

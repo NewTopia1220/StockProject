@@ -49,8 +49,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
             await updateMainChart();
         });
-
-        startPolling();
     });
 
     // 종목 검색 입력 이벤트 (300ms 디바운싱)
@@ -181,51 +179,118 @@ async function fetchMainChartData() {
 }
 
 /**
- * 차트 초기화 (첫 로드 또는 종목 변경 시)
- * - 기존 Chart 인스턴스가 있으면 destroy 후 재생성
+ * 차트 초기화 (첫 로드 또는 종목 변경 시) - Highcharts Stock
  */
 async function initMainChart() {
     const data = await fetchMainChartData();
+    if (mainChart) { mainChart.destroy(); mainChart = null; }
 
-    if (mainChart) {
-        mainChart.destroy();
+    const labels = data.labels || [];
+    const hasOhlc = data.openPrices && data.openPrices.length > 0 && data.openPrices[0] !== '0';
+    const ohlc = [], vol = [];
+
+    for (let i = 0; i < labels.length; i++) {
+        const ts = stockDateToTs(labels[i]);
+        if (hasOhlc) {
+            ohlc.push([ts, +data.openPrices[i], +data.highPrices[i], +data.lowPrices[i], +data.closePrices[i]]);
+        } else {
+            ohlc.push([ts, +(data.closePrices || [])[i] || 0]);
+        }
+        vol.push([ts, +(data.volumes || [])[i] || 0]);
     }
 
-    mainChart = new Chart(document.getElementById('mainChart'), {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: currentTab === 'daily' ? '종가' : '가격',
-                data: data.closePrices,
-                borderColor: '#0E0F37',
-                backgroundColor: 'rgba(14, 15, 55, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 5
-            }]
+    try {
+    mainChart = Highcharts.stockChart('mainChart', {
+        chart: {
+            backgroundColor: '#fff',
+            style: { fontFamily: 'inherit' },
+            animation: false,
+            height: 340   // 명시적 높이 필수
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {mode: 'index', intersect: false},
-            plugins: {
-                legend: {display: false},
-                title: {
-                    display: true,
-                    text: getChartTitle()
-                }
-            },
-            scales: {
-                x: {grid: {display: false}},
-                y: {
-                    grid: {color: '#f3f4f6'},
-                    ticks: {callback: v => Number(v).toLocaleString()}
-                }
+        credits: { enabled: false },
+        rangeSelector: {
+            selected: 1,
+            inputEnabled: false,
+            buttons: [
+                { type: 'month', count: 1, text: '1개월' },
+                { type: 'month', count: 3, text: '3개월' },
+                { type: 'all',              text: '전체'   }
+            ],
+            buttonTheme: {
+                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
+                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
+                states: { select: { fill: '#0E0F37', style: { color: '#fff' } } }
             }
-        }
+        },
+        navigator: { enabled: true },
+        scrollbar: { enabled: false },
+        title: { text: '' },
+        tooltip: {
+            split: false, shared: true,
+            formatter: function () {
+                const pts = this.points || [];
+                let s = `<b>${Highcharts.dateFormat('%Y-%m-%d', this.x)}</b><br/>`;
+                pts.forEach(p => {
+                    if (p.series.type === 'candlestick') {
+                        s += `시가 ${p.point.open?.toLocaleString()} · 고가 ${p.point.high?.toLocaleString()} · 저가 ${p.point.low?.toLocaleString()} · 종가 <b>${p.point.close?.toLocaleString()}</b>원<br/>`;
+                    } else if (p.series.type === 'column') {
+                        s += `거래량 ${p.y?.toLocaleString()}<br/>`;
+                    } else {
+                        s += `${p.y?.toLocaleString()}원<br/>`;
+                    }
+                });
+                return s;
+            }
+        },
+        xAxis: { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' },
+        yAxis: [{
+            labels: {
+                align: 'left',
+                style: { color: '#374151', fontSize: '11px' },
+                formatter: function() { return this.value.toLocaleString(); }
+            },
+            height: '72%',
+            gridLineColor: '#f3f4f6',
+            resize: { enabled: true }
+        }, {
+            labels: { align: 'left', style: { color: '#9ca3af', fontSize: '11px' } },
+            top: '72%', height: '28%', offset: 0,
+            gridLineColor: '#f9fafb'
+        }],
+        series: [
+            hasOhlc ? {
+                type: 'candlestick', name: currentCode,
+                data: ohlc,
+                color: '#3b82f6', upColor: '#ef4444',
+                lineColor: '#3b82f6', upLineColor: '#ef4444',
+                dataGrouping: { enabled: false }
+            } : {
+                type: 'line', name: currentCode,
+                data: ohlc, color: '#0E0F37', lineWidth: 2,
+                marker: { enabled: false },
+                dataGrouping: { enabled: false }
+            },
+            {
+                type: 'column', name: '거래량',
+                data: vol, yAxis: 1,
+                color: '#e5e7eb',
+                dataGrouping: { enabled: false }
+            }
+        ]
     });
+    } catch (err) {
+        console.error('Highcharts 차트 생성 실패:', err);
+    }
+}
+
+function stockDateToTs(s) {
+    if (!s) return 0;
+    if (s.includes(':')) {
+        const [h, m] = s.split(':').map(Number);
+        const d = new Date();
+        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), h, m) - 9 * 3600000;
+    }
+    return Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8));
 }
 
 /* ── 게이지 애니메이션 ── */
@@ -264,16 +329,10 @@ function animateGauges() {
 
 
 /**
- * 차트 데이터 업데이트 (폴링 or 탭/종목 변경 시)
+ * 차트 데이터 업데이트 - 재초기화 방식 (Highcharts)
  */
 async function updateMainChart() {
-    const data = await fetchMainChartData();
-    if (!mainChart) return;
-
-    mainChart.data.labels = data.labels;
-    mainChart.data.datasets[0].data = data.closePrices;
-    mainChart.options.plugins.title.text = getChartTitle();
-    mainChart.update();
+    await initMainChart();
 }
 
 /**
@@ -312,14 +371,15 @@ async function updateStockInfo(stockName = '') {
 
         document.getElementById('chartCurrentPrice').textContent = `${price.toLocaleString()} KRW`;
 
-        // 등락 = 현재가 - 시가 기준
-        const change = price - open;
-        const changeRate = open !== 0 ? ((change / open) * 100).toFixed(2) : '0.00';
-        const sign = change >= 0 ? '+' : '';
-        const arrow = change >= 0 ? '▲' : '▼';
-        const changeEl = document.getElementById('chartPriceChange');
-        changeEl.textContent = `${sign}${change.toLocaleString()} (${sign}${changeRate}%) ${arrow} 오늘`;
-        changeEl.className = change >= 0 ? 'up' : 'down';
+        // 등락 = API priceChange / changeRate 기준 (전일 대비)
+        const change     = parseFloat(data.priceChange) || 0;
+        const changeRate = parseFloat(data.changeRate)  || 0;
+        const dir        = changeRate !== 0 ? changeRate : change;
+        const sign       = dir >= 0 ? '+' : '';
+        const arrow      = dir >= 0 ? '▲' : '▼';
+        const changeEl   = document.getElementById('chartPriceChange');
+        changeEl.textContent = `${sign}${change.toLocaleString()} (${sign}${changeRate.toFixed(2)}%) ${arrow} 전일대비`;
+        changeEl.className   = dir >= 0 ? 'up' : 'down';
 
         document.getElementById('chartOpenPrice').textContent = open.toLocaleString();
         document.getElementById('chartHighPrice').textContent = high.toLocaleString();
