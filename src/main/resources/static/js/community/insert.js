@@ -16,9 +16,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     function renderEmptyMessage(message) {
-        if (!newsSearchResult) {
-            return;
-        }
+        if (!newsSearchResult) return;
         newsSearchResult.innerHTML = '<div class="newsEmptyMessage">' + escapeHtml(message) + "</div>";
     }
 
@@ -90,10 +88,12 @@ document.addEventListener("DOMContentLoaded", function () {
                 button.className = "newsSearchItem";
                 button.innerHTML =
                     "<strong>" + escapeHtml(item.title || "제목 없음") + "</strong>" +
-                    "<span>" + escapeHtml(item.summary || "요약 없음") + "</span>";
+                    "<span>" + escapeHtml(item.summary || "요약 없음").slice(0, 90) + "...</span>";
 
                 button.addEventListener("click", function () {
                     renderSelectedNews(item);
+                    newsSearchResult.innerHTML = "";
+                    newsKeywordInput.value = "";
                 });
 
                 newsSearchResult.appendChild(button);

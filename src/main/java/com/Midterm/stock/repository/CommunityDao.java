@@ -74,6 +74,7 @@ public class CommunityDao {
                 dto.setUserName(rs.getString("user_name"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
                 dto.setContent(rs.getString("content"));
                 dto.setView_count(rs.getInt("view_count"));
                 dto.setLike_count(rs.getInt("like_count"));
@@ -97,7 +98,7 @@ public class CommunityDao {
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
                 + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
                 + " where c.category = ? "
@@ -118,6 +119,7 @@ public class CommunityDao {
                 dto.setUserName(rs.getString("user_name"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
                 dto.setContent(rs.getString("content"));
                 dto.setView_count(rs.getInt("view_count"));
                 dto.setLike_count(rs.getInt("like_count"));
@@ -141,7 +143,7 @@ public class CommunityDao {
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
                 + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
                 + " where c.title like ? or c.content like ? "
@@ -164,6 +166,7 @@ public class CommunityDao {
                 dto.setUserName(rs.getString("user_name"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
                 dto.setContent(rs.getString("content"));
                 dto.setView_count(rs.getInt("view_count"));
                 dto.setLike_count(rs.getInt("like_count"));
@@ -187,7 +190,7 @@ public class CommunityDao {
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
                 + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
                 + " where c.category = ? and (c.title like ? or c.content like ?) "
@@ -209,6 +212,7 @@ public class CommunityDao {
                 dto.setUserName(rs.getString("user_name"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
                 dto.setContent(rs.getString("content"));
                 dto.setView_count(rs.getInt("view_count"));
                 dto.setLike_count(rs.getInt("like_count"));
@@ -245,6 +249,181 @@ public class CommunityDao {
         }
 
         return count;
+    }
+
+    public ArrayList<CommunityDto> getPopularArticles(int start, int end) {
+        connect();
+
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+        String sql = "select * from ( "
+                + " select row_number() over(order by c.like_count desc, c.created_at desc, c.board_id desc) as rnum, "
+                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " from community_board c "
+                + " join users u on c.user_num = u.num "
+                + ") where rnum between ? and ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, start);
+            pstmt.setInt(2, end);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setContent(rs.getString("content"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return lists;
+    }
+
+    public ArrayList<CommunityDto> searchPopularArticles(String keyword, int start, int end) {
+        connect();
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+
+        String sql = "select * from ( "
+                + " select row_number() over(order by c.like_count desc, c.created_at desc, c.board_id desc) as rnum, "
+                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " from community_board c "
+                + " join users u on c.user_num = u.num "
+                + " where c.title like ? or c.content like ? "
+                + ") where rnum between ? and ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "%" + keyword + "%");
+            pstmt.setString(2, "%" + keyword + "%");
+            pstmt.setInt(3, start);
+            pstmt.setInt(4, end);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setContent(rs.getString("content"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return lists;
+    }
+
+    public int getPopularArticleCount() {
+        connect();
+        int count = 0;
+        String sql = "select count(*) from community_board";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
+    public int getPopularArticleCountByKeyword(String keyword) {
+        connect();
+        int count = 0;
+        String sql = "select count(*) "
+                + "from community_board "
+                + "where title like ? or content like ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, "%" + keyword + "%");
+            pstmt.setString(2, "%" + keyword + "%");
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
+    public ArrayList<CommunityDto> getFeaturedArticles(int limit) {
+        connect();
+
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+        String sql = "select * from ( "
+                + " select c.board_id, c.user_num, u.name as user_name, "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " from community_board c "
+                + " join users u on c.user_num = u.num "
+                + " where c.like_count > 0 "
+                + " order by c.like_count desc, c.created_at desc, c.board_id desc "
+                + " ) where rownum <= ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, limit);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setContent(rs.getString("content"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return lists;
     }
 
     // 카테고리병 게시글 수
@@ -371,6 +550,7 @@ public class CommunityDao {
                 dto.setUserName(rs.getString("user_name"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
                 dto.setContent(rs.getString("content"));
                 dto.setView_count(rs.getInt("view_count"));
                 dto.setLike_count(rs.getInt("like_count"));
@@ -731,6 +911,46 @@ public class CommunityDao {
         }
 
         return newsList;
+    }
+
+    public ArrayList<Map<String, Object>> getPopularThemeCategories() {
+        connect();
+        ArrayList<Map<String, Object>> popularCategories = new ArrayList<>();
+
+        String sql = "select * from ( "
+                + " select category, count(*) as post_count "
+                + " from community_board "
+                + " where category in ("
+                + " '반도체·AI', "
+                + " '2차전지', "
+                + " '제약·바이오', "
+                + " '금융·밸류업', "
+                + " '방산·우주항공', "
+                + " 'IT·플랫폼', "
+                + " '엔터·미디어', "
+                + " '자동차·모빌리티' "
+                + " ) "
+                + " group by category "
+                + " order by count(*) desc, category asc "
+                + ") where rownum <= 3";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Map<String, Object> item = new HashMap<>();
+                item.put("category", rs.getString("category"));
+                item.put("postCount", rs.getInt("post_count"));
+                popularCategories.add(item);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return popularCategories;
     }
 
     // 자원 해제 공통 메서드 (코드 중복 방지)

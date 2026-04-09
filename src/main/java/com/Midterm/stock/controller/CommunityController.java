@@ -35,29 +35,8 @@ public class CommunityController {
             return "redirect:/login";
         }
 
-        if ("free".equals(category)) {
-            category = "자유게시판";
-        } else if ("topic".equals(category)) {
-            category = "종목토론";
-        } else if ("beginner".equals(category)) {
-            category = "초보질문";
-        } else if ("semiconductor".equals(category)) {
-            category = "반도체·AI";
-        } else if ("battery".equals(category)) {
-            category = "2차전지";
-        } else if ("bio".equals(category)) {
-            category = "제약·바이오";
-        } else if ("finance".equals(category)) {
-            category = "금융·밸류업";
-        } else if ("defense".equals(category)) {
-            category = "방산·우주항공";
-        } else if ("platform".equals(category)) {
-            category = "IT·플랫폼";
-        } else if ("entertainment".equals(category)) {
-            category = "엔터·미디어";
-        } else if ("mobility".equals(category)) {
-            category = "자동차·모빌리티";
-        }
+        boolean isPopularView = "popular".equals(category);
+        category = convertCategoryParamToName(category);
 
         int pageSize = 4;
         int start = (page - 1) * pageSize + 1;
@@ -69,7 +48,13 @@ public class CommunityController {
         boolean hasCategory = category != null && !category.isBlank() && !category.equals("전체");
         boolean hasKeyword = keyword != null && !keyword.isBlank();
 
-        if (hasCategory && hasKeyword) {
+        if (isPopularView && hasKeyword) {
+            lists = communityDao.searchPopularArticles(keyword, start, end);
+            totalCount = communityDao.getPopularArticleCountByKeyword(keyword);
+        } else if (isPopularView) {
+            lists = communityDao.getPopularArticles(start, end);
+            totalCount = communityDao.getPopularArticleCount();
+        } else if (hasCategory && hasKeyword) {
             lists = communityDao.getArticlesByCategoryAndKeyword(category, keyword, start, end);
             totalCount = communityDao.getArticleCountByCategoryAndKeyword(category, keyword);
         } else if (hasCategory) {
@@ -85,6 +70,16 @@ public class CommunityController {
 
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
 
+        // 인기 카테고리(테마) 상위 3개
+        ArrayList<Map<String, Object>> popularCategories = communityDao.getPopularThemeCategories();
+        for (Map<String, Object> item : popularCategories) {
+            String categoryName = (String) item.get("category");
+            item.put("categoryKey", convertCategoryNameToParam(categoryName));
+        }
+        ArrayList<CommunityDto> featuredPosts = (!isPopularView && !hasCategory && !hasKeyword)
+                ? communityDao.getFeaturedArticles(2)
+                : new ArrayList<>();
+
         model.addAttribute("lists", lists);
         model.addAttribute("selectedCategory", category);
         model.addAttribute("currentPage", "community");
@@ -92,6 +87,9 @@ public class CommunityController {
         model.addAttribute("page", page);
         model.addAttribute("currentPageNum", page);
         model.addAttribute("totalPages", totalPages);
+        model.addAttribute("popularCategories", popularCategories);
+        model.addAttribute("featuredPosts", featuredPosts);
+        model.addAttribute("isPopularView", isPopularView);
 
         return "community/list";
     }
@@ -116,6 +114,24 @@ public class CommunityController {
     }
 
     // 글 작성
+    @GetMapping("/news/search")
+    @ResponseBody
+    public ArrayList<Map<String, String>> searchRelatedNews(@RequestParam("keyword") String keyword,
+                                                            HttpSession session){
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null) {
+            return new ArrayList<>();
+        }
+
+        String trimmedKeyword = keyword == null ? "" : keyword.trim();
+        if (trimmedKeyword.length() < 2) {
+            return new ArrayList<>();
+        }
+
+        return communityDao.searchRelatedNews(trimmedKeyword);
+    }
+
     @PostMapping("/insert")
     public String insertProc(CommunityDto dto, HttpSession session){
         Integer loginNum = (Integer) session.getAttribute("loginNum");
@@ -274,4 +290,59 @@ public class CommunityController {
         communityDao.deleteArticle(board_id);
         return "redirect:/community";
     }
+
+    private String convertCategoryParamToName(String category) {
+        if ("free".equals(category)) {
+            return "자유게시판";
+        } else if ("popular".equals(category)) {
+            return "인기글";
+        } else if ("beginner".equals(category)) {
+            return "초보질문";
+        } else if ("semiconductor".equals(category)) {
+            return "반도체·AI";
+        } else if ("battery".equals(category)) {
+            return "2차전지";
+        } else if ("bio".equals(category)) {
+            return "제약·바이오";
+        } else if ("finance".equals(category)) {
+            return "금융·밸류업";
+        } else if ("defense".equals(category)) {
+            return "방산·우주항공";
+        } else if ("platform".equals(category)) {
+            return "IT·플랫폼";
+        } else if ("entertainment".equals(category)) {
+            return "엔터·미디어";
+        } else if ("mobility".equals(category)) {
+            return "자동차·모빌리티";
+        }
+        return category;
+    }
+
+    private String convertCategoryNameToParam(String categoryName) {
+        if ("자유게시판".equals(categoryName)) {
+            return "free";
+        } else if ("인기글".equals(categoryName)) {
+            return "popular";
+        } else if ("초보질문".equals(categoryName)) {
+            return "beginner";
+        } else if ("반도체·AI".equals(categoryName)) {
+            return "semiconductor";
+        } else if ("2차전지".equals(categoryName)) {
+            return "battery";
+        } else if ("제약·바이오".equals(categoryName)) {
+            return "bio";
+        } else if ("금융·밸류업".equals(categoryName)) {
+            return "finance";
+        } else if ("방산·우주항공".equals(categoryName)) {
+            return "defense";
+        } else if ("IT·플랫폼".equals(categoryName)) {
+            return "platform";
+        } else if ("엔터·미디어".equals(categoryName)) {
+            return "entertainment";
+        } else if ("자동차·모빌리티".equals(categoryName)) {
+            return "mobility";
+        }
+        return "";
+    }
+
 }
