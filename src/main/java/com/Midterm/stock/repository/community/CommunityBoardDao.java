@@ -1,17 +1,14 @@
-package com.Midterm.stock.repository;
+package com.Midterm.stock.repository.community;
 
-import com.Midterm.stock.dto.CommunityCommentDto;
 import com.Midterm.stock.dto.CommunityDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
 
 @Repository
-public class CommunityDao {
-    // 1. 오라클 클라우드 접속 정보 (경로는 반드시 슬래시 / 사용)
+public class CommunityBoardDao {
     private String driver = "oracle.jdbc.OracleDriver";
     private String url = "jdbc:oracle:thin:@stoxle_high?TNS_ADMIN=C:/oraclepw";
     private String id = "ADMIN";
@@ -21,23 +18,25 @@ public class CommunityDao {
     private PreparedStatement pstmt = null;
     private ResultSet rs = null;
 
-    // 생성자: 드라이버 로딩 및 지갑 경로 설정
-    public CommunityDao() {
-        System.out.println("CommunityDao 생성자 호출 - 클라우드 설정 시작");
+    @Autowired
+    private CommunityTagDao communityTagDao;
+
+    // 생성자: 드라이버 로딩 및 지갑 설정
+    public CommunityBoardDao() {
+        System.out.println("CommunityBoardDao 생성자 호출 - 클라우드 설정 시작");
         try {
             Class.forName(driver);
-            // ⭐️ 핵심: 자바 시스템에 지갑(Wallet) 위치를 강제로 입력합니다.
-            System.setProperty("oracle.net.wallet_location", "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
+            System.setProperty("oracle.net.wallet_location",
+                    "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
             System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
     }
 
-    // 계정 접속
+    // DB 연결
     public Connection connect() {
         try {
-            // 이제 url, id, pw가 클라우드 정보를 바라봅니다.
             conn = DriverManager.getConnection(url, id, pw);
             System.out.println("오라클 클라우드 DB 접속 성공!");
         } catch (SQLException e) {
@@ -47,7 +46,7 @@ public class CommunityDao {
         return conn;
     }
 
-    // 게시글의 목록 (기존 로직 유지)
+    // 전체 게시글 목록 조회
     public ArrayList<CommunityDto> getArticles(int start, int end) {
         connect();
 
@@ -66,9 +65,8 @@ public class CommunityDao {
             pstmt.setInt(2, end);
             rs = pstmt.executeQuery();
 
-            while (rs.next()){
+            while (rs.next()) {
                 CommunityDto dto = new CommunityDto();
-
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
@@ -80,6 +78,7 @@ public class CommunityDao {
                 dto.setLike_count(rs.getInt("like_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
                 lists.add(dto);
             }
         } catch (SQLException e) {
@@ -90,7 +89,7 @@ public class CommunityDao {
         return lists;
     }
 
-    // 카테고리별
+    // 카테고리별 게시글 목록 조회
     public ArrayList<CommunityDto> getArticlesByCategory(String category, int start, int end) {
         connect();
 
@@ -111,9 +110,8 @@ public class CommunityDao {
             pstmt.setInt(3, end);
             rs = pstmt.executeQuery();
 
-            while (rs.next()){
+            while (rs.next()) {
                 CommunityDto dto = new CommunityDto();
-
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
@@ -125,6 +123,7 @@ public class CommunityDao {
                 dto.setLike_count(rs.getInt("like_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
                 lists.add(dto);
             }
         } catch (SQLException e) {
@@ -135,8 +134,9 @@ public class CommunityDao {
         return lists;
     }
 
-    // 검색용
-    public ArrayList<CommunityDto> searchArticles(String keyword, int start, int end){
+    // 키워드 검색 목록 조회
+    // 제목, 내용, 태그까지 같이 검색
+    public ArrayList<CommunityDto> searchArticles(String keyword, int start, int end) {
         connect();
         ArrayList<CommunityDto> lists = new ArrayList<>();
 
@@ -146,59 +146,20 @@ public class CommunityDao {
                 + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
-                + " where c.title like ? or c.content like ? "
+                + " where c.title like ? "
+                + " or c.content like ? "
+                + " or exists ( "
+                + "     select 1 "
+                + "     from community_board_tag cbt "
+                + "     join community_tag ct on cbt.tag_id = ct.tag_id "
+                + "     where cbt.board_id = c.board_id "
+                + "     and ct.tag_name like ? "
+                + " ) "
                 + ") where rnum between ? and ?";
 
         try {
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            pstmt.setInt(3, start);
-            pstmt.setInt(4, end);
-
-            rs = pstmt.executeQuery();
-
-            while (rs.next()){
-                CommunityDto dto = new CommunityDto();
-
-                dto.setBoard_id(rs.getInt("board_id"));
-                dto.setUser_num(rs.getInt("user_num"));
-                dto.setUserName(rs.getString("user_name"));
-                dto.setCategory(rs.getString("category"));
-                dto.setTitle(rs.getString("title"));
-                dto.setNews_link(rs.getString("news_link"));
-                dto.setContent(rs.getString("content"));
-                dto.setView_count(rs.getInt("view_count"));
-                dto.setLike_count(rs.getInt("like_count"));
-                dto.setCreated_at(rs.getTimestamp("created_at"));
-                dto.setUpdated_at(rs.getTimestamp("updated_at"));
-                lists.add(dto);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-        return lists;
-    }
-
-    // 카테고리 + 검색
-    public ArrayList<CommunityDto> getArticlesByCategoryAndKeyword(String category, String keyword, int start, int end) {
-        connect();
-        ArrayList<CommunityDto> lists = new ArrayList<>();
-
-        String sql = "select * from ( "
-                + " select row_number() over(order by c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
-                + " from community_board c "
-                + " join users u on c.user_num = u.num "
-                + " where c.category = ? and (c.title like ? or c.content like ?) "
-                + ") where rnum between ? and ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, category);
             pstmt.setString(2, "%" + keyword + "%");
             pstmt.setString(3, "%" + keyword + "%");
             pstmt.setInt(4, start);
@@ -218,6 +179,67 @@ public class CommunityDao {
                 dto.setLike_count(rs.getInt("like_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+        return lists;
+    }
+
+    // 카테고리 + 키워드 검색 목록 조회
+    // 제목, 내용, 태그까지 같이 검색
+    public ArrayList<CommunityDto> getArticlesByCategoryAndKeyword(String category, String keyword, int start, int end) {
+        connect();
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+
+        String sql = "select * from ( "
+                + " select row_number() over(order by c.board_id desc) as rnum, "
+                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " from community_board c "
+                + " join users u on c.user_num = u.num "
+                + " where c.category = ? "
+                + " and ( "
+                + "     c.title like ? "
+                + "     or c.content like ? "
+                + "     or exists ( "
+                + "         select 1 "
+                + "         from community_board_tag cbt "
+                + "         join community_tag ct on cbt.tag_id = ct.tag_id "
+                + "         where cbt.board_id = c.board_id "
+                + "         and ct.tag_name like ? "
+                + "     ) "
+                + " ) "
+                + ") where rnum between ? and ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, category);
+            pstmt.setString(2, "%" + keyword + "%");
+            pstmt.setString(3, "%" + keyword + "%");
+            pstmt.setString(4, "%" + keyword + "%");
+            pstmt.setInt(5, start);
+            pstmt.setInt(6, end);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setContent(rs.getString("content"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
                 lists.add(dto);
             }
         } catch (SQLException e) {
@@ -229,7 +251,7 @@ public class CommunityDao {
         return lists;
     }
 
-    // 전체 게시글 수
+    // 전체 게시글 수 조회
     public int getArticleCount() {
         connect();
         int count = 0;
@@ -251,67 +273,80 @@ public class CommunityDao {
         return count;
     }
 
+    // 전체 인기글 목록 조회
     public ArrayList<CommunityDto> getPopularArticles(int start, int end) {
-        connect();
-
-        ArrayList<CommunityDto> lists = new ArrayList<>();
-        String sql = "select * from ( "
-                + " select row_number() over(order by c.like_count desc, c.created_at desc, c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
-                + " from community_board c "
-                + " join users u on c.user_num = u.num "
-                + ") where rnum between ? and ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, start);
-            pstmt.setInt(2, end);
-            rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                CommunityDto dto = new CommunityDto();
-                dto.setBoard_id(rs.getInt("board_id"));
-                dto.setUser_num(rs.getInt("user_num"));
-                dto.setUserName(rs.getString("user_name"));
-                dto.setCategory(rs.getString("category"));
-                dto.setTitle(rs.getString("title"));
-                dto.setNews_link(rs.getString("news_link"));
-                dto.setContent(rs.getString("content"));
-                dto.setView_count(rs.getInt("view_count"));
-                dto.setLike_count(rs.getInt("like_count"));
-                dto.setCreated_at(rs.getTimestamp("created_at"));
-                dto.setUpdated_at(rs.getTimestamp("updated_at"));
-                lists.add(dto);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return lists;
+        return getPopularArticles(null, null, start, end);
     }
 
+    // 인기글 키워드 검색 목록 조회
     public ArrayList<CommunityDto> searchPopularArticles(String keyword, int start, int end) {
+        return getPopularArticles(null, keyword, start, end);
+    }
+
+    // 전체 인기글 수 조회
+    public int getPopularArticleCount() {
+        return getPopularArticleCount(null, null);
+    }
+
+    // 인기글 키워드 검색 게시글 수 조회
+    public int getPopularArticleCountByKeyword(String keyword) {
+        return getPopularArticleCount(null, keyword);
+    }
+
+    // 인기글 통합 조회
+    // 테마 + 제목/내용 + 태그 검색
+    public ArrayList<CommunityDto> getPopularArticles(String themeName, String keyword, int start, int end) {
         connect();
         ArrayList<CommunityDto> lists = new ArrayList<>();
 
-        String sql = "select * from ( "
-                + " select row_number() over(order by c.like_count desc, c.created_at desc, c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
-                + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
-                + " from community_board c "
-                + " join users u on c.user_num = u.num "
-                + " where c.title like ? or c.content like ? "
-                + ") where rnum between ? and ?";
+        StringBuilder sql = new StringBuilder(
+                "select * from ( "
+                        + " select row_number() over(order by c.like_count desc, c.created_at desc, c.board_id desc) as rnum, "
+                        + " c.board_id, c.user_num, u.name as user_name, "
+                        + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
+                        + " from community_board c "
+                        + " join users u on c.user_num = u.num "
+                        + " where c.like_count > 0 "
+        );
+
+        if (themeName != null && !themeName.isBlank()) {
+            sql.append(" and c.category = ? ");
+        }
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append(" and ( ");
+            sql.append(" c.title like ? ");
+            sql.append(" or c.content like ? ");
+            sql.append(" or exists ( ");
+            sql.append("     select 1 ");
+            sql.append("     from community_board_tag cbt ");
+            sql.append("     join community_tag ct on cbt.tag_id = ct.tag_id ");
+            sql.append("     where cbt.board_id = c.board_id ");
+            sql.append("     and ct.tag_name like ? ");
+            sql.append(" ) ");
+            sql.append(" ) ");
+        }
+
+        sql.append(") where rnum between ? and ?");
 
         try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            pstmt.setInt(3, start);
-            pstmt.setInt(4, end);
+            pstmt = conn.prepareStatement(sql.toString());
+
+            int idx = 1;
+
+            if (themeName != null && !themeName.isBlank()) {
+                pstmt.setString(idx++, themeName);
+            }
+
+            if (keyword != null && !keyword.isBlank()) {
+                pstmt.setString(idx++, "%" + keyword + "%");
+                pstmt.setString(idx++, "%" + keyword + "%");
+                pstmt.setString(idx++, "%" + keyword + "%");
+            }
+
+            pstmt.setInt(idx++, start);
+            pstmt.setInt(idx, end);
+
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -327,6 +362,7 @@ public class CommunityDao {
                 dto.setLike_count(rs.getInt("like_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
                 lists.add(dto);
             }
         } catch (SQLException e) {
@@ -338,13 +374,51 @@ public class CommunityDao {
         return lists;
     }
 
-    public int getPopularArticleCount() {
+    // 인기글 수 조회
+    // 테마 + 제목/내용 + 태그 검색
+    public int getPopularArticleCount(String themeName, String keyword) {
         connect();
         int count = 0;
-        String sql = "select count(*) from community_board";
+
+        StringBuilder sql = new StringBuilder(
+                "select count(*) "
+                        + "from community_board c "
+                        + "where c.like_count > 0 "
+        );
+
+        if (themeName != null && !themeName.isBlank()) {
+            sql.append(" and c.category = ? ");
+        }
+
+        if (keyword != null && !keyword.isBlank()) {
+            sql.append(" and ( ");
+            sql.append(" c.title like ? ");
+            sql.append(" or c.content like ? ");
+            sql.append(" or exists ( ");
+            sql.append("     select 1 ");
+            sql.append("     from community_board_tag cbt ");
+            sql.append("     join community_tag ct on cbt.tag_id = ct.tag_id ");
+            sql.append("     where cbt.board_id = c.board_id ");
+            sql.append("     and ct.tag_name like ? ");
+            sql.append(" ) ");
+            sql.append(" ) ");
+        }
 
         try {
-            pstmt = conn.prepareStatement(sql);
+            pstmt = conn.prepareStatement(sql.toString());
+
+            int idx = 1;
+
+            if (themeName != null && !themeName.isBlank()) {
+                pstmt.setString(idx++, themeName);
+            }
+
+            if (keyword != null && !keyword.isBlank()) {
+                pstmt.setString(idx++, "%" + keyword + "%");
+                pstmt.setString(idx++, "%" + keyword + "%");
+                pstmt.setString(idx++, "%" + keyword + "%");
+            }
+
             rs = pstmt.executeQuery();
 
             if (rs.next()) {
@@ -359,31 +433,7 @@ public class CommunityDao {
         return count;
     }
 
-    public int getPopularArticleCountByKeyword(String keyword) {
-        connect();
-        int count = 0;
-        String sql = "select count(*) "
-                + "from community_board "
-                + "where title like ? or content like ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                count = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
+    // 메인 화면 추천글 조회
     public ArrayList<CommunityDto> getFeaturedArticles(int limit) {
         connect();
 
@@ -415,6 +465,7 @@ public class CommunityDao {
                 dto.setLike_count(rs.getInt("like_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
                 lists.add(dto);
             }
         } catch (SQLException e) {
@@ -426,7 +477,7 @@ public class CommunityDao {
         return lists;
     }
 
-    // 카테고리병 게시글 수
+    // 카테고리별 게시글 수 조회
     public int getArticleCountByCategory(String category) {
         connect();
         int count = 0;
@@ -449,43 +500,27 @@ public class CommunityDao {
         return count;
     }
 
-    // 검색 결과 게시글 수
+    // 키워드 검색 게시글 수 조회
+    // 제목, 내용, 태그까지 같이 검색
     public int getArticleCountByKeyword(String keyword) {
         connect();
         int count = 0;
+
         String sql = "select count(*) "
-                + "from community_board "
-                + "where title like ? or content like ?";
+                + "from community_board c "
+                + "where c.title like ? "
+                + "or c.content like ? "
+                + "or exists ( "
+                + "    select 1 "
+                + "    from community_board_tag cbt "
+                + "    join community_tag ct on cbt.tag_id = ct.tag_id "
+                + "    where cbt.board_id = c.board_id "
+                + "    and ct.tag_name like ? "
+                + ")";
 
         try {
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                count = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    // 카테고리 + 검색 결과 게시글 수
-    public int getArticleCountByCategoryAndKeyword(String category, String keyword) {
-        connect();
-        int count = 0;
-        String sql = "select count(*) "
-                + "from community_board "
-                + "where category = ? and (title like ? or content like ?)";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, category);
             pstmt.setString(2, "%" + keyword + "%");
             pstmt.setString(3, "%" + keyword + "%");
             rs = pstmt.executeQuery();
@@ -502,23 +537,83 @@ public class CommunityDao {
         return count;
     }
 
-
-    // 글 작성
-    public int insertArticle(CommunityDto dto) {
+    // 카테고리 + 키워드 검색 게시글 수 조회
+    // 제목, 내용, 태그까지 같이 검색
+    public int getArticleCountByCategoryAndKeyword(String category, String keyword) {
         connect();
-        int count = -1;
-        String sql = "insert into community_board(board_id, user_num, category, title, content, news_link) "
-                + "values(community_board_seq.nextval, ?, ?, ?, ?, ?)";
+        int count = 0;
+
+        String sql = "select count(*) "
+                + "from community_board c "
+                + "where c.category = ? "
+                + "and ( "
+                + "    c.title like ? "
+                + "    or c.content like ? "
+                + "    or exists ( "
+                + "        select 1 "
+                + "        from community_board_tag cbt "
+                + "        join community_tag ct on cbt.tag_id = ct.tag_id "
+                + "        where cbt.board_id = c.board_id "
+                + "        and ct.tag_name like ? "
+                + "    ) "
+                + ")";
 
         try {
             pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, dto.getUser_num());
-            pstmt.setString(2, dto.getCategory());
-            pstmt.setString(3, dto.getTitle());
-            pstmt.setString(4, dto.getContent());
-            pstmt.setString(5, dto.getNews_link());
+            pstmt.setString(1, category);
+            pstmt.setString(2, "%" + keyword + "%");
+            pstmt.setString(3, "%" + keyword + "%");
+            pstmt.setString(4, "%" + keyword + "%");
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
+    // 게시글 작성
+    // 게시글 저장 후 태그도 같이 저장
+    public int insertArticle(CommunityDto dto) {
+        connect();
+        int count = -1;
+        int boardId = 0;
+
+        try {
+            String seqSql = "select community_board_seq.nextval from dual";
+            pstmt = conn.prepareStatement(seqSql);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                boardId = rs.getInt(1);
+            }
+
+            rs.close();
+            pstmt.close();
+
+            String sql = "insert into community_board(board_id, user_num, category, title, content, news_link) "
+                    + "values(?, ?, ?, ?, ?, ?)";
+
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, boardId);
+            pstmt.setInt(2, dto.getUser_num());
+            pstmt.setString(3, dto.getCategory());
+            pstmt.setString(4, dto.getTitle());
+            pstmt.setString(5, dto.getContent());
+            pstmt.setString(6, dto.getNews_link());
 
             count = pstmt.executeUpdate();
+
+            if (count > 0) {
+                communityTagDao.saveTags(boardId, dto.getTagNames());
+            }
+
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -527,7 +622,8 @@ public class CommunityDao {
         return count;
     }
 
-    // 게시글 상세조회
+    // 게시글 상세 조회
+    // 태그 문자열도 같이 세팅
     public CommunityDto getArticle(int board_id) {
         connect();
         CommunityDto dto = null;
@@ -542,9 +638,8 @@ public class CommunityDao {
             pstmt.setInt(1, board_id);
             rs = pstmt.executeQuery();
 
-            if (rs.next()){
+            if (rs.next()) {
                 dto = new CommunityDto();
-
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
@@ -556,6 +651,7 @@ public class CommunityDao {
                 dto.setLike_count(rs.getInt("like_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(board_id));
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -573,201 +669,15 @@ public class CommunityDao {
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, board_id);
             pstmt.executeUpdate();
-        } catch(SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-    }
-
-    // 좋아요가 눌렸는지
-    public boolean existsLike(int board_id, int user_num) {
-        connect();
-
-        boolean exists = false;
-        String sql = "select count(*) from community_like where board_id = ? and user_num = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            pstmt.setInt(2, user_num);
-            rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                exists = rs.getInt(1) > 0;
-            }
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             closeAll();
         }
-
-        return exists;
-    }
-
-    // 좋아요 클릭(추가)
-    public int insertLike(int board_id, int user_num) {
-        connect();
-        int count = -1;
-        String sql = "insert into community_like(like_id, board_id, user_num, created_at) "
-                + "values(community_like_seq.nextval, ?, ?, sysdate)";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            pstmt.setInt(2, user_num);
-            count = pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    // 좋아요 더블 클릭(취소)
-    public int deleteLike(int board_id, int user_num) {
-        connect();
-        int count = -1;
-        String sql = "delete from community_like where board_id = ? and user_num = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            pstmt.setInt(2, user_num);
-            count = pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    // 증가
-    public int increaseLikeCount(int board_id) {
-        connect();
-        int count = -1;
-        String sql = "update community_board set like_count = like_count + 1 where board_id = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            count = pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    // 감소
-    public int decreaseLikeCount(int board_id) {
-        connect();
-        int count = -1;
-        String sql = "update community_board "
-                + "set like_count = case when like_count > 0 then like_count - 1 else 0 end "
-                + "where board_id = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            count = pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    // 게시글의 현재 돟아요 수 조회
-    public int getLikeCount(int board_id) {
-        connect();
-        int likeCount = 0;
-        String sql = "select like_count from community_board where board_id = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            rs = pstmt.executeQuery();
-
-            if (rs.next()) {
-                likeCount = rs.getInt("like_count");
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return likeCount;
-    }
-
-    // 특정 게시글의 댓글 목록 조회
-    public ArrayList<CommunityCommentDto> getCommentsByBoardId(int board_id) {
-        connect();
-        ArrayList<CommunityCommentDto> comments = new ArrayList<>();
-        String sql = "select cc.comment_id, cc.board_id, cc.user_num, u.name as user_name, "
-                + "cc.content, cc.created_at, cc.updated_at "
-                + "from community_comment cc "
-                + "join users u on cc.user_num = u.num "
-                + "where cc.board_id = ? "
-                + "order by cc.comment_id asc";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                CommunityCommentDto dto = new CommunityCommentDto();
-                dto.setComment_id(rs.getInt("comment_id"));
-                dto.setBoard_id(rs.getInt("board_id"));
-                dto.setUser_num(rs.getInt("user_num"));
-                dto.setUserName(rs.getString("user_name"));
-                dto.setContent(rs.getString("content"));
-                dto.setCreated_at(rs.getTimestamp("created_at"));
-                dto.setUpdated_at(rs.getTimestamp("updated_at"));
-                comments.add(dto);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return comments;
-    }
-
-    // 댓글 등록
-    public int insertComment(int board_id, int user_num, String content) {
-        connect();
-        int count = -1;
-        String sql = "insert into community_comment(comment_id, board_id, user_num, content, created_at, updated_at) "
-                + "values(community_comment_seq.nextval, ?, ?, ?, sysdate, sysdate)";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, board_id);
-            pstmt.setInt(2, user_num);
-            pstmt.setString(3, content);
-            count = pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
     }
 
     // 게시글 수정
+    // 수정 후 태그를 다시 저장
     public int updateArticle(CommunityDto dto) {
         connect();
         int count = -1;
@@ -782,6 +692,11 @@ public class CommunityDao {
             pstmt.setString(3, dto.getContent());
             pstmt.setInt(4, dto.getBoard_id());
             count = pstmt.executeUpdate();
+
+            if (count > 0) {
+                communityTagDao.deleteBoardTags(dto.getBoard_id());
+                communityTagDao.saveTags(dto.getBoard_id(), dto.getTagNames());
+            }
         } catch (SQLException e) {
             e.printStackTrace();
         } finally {
@@ -791,16 +706,19 @@ public class CommunityDao {
     }
 
     // 게시글 삭제
-    public int deleteArticle(int board_id){
+    // 삭제 전에 태그 매핑도 같이 삭제
+    public int deleteArticle(int board_id) {
         connect();
         int count = -1;
-        String sql = "delete from community_board where board_id = ?";
 
         try {
+            communityTagDao.deleteBoardTags(board_id);
+
+            String sql = "delete from community_board where board_id = ?";
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, board_id);
             count = pstmt.executeUpdate();
-        } catch(SQLException e) {
+        } catch (SQLException e) {
             e.printStackTrace();
         } finally {
             closeAll();
@@ -808,11 +726,10 @@ public class CommunityDao {
         return count;
     }
 
-    // 게시글 => detail.html => 사용자의 글 수 & 댓글 수
+    // 특정 사용자의 게시글 수 조회
     public int getArticleCountByUserNum(int user_num) {
         connect();
         int count = 0;
-
         String sql = "select count(*) from community_board where user_num = ?";
 
         try {
@@ -820,55 +737,8 @@ public class CommunityDao {
             pstmt.setInt(1, user_num);
             rs = pstmt.executeQuery();
 
-            if (rs.next()){
-                count = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    public int getCommentCountByUserNum(int user_num) {
-        connect();
-        int count = 0;
-
-        String sql = "select count(*) from community_comment where user_num = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, user_num);
-            rs = pstmt.executeQuery();
-
-            if (rs.next()){
-                count = rs.getInt(1);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return count;
-    }
-
-    // detail.html -> 뉴스 링크 => 뉴스 제목 조회
-    public String getNewsTitleByLink(String newsLink) {
-        connect();
-        String title = null;
-
-        String sql = "select title from news_data where link = ?";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, newsLink);
-            rs = pstmt.executeQuery();
-
             if (rs.next()) {
-                title = rs.getString("title");
+                count = rs.getInt(1);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -876,84 +746,10 @@ public class CommunityDao {
             closeAll();
         }
 
-        return title;
+        return count;
     }
 
-    public ArrayList<Map<String, String>> searchRelatedNews(String keyword) {
-        connect();
-        ArrayList<Map<String, String>> newsList = new ArrayList<>();
-
-        String sql = "select * from ( "
-                + " select link, title, summary, pub_date "
-                + " from news_data "
-                + " where title like ? or summary like ? "
-                + " order by pub_date desc "
-                + ") where rownum <= 5";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, "%" + keyword + "%");
-            pstmt.setString(2, "%" + keyword + "%");
-            rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                Map<String, String> item = new HashMap<>();
-                item.put("link", rs.getString("link"));
-                item.put("title", rs.getString("title"));
-                item.put("summary", rs.getString("summary"));
-                item.put("pubDate", rs.getString("pub_date"));
-                newsList.add(item);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return newsList;
-    }
-
-    public ArrayList<Map<String, Object>> getPopularThemeCategories() {
-        connect();
-        ArrayList<Map<String, Object>> popularCategories = new ArrayList<>();
-
-        String sql = "select * from ( "
-                + " select category, count(*) as post_count "
-                + " from community_board "
-                + " where category in ("
-                + " '반도체·AI', "
-                + " '2차전지', "
-                + " '제약·바이오', "
-                + " '금융·밸류업', "
-                + " '방산·우주항공', "
-                + " 'IT·플랫폼', "
-                + " '엔터·미디어', "
-                + " '자동차·모빌리티' "
-                + " ) "
-                + " group by category "
-                + " order by count(*) desc, category asc "
-                + ") where rownum <= 3";
-
-        try {
-            pstmt = conn.prepareStatement(sql);
-            rs = pstmt.executeQuery();
-
-            while (rs.next()) {
-                Map<String, Object> item = new HashMap<>();
-                item.put("category", rs.getString("category"));
-                item.put("postCount", rs.getInt("post_count"));
-                popularCategories.add(item);
-            }
-        } catch (SQLException e) {
-            e.printStackTrace();
-        } finally {
-            closeAll();
-        }
-
-        return popularCategories;
-    }
-
-    // 자원 해제 공통 메서드 (코드 중복 방지)
+    // 공통 자원 해제
     private void closeAll() {
         try {
             if (rs != null) rs.close();
@@ -964,3 +760,4 @@ public class CommunityDao {
         }
     }
 }
+

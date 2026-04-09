@@ -599,6 +599,31 @@ a{
     flex-shrink:0;
 }
 
+.popularThemeFilter{
+    flex-shrink:0;
+}
+
+.popularThemeFilter select{
+    min-width:180px;
+    height:42px;
+    padding:0 14px;
+    border:1px solid var(--line-strong);
+    border-radius:12px;
+    outline:none;
+    background:#ffffff;
+    color:var(--text-main);
+    font-size:13px;
+    font-weight:700;
+    cursor:pointer;
+    transition:border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.popularThemeFilter select:focus{
+    border-color:var(--primary-navy);
+    box-shadow:0 0 0 4px rgba(31, 42, 68, 0.08);
+}
+
+
 .trendValue{
     font-size:13px;
     font-weight:800;
@@ -688,6 +713,7 @@ a{
     margin:0;
     font-size:13px;
     line-height:1.7;
+    margin-bottom: 10px;
     color:var(--text-muted);
 }
 
@@ -734,6 +760,7 @@ a{
     color:#374151;
     font-size:13px;
     font-weight:800;
+    box-shadow:0 8px 18px rgba(31, 42, 68, 0.14);
     transition:all 0.2s ease;
 }
 

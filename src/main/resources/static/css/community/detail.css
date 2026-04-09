@@ -68,6 +68,34 @@
     word-break: keep-all;
 }
 
+/* 태그 */
+.detailTags {
+    margin: 14px 0 18px;
+}
+
+.detailTagsLabel {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+.detailTagList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.detailTag {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: #f2f4f7;
+    color: #2d6cdf;
+    font-size: 14px;
+    font-weight: 500;
+}
+
 .postWriterRow {
     display: flex;
     justify-content: space-between;

@@ -1,8 +1,14 @@
 package com.Midterm.stock.controller;
 
-import com.Midterm.stock.dto.CommunityDto;
 import com.Midterm.stock.dto.CommunityCommentDto;
-import com.Midterm.stock.repository.CommunityDao;
+import com.Midterm.stock.dto.CommunityDto;
+
+import com.Midterm.stock.repository.community.CommunityBoardDao;
+import com.Midterm.stock.repository.community.CommunityCommentDao;
+import com.Midterm.stock.repository.community.CommunityLikeDao;
+import com.Midterm.stock.repository.community.CommunityTagDao;
+import com.Midterm.stock.repository.community.CommunityExtraDao;
+
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -13,77 +19,99 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
-// getArticles(): 목록 p => 상세 => 글쓰기 / 수정 / 처리
 @Controller
 @RequestMapping("/community")
 public class CommunityController {
 
     @Autowired
-    private CommunityDao communityDao;
+    private CommunityBoardDao communityBoardDao;
+
+    @Autowired
+    private CommunityCommentDao communityCommentDao;
+
+    @Autowired
+    private CommunityLikeDao communityLikeDao;
+
+    @Autowired
+    private CommunityExtraDao communityExtraDao;
+
+    @Autowired
+    private CommunityTagDao communityTagDao;
 
     // 게시글 목록
     @GetMapping({"", "/"})
-    public String communityList(@RequestParam(value="page", defaultValue="1") int page,
-                                @RequestParam(value="category", required = false) String category,
-                                @RequestParam(value="keyword", required = false) String keyword,
+    public String communityList(@RequestParam(value = "page", defaultValue = "1") int page,
+                                @RequestParam(value = "category", required = false) String category,
+                                @RequestParam(value = "keyword", required = false) String keyword,
+                                @RequestParam(value = "theme", required = false) String theme,
                                 Model model,
-                                HttpSession session){
+                                HttpSession session) {
         String loginUser = (String) session.getAttribute("loginUser");
 
-        // 로그인 X -> 로그인 화면으로
-        if (loginUser == null){
+        if (loginUser == null) {
             return "redirect:/login";
         }
 
-        boolean isPopularView = "popular".equals(category);
-        category = convertCategoryParamToName(category);
-
-        int pageSize = 4;
+        int pageSize = 3;
         int start = (page - 1) * pageSize + 1;
         int end = page * pageSize;
 
         ArrayList<CommunityDto> lists;
         int totalCount;
 
-        boolean hasCategory = category != null && !category.isBlank() && !category.equals("전체");
+        String categoryParam = category;
+        String themeParam = theme;
+
+        boolean isPopularView = "popular".equals(categoryParam);
+
+        String categoryName = convertCategoryParamToName(categoryParam);
+        String themeName = convertCategoryParamToName(themeParam);
+
+        String searchKeyword = keyword;
+        if (searchKeyword != null) {
+            searchKeyword = searchKeyword.trim();
+            if (searchKeyword.startsWith("#")) {
+                searchKeyword = searchKeyword.substring(1).trim();
+            }
+        }
+
+        boolean hasCategory = categoryName != null && !categoryName.isBlank() && !categoryName.equals("전체") && !isPopularView;
         boolean hasKeyword = keyword != null && !keyword.isBlank();
 
-        if (isPopularView && hasKeyword) {
-            lists = communityDao.searchPopularArticles(keyword, start, end);
-            totalCount = communityDao.getPopularArticleCountByKeyword(keyword);
-        } else if (isPopularView) {
-            lists = communityDao.getPopularArticles(start, end);
-            totalCount = communityDao.getPopularArticleCount();
+        if (isPopularView) {
+            lists = communityBoardDao.getPopularArticles(themeName, keyword, start, end);
+            totalCount = communityBoardDao.getPopularArticleCount(themeName, keyword);
         } else if (hasCategory && hasKeyword) {
-            lists = communityDao.getArticlesByCategoryAndKeyword(category, keyword, start, end);
-            totalCount = communityDao.getArticleCountByCategoryAndKeyword(category, keyword);
+            lists = communityBoardDao.getArticlesByCategoryAndKeyword(categoryName, keyword, start, end);
+            totalCount = communityBoardDao.getArticleCountByCategoryAndKeyword(categoryName, keyword);
         } else if (hasCategory) {
-            lists = communityDao.getArticlesByCategory(category, start, end);
-            totalCount = communityDao.getArticleCountByCategory(category);
+            lists = communityBoardDao.getArticlesByCategory(categoryName, start, end);
+            totalCount = communityBoardDao.getArticleCountByCategory(categoryName);
         } else if (hasKeyword) {
-            lists = communityDao.searchArticles(keyword, start, end);
-            totalCount = communityDao.getArticleCountByKeyword(keyword);
+            lists = communityBoardDao.searchArticles(keyword, start, end);
+            totalCount = communityBoardDao.getArticleCountByKeyword(keyword);
         } else {
-            lists = communityDao.getArticles(start, end);
-            totalCount = communityDao.getArticleCount();
+            lists = communityBoardDao.getArticles(start, end);
+            totalCount = communityBoardDao.getArticleCount();
         }
 
         int totalPages = (int) Math.ceil((double) totalCount / pageSize);
 
-        // 인기 카테고리(테마) 상위 3개
-        ArrayList<Map<String, Object>> popularCategories = communityDao.getPopularThemeCategories();
+        ArrayList<Map<String, Object>> popularCategories = communityExtraDao.getPopularThemeCategories();
         for (Map<String, Object> item : popularCategories) {
-            String categoryName = (String) item.get("category");
-            item.put("categoryKey", convertCategoryNameToParam(categoryName));
+            String categoryNameFromDb = (String) item.get("category");
+            item.put("categoryKey", convertCategoryNameToParam(categoryNameFromDb));
         }
+
         ArrayList<CommunityDto> featuredPosts = (!isPopularView && !hasCategory && !hasKeyword)
-                ? communityDao.getFeaturedArticles(2)
+                ? communityBoardDao.getFeaturedArticles(2)
                 : new ArrayList<>();
 
         model.addAttribute("lists", lists);
-        model.addAttribute("selectedCategory", category);
+        model.addAttribute("selectedCategory", categoryParam);
         model.addAttribute("currentPage", "community");
         model.addAttribute("keyword", keyword);
+        model.addAttribute("theme", themeParam);
         model.addAttribute("page", page);
         model.addAttribute("currentPageNum", page);
         model.addAttribute("totalPages", totalPages);
@@ -96,28 +124,28 @@ public class CommunityController {
 
     // 글쓰기 화면
     @GetMapping("/insert")
-    public String insertForm(HttpSession session, Model model){
+    public String insertForm(HttpSession session, Model model) {
         CommunityDto dto = new CommunityDto();
 
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
 
-        if (loginUser == null || loginNum == null){
+        if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
-        dto.setUser_num(loginNum);  // 실제 저장용 작성자 번호
+        dto.setUser_num(loginNum);
 
         model.addAttribute("currentPage", "community");
         model.addAttribute("dto", dto);
         return "community/insert";
     }
 
-    // 글 작성
+    // 관련 뉴스 검색
     @GetMapping("/news/search")
     @ResponseBody
     public ArrayList<Map<String, String>> searchRelatedNews(@RequestParam("keyword") String keyword,
-                                                            HttpSession session){
+                                                            HttpSession session) {
         String loginUser = (String) session.getAttribute("loginUser");
 
         if (loginUser == null) {
@@ -129,21 +157,26 @@ public class CommunityController {
             return new ArrayList<>();
         }
 
-        return communityDao.searchRelatedNews(trimmedKeyword);
+        return communityExtraDao.searchRelatedNews(trimmedKeyword);
     }
 
+    // 글 작성 처리
     @PostMapping("/insert")
-    public String insertProc(CommunityDto dto, HttpSession session){
+    public String insertProc(CommunityDto dto, HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
 
-        if (loginUser == null || loginNum == null){
+        if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
-        dto.setUser_num(loginNum);  // 실제 저장용 작성자 번호
+        dto.setUser_num(loginNum);
 
-        int result = communityDao.insertArticle(dto);
+        if (dto.getTagNames() != null) {
+            dto.setTagNames(dto.getTagNames().trim());
+        }
+
+        int result = communityBoardDao.insertArticle(dto);
 
         if (result > 0) {
             return "redirect:/community";
@@ -156,60 +189,7 @@ public class CommunityController {
     @GetMapping("/detail")
     public String detailProc(@RequestParam("board_id") int board_id,
                              HttpSession session,
-                             Model model){
-        Integer loginNum = (Integer) session.getAttribute("loginNum");
-        String loginUser = (String) session.getAttribute("loginUser");
-
-        if (loginUser == null || loginNum == null){
-            return "redirect:/login";
-        }
-
-        communityDao.updateViewcount(board_id);  // 조회수 증가
-
-        CommunityDto dto = communityDao.getArticle(board_id);
-
-        if (dto == null) {
-            return "redirect:/community";
-        }
-
-        // 사용자별 게시글 수, 댓글 수
-        int userArticleCount = communityDao.getArticleCountByUserNum(dto.getUser_num());
-        int userCommentCount = communityDao.getCommentCountByUserNum(dto.getUser_num());
-
-        // 본인의 게시글만 삭제가능하도록
-        boolean isOwner = dto.getUser_num() == loginNum;
-
-        // 뉴스 링크 연결
-        String relatedNewsTitle = null;
-        if (dto.getNews_link() != null && !dto.getNews_link().isBlank()) {
-            relatedNewsTitle = communityDao.getNewsTitleByLink(dto.getNews_link());
-        }
-
-        boolean likedByMe = communityDao.existsLike(board_id, loginNum);
-        ArrayList<CommunityCommentDto> comments = communityDao.getCommentsByBoardId(board_id);
-
-        model.addAttribute("dto", dto);
-        model.addAttribute("likedByMe", likedByMe);
-        model.addAttribute("comments", comments);
-        model.addAttribute("commentCount", comments.size());
-        model.addAttribute("isOwner", isOwner); // 본인만
-        model.addAttribute("currentPage", "community");
-
-        // 게시글 & 댓글 수 조회
-        model.addAttribute("userArticleCount", userArticleCount);
-        model.addAttribute("userCommentCount", userCommentCount);
-
-        // 뉴스
-        model.addAttribute("relatedNewsTitle", relatedNewsTitle);
-
-        return "community/detail";
-    }
-
-    @PostMapping("/comment/insert")
-    public String insertComment(@RequestParam("board_id") int board_id,
-                                @RequestParam("content") String content,
-                                HttpSession session) {
-
+                             Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
 
@@ -217,17 +197,62 @@ public class CommunityController {
             return "redirect:/login";
         }
 
-        // content가 null => 빈 문자열 처리, 아니면 앞뒤 공백 제거
+        communityBoardDao.updateViewcount(board_id);
+
+        CommunityDto dto = communityBoardDao.getArticle(board_id);
+
+        if (dto == null) {
+            return "redirect:/community";
+        }
+
+        int userArticleCount = communityBoardDao.getArticleCountByUserNum(dto.getUser_num());
+        int userCommentCount = communityCommentDao.getCommentCountByUserNum(dto.getUser_num());
+
+        boolean isOwner = dto.getUser_num() == loginNum;
+
+        String relatedNewsTitle = null;
+        if (dto.getNews_link() != null && !dto.getNews_link().isBlank()) {
+            relatedNewsTitle = communityExtraDao.getNewsTitleByLink(dto.getNews_link());
+        }
+
+        boolean likedByMe = communityLikeDao.existsLike(board_id, loginNum);
+        ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByBoardId(board_id);
+
+        model.addAttribute("dto", dto);
+        model.addAttribute("like" +
+                "dByMe", likedByMe);
+        model.addAttribute("comments", comments);
+        model.addAttribute("commentCount", comments.size());
+        model.addAttribute("isOwner", isOwner);
+        model.addAttribute("currentPage", "community");
+        model.addAttribute("userArticleCount", userArticleCount);
+        model.addAttribute("userCommentCount", userCommentCount);
+        model.addAttribute("relatedNewsTitle", relatedNewsTitle);
+
+        return "community/detail";
+    }
+
+    // 댓글 등록
+    @PostMapping("/comment/insert")
+    public String insertComment(@RequestParam("board_id") int board_id,
+                                @RequestParam("content") String content,
+                                HttpSession session) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
         String trimmedContent = content == null ? "" : content.trim();
-        // 공백 제거 후에도 내용이 비어있지 않을 때만 저장 
         if (!trimmedContent.isEmpty()) {
-            communityDao.insertComment(board_id, loginNum, trimmedContent);
+            communityCommentDao.insertComment(board_id, loginNum, trimmedContent);
         }
 
         return "redirect:/community/detail?board_id=" + board_id;
     }
 
-    // 좋아요 
+    // 좋아요 처리
     @PostMapping("/like")
     @ResponseBody
     public Map<String, Object> likeArticle(@RequestParam("board_id") int board_id,
@@ -237,28 +262,25 @@ public class CommunityController {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
 
-        // 로그인 정보 X
         if (loginUser == null || loginNum == null) {
-            result.put("success", false);  // 처리 실패 
+            result.put("success", false);
             result.put("message", "로그인이 필요합니다.");
             return result;
         }
 
-        // 좋아요가 이미 눌렸는지 확인 
-        boolean liked = communityDao.existsLike(board_id, loginNum);
-        
-        if (liked) {  // 이미 눌림 
-            communityDao.deleteLike(board_id, loginNum);  // deleteLike
-            communityDao.decreaseLikeCount(board_id);     // decrease
+        boolean liked = communityLikeDao.existsLike(board_id, loginNum);
+
+        if (liked) {
+            communityLikeDao.deleteLike(board_id, loginNum);
+            communityLikeDao.decreaseLikeCount(board_id);
             result.put("liked", false);
-        } else { // 아직 안 눌림 
-            communityDao.insertLike(board_id, loginNum);  // insert
-            communityDao.increaseLikeCount(board_id);     // increase
+        } else {
+            communityLikeDao.insertLike(board_id, loginNum);
+            communityLikeDao.increaseLikeCount(board_id);
             result.put("liked", true);
         }
 
-        // 최종 개수 다시 조회
-        int likeCount = communityDao.getLikeCount(board_id);
+        int likeCount = communityLikeDao.getLikeCount(board_id);
 
         result.put("success", true);
         result.put("likeCount", likeCount);
@@ -276,21 +298,76 @@ public class CommunityController {
             return "redirect:/login";
         }
 
-        CommunityDto dto = communityDao.getArticle(board_id);
+        CommunityDto dto = communityBoardDao.getArticle(board_id);
 
         if (dto == null) {
             return "redirect:/community";
         }
 
-        // 작성자 본인만 삭제 가능 // 한번 더 막아줌
         if (dto.getUser_num() != loginNum) {
             return "redirect:/community/detail?board_id=" + board_id;
         }
 
-        communityDao.deleteArticle(board_id);
+        communityBoardDao.deleteArticle(board_id);
         return "redirect:/community";
     }
 
+    // 수정 화면
+    @GetMapping("/update")
+    public String updateForm(@RequestParam("board_id") int board_id,
+                             HttpSession session,
+                             Model model) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        CommunityDto dto = communityBoardDao.getArticle(board_id);
+
+        if (dto == null) {
+            return "redirect:/community";
+        }
+
+        if (dto.getUser_num() != loginNum) {
+            return "redirect:/community/detail?board_id=" + board_id;
+        }
+
+        model.addAttribute("dto", dto);
+        model.addAttribute("currentPage", "community");
+        return "community/update";
+    }
+
+    // 수정 처리
+    @PostMapping("/update")
+    public String updateProc(CommunityDto dto, HttpSession session) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        CommunityDto origin = communityBoardDao.getArticle(dto.getBoard_id());
+
+        if (origin == null) {
+            return "redirect:/community";
+        }
+
+        if (origin.getUser_num() != loginNum) {
+            return "redirect:/community/detail?board_id=" + dto.getBoard_id();
+        }
+
+        if (dto.getTagNames() != null) {
+            dto.setTagNames(dto.getTagNames().trim());
+        }
+
+        communityBoardDao.updateArticle(dto);
+        return "redirect:/community/detail?board_id=" + dto.getBoard_id();
+    }
+
+    // 카테고리 파라미터를 한글명으로 변환
     private String convertCategoryParamToName(String category) {
         if ("free".equals(category)) {
             return "자유게시판";
@@ -318,6 +395,7 @@ public class CommunityController {
         return category;
     }
 
+    // 카테고리 한글명을 파라미터 값으로 변환
     private String convertCategoryNameToParam(String categoryName) {
         if ("자유게시판".equals(categoryName)) {
             return "free";
@@ -344,5 +422,4 @@ public class CommunityController {
         }
         return "";
     }
-
 }

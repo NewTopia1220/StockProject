@@ -154,20 +154,13 @@ select.cwInput{
     color:#c0c6d1;
 }
 
-.cwHint {
-    display: block;
-    margin-top: 6px;
-    font-size: 13px;
-    color: #777;
-}
-
 /* 뉴스 관련 */
 .newsDataLink {
     display: flex;
     flex-direction: column;
     gap: 12px;
     margin-top: 6px;
-    padding: 0;
+    padding: 22px 24px;
 }
 
 .newsDataLink label {
@@ -265,20 +258,6 @@ select.cwInput{
     font-weight: 800;
     cursor: pointer;
     padding: 0;
-}
-
-.cwInput,
-.cwTextarea,
-#newsKeyword {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.cwField,
-.newsDataLink {
-    width: 100%;
-    box-sizing: border-box;
 }
 
 /* 파일 */
@@ -387,11 +366,10 @@ select.cwInput{
     }
 
     .cwInput,
-    .cwTextarea,
-    #newsKeyword {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
+    .cwFileFake{
+        height:46px;
+        font-size:14px;
+        text-align: center;
     }
 
     .cwTextarea{
@@ -402,5 +380,4 @@ select.cwInput{
     .cwButtonRow{
         margin-top:28px;
     }
-
 }

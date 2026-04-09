@@ -121,3 +121,25 @@ select * from community_board;
 select * from community_comment;
 
 commit;
+
+-- ==========================
+-- 7. 커뮤니티 화면 -> 태그 기능
+-- ============================
+
+// 태그 테이블
+create table community_tag (
+    tag_id number primary key,
+    tag_name varchar2(100) unique not null
+);
+
+create sequence community_tag_seq start with 1 increment by 1;
+
+
+// 게시물 - 태그 연결
+create table community_board_tag (
+    board_id number not null,
+    tag_id number not null,
+    constraint pk_community_board_tag primary key (board_id, tag_id),
+    constraint fk_community_board_tag_board foreign key (board_id) references community_board(board_id),
+    constraint fk_community_board_tag_tag foreign key (tag_id) references community_tag(tag_id)
+);

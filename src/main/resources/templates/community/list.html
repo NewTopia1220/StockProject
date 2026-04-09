@@ -244,6 +244,22 @@
                         카테고리별로 투자 의견과 시장 이슈를 나눌 수 있습니다.
                     </p>
                 </div>
+
+                <form class="popularThemeFilter" th:if="${isPopularView}" th:action="@{/community}" method="get">
+                    <input type="hidden" name="category" value="popular">
+
+                    <select name="theme" onchange="this.form.submit()">
+                        <option value="">전체 테마</option>
+                        <option value="semiconductor" th:selected="${param.theme != null and param.theme[0] == 'semiconductor'}">반도체·AI</option>
+                        <option value="battery" th:selected="${param.theme != null and param.theme[0] == 'battery'}">2차전지</option>
+                        <option value="bio" th:selected="${param.theme != null and param.theme[0] == 'bio'}">제약·바이오</option>
+                        <option value="finance" th:selected="${param.theme != null and param.theme[0] == 'finance'}">금융·밸류업</option>
+                        <option value="defense" th:selected="${param.theme != null and param.theme[0] == 'defense'}">방산·우주항공</option>
+                        <option value="platform" th:selected="${param.theme != null and param.theme[0] == 'platform'}">IT·플랫폼</option>
+                        <option value="entertainment" th:selected="${param.theme != null and param.theme[0] == 'entertainment'}">엔터·미디어</option>
+                        <option value="mobility" th:selected="${param.theme != null and param.theme[0] == 'mobility'}">자동차·모빌리티</option>
+                    </select>
+                </form>
             </div>
 
             <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
@@ -281,13 +297,23 @@
 
             <div class="emptySection" th:if="${lists == null or #lists.isEmpty(lists)}">
                 <div class="emptyMainCard">
-                    <div class="emptyIcon">📝</div>
-                    <h3>아직 등록된 게시글이 없습니다</h3>
-                    <p>첫 번째 글을 작성해서 커뮤니티를 시작해보세요.</p>
+                    <div class="emptyIcon" th:text="${isPopularView} ? '🔥' : '📝'">📝</div>
 
-                    <div class="emptyBtnArea">
+                    <h3 th:text="${isPopularView ? '아직 인기글이 없습니다' : '아직 등록된 글이 없습니다'}">
+                        아직 등록된 게시글이 없습니다
+                    </h3>
+                    <p th:text="${isPopularView ? '좋아요를 받은 게시글이 생기면 여기에 표시됩니다.' : '첫 번째 글을 작성해서 커뮤니티를 시작해보세요.'}">
+                        첫 번째 글을 작성해서 커뮤니티를 시작해보세요.
+                    </p>
+
+                    <div class="emptyBtnArea" th:if="${!isPopularView}">
                         <a th:href="@{/community/insert}" class="writeBtn">첫 글 작성하기</a>
                         <a th:href="@{/community(category='beginner')}" class="ghostBtn">초보질문 보러가기</a>
+                    </div>
+
+                    <div class="emptyArea" th:if="${isPopularView}">
+                        <a th:href="@{/community}" class="writeBtn">전체 게시글 보기</a>
+                        <a th:href="@{/community/insert}" class="ghostBtn">글 작성하러 가기</a>
                     </div>
                 </div>
             </div>
@@ -301,7 +327,7 @@
 
                 <a class="pageBtn"
                    th:each="i : ${#numbers.sequence(1, totalPages)}"
-                   th:href="@{/community(page=${i}, category=${param.category}, keyword=${param.keyword})}"
+                   th:href="@{/community(page=${i}, category=${param.category}, theme=${param.theme}, keyword=${param.keyword})}"
                    th:text="${i}"
                    th:classappend="${i == currentPageNum} ? ' active' : ''">
                     1
