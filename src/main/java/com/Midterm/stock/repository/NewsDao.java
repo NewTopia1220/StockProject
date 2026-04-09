@@ -283,16 +283,13 @@ public class NewsDao {
         Map<String, Object> r = new HashMap<>();
         r.put("totalCount", 0); r.put("avgTypeProb", 0.0);
         r.put("avgClickbaitProb", 0.0); r.put("positiveCount", 0);
-        r.put("negativeCount", 0); r.put("neutralCount", 0);
 
         String where1 = buildWhere(sector, keyword, "1");
         String where2 = buildWhere(sector, keyword, "2");
         String sql =
             "SELECT COUNT(*) as tc, ROUND(AVG(type_prob),1) as atp, " +
             "       ROUND(AVG(clickbait_prob),1) as acp, " +
-            "       SUM(CASE WHEN sentiment='호재' THEN 1 ELSE 0 END) as pos, " +
-            "       SUM(CASE WHEN sentiment='악재' THEN 1 ELSE 0 END) as neg, " +
-            "       SUM(CASE WHEN sentiment='중립' THEN 1 ELSE 0 END) as neu " +
+            "       SUM(CASE WHEN sentiment='호재' THEN 1 ELSE 0 END) as pos " +
             "FROM (SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA " + where1 +
             "      UNION ALL SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA_SEC " + where2 + ")";
 
@@ -307,8 +304,6 @@ public class NewsDao {
                     r.put("avgTypeProb",     rs.getDouble("atp"));
                     r.put("avgClickbaitProb",rs.getDouble("acp"));
                     r.put("positiveCount",   rs.getInt("pos"));
-                    r.put("negativeCount",   rs.getInt("neg"));
-                    r.put("neutralCount",    rs.getInt("neu"));
                 }
             }
         } catch (SQLException e) { System.err.println("getSidebarAnalysis: " + e.getMessage()); }
@@ -418,14 +413,30 @@ public class NewsDao {
     /** sector = 섹터 필터("IT/플랫폼"), keyword = 제목 키워드, tableAlias 미사용 */
     private String buildWhere(String sector, String keyword, String alias) {
         List<String> conditions = new ArrayList<>();
-        if (sector  != null && !sector.trim().isEmpty())  conditions.add("category LIKE ?");
-        if (keyword != null && !keyword.trim().isEmpty()) conditions.add("title LIKE ?");
-        return conditions.isEmpty() ? "" : "WHERE " + String.join(" AND ", conditions);
+
+        // 1. 섹터 조건 (괄호 추출 로직 적용)
+        if (sector != null && !sector.trim().isEmpty()) {
+            // category 전체에서 찾는게 아니라 추출된 sector_name과 정확히 일치하는지 확인
+            conditions.add("(CASE WHEN INSTR(category,'(')>0 " +
+                    "THEN TRIM(SUBSTR(category, INSTR(category,'(')+1, INSTR(category,')')-INSTR(category,'(')-1)) " +
+                    "ELSE TRIM(category) END) = ?");
+        }
+
+        // 2. 키워드 조건
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            conditions.add("title LIKE ?");
+        }
+
+        return conditions.isEmpty() ? "" : " WHERE " + String.join(" AND ", conditions);
     }
 
     private int setWhereParams(PreparedStatement ps, int idx, String sector, String keyword) throws SQLException {
-        if (sector  != null && !sector.trim().isEmpty())  ps.setString(idx++, "%(" + sector + ")%");
-        if (keyword != null && !keyword.trim().isEmpty()) ps.setString(idx++, "%" + keyword + "%");
+        if (sector != null && !sector.trim().isEmpty()) {
+            ps.setString(idx++, sector); // LIKE가 아니면 %를 붙이지 않습니다.
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            ps.setString(idx++, "%" + keyword + "%");
+        }
         return idx;
     }
 

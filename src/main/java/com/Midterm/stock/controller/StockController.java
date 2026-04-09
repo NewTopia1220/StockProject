@@ -94,11 +94,34 @@ public class StockController {
     /**
      * 등락률 상위 10개 종목 조회
      * GET /api/stock/top-fluctuation
-     * - 티커 스크롤, 종목 리스트에 사용
      */
     @GetMapping("/api/stock/top-fluctuation")
     @ResponseBody
     public List<StockResponseDto> getTopFluctuation() {
+        return stockPriceService.getTopFluctuation();
+    }
+
+    /**
+     * 거래대금 상위 20개 종목 조회
+     * GET /api/stock/top-trade
+     */
+    @GetMapping("/api/stock/top-trade")
+    @ResponseBody
+    public List<StockResponseDto> getTopTrade() {
+        List<StockResponseDto> result = stockPriceService.getTopByTradeAmount();
+        if (result == null || result.isEmpty()) {
+            result = stockPriceService.getTopFluctuation();
+        }
+        return result;
+    }
+
+    /**
+     * 등락률 상위 20개 종목 조회
+     * GET /api/stock/top-fluctuation-full
+     */
+    @GetMapping("/api/stock/top-fluctuation-full")
+    @ResponseBody
+    public List<StockResponseDto> getTopFluctuationFull() {
         return stockPriceService.getTopFluctuation();
     }
 

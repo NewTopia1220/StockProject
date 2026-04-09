@@ -165,7 +165,6 @@ a{
 
 /* LEFT */
 .communitySidebar{
-    position:sticky;
     top:120px;
     align-self:start;
 }

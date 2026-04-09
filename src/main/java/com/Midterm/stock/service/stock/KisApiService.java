@@ -101,12 +101,12 @@ public class KisApiService {
         }
     }
 
+    // KIS API 요청 간 최소 간격 (100ms) - 초당 10회 제한 대응
+    private long lastCallMs = 0;
+    private static final long MIN_CALL_INTERVAL_MS = 100;
+
     /**
-     * KIS API 공통 GET 요청 (최대 2회 재시도)
-     *
-     * @param uriFunc URI 빌더 함수
-     * @param trId    KIS 거래 ID
-     * @return 응답 JsonNode, 실패 시 null
+     * KIS API 공통 GET 요청 (최대 2회 재시도 + 호출 간격 제한)
      */
     public JsonNode get(
             java.util.function.Function<org.springframework.web.util.UriBuilder, java.net.URI> uriFunc,
@@ -115,6 +115,17 @@ public class KisApiService {
             System.out.println("토큰 없음 - KIS API 스킵 [" + trId + "]");
             return null;
         }
+
+        // 호출 간격 보장 (synchronized로 직렬화)
+        synchronized (this) {
+            long now = System.currentTimeMillis();
+            long wait = MIN_CALL_INTERVAL_MS - (now - lastCallMs);
+            if (wait > 0) {
+                try { Thread.sleep(wait); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+            }
+            lastCallMs = System.currentTimeMillis();
+        }
+
         for (int attempt = 1; attempt <= 2; attempt++) {
             try {
                 return kisClient.get()
@@ -129,7 +140,7 @@ public class KisApiService {
             } catch (Exception e) {
                 System.out.println("KIS API 오류 [" + trId + "] 시도 " + attempt + ": " + e.getMessage());
                 if (attempt == 2) return null;
-                try { Thread.sleep(500); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
+                try { Thread.sleep(600); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }
         }
         return null;
