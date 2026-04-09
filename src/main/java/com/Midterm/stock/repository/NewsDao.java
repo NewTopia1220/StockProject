@@ -283,16 +283,13 @@ public class NewsDao {
         Map<String, Object> r = new HashMap<>();
         r.put("totalCount", 0); r.put("avgTypeProb", 0.0);
         r.put("avgClickbaitProb", 0.0); r.put("positiveCount", 0);
-        r.put("negativeCount", 0); r.put("neutralCount", 0);
 
         String where1 = buildWhere(sector, keyword, "1");
         String where2 = buildWhere(sector, keyword, "2");
         String sql =
             "SELECT COUNT(*) as tc, ROUND(AVG(type_prob),1) as atp, " +
             "       ROUND(AVG(clickbait_prob),1) as acp, " +
-            "       SUM(CASE WHEN sentiment='호재' THEN 1 ELSE 0 END) as pos, " +
-            "       SUM(CASE WHEN sentiment='악재' THEN 1 ELSE 0 END) as neg, " +
-            "       SUM(CASE WHEN sentiment='중립' THEN 1 ELSE 0 END) as neu " +
+            "       SUM(CASE WHEN sentiment='호재' THEN 1 ELSE 0 END) as pos " +
             "FROM (SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA " + where1 +
             "      UNION ALL SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA_SEC " + where2 + ")";
 
@@ -307,8 +304,6 @@ public class NewsDao {
                     r.put("avgTypeProb",     rs.getDouble("atp"));
                     r.put("avgClickbaitProb",rs.getDouble("acp"));
                     r.put("positiveCount",   rs.getInt("pos"));
-                    r.put("negativeCount",   rs.getInt("neg"));
-                    r.put("neutralCount",    rs.getInt("neu"));
                 }
             }
         } catch (SQLException e) { System.err.println("getSidebarAnalysis: " + e.getMessage()); }
