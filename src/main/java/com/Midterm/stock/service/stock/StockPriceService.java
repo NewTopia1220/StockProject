@@ -11,6 +11,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 주식 시세/지수/순위 서비스
@@ -24,10 +26,28 @@ public class StockPriceService {
 
     private final KisApiService kisApi;
 
+    // ── TTL 캐시 ─────────────────────────────────────────────
+    // 현재가: 5초, 순위/지수: 30초 캐싱 → KIS API 호출 횟수 대폭 감소
+    private static final long PRICE_TTL_MS  = 5_000L;   // 5초
+    private static final long RANK_TTL_MS   = 30_000L;  // 30초
+    private static final long INDEX_TTL_MS  = 30_000L;  // 30초
+
+    private record CacheEntry<T>(T data, long expireMs) {
+        boolean isExpired() { return System.currentTimeMillis() > expireMs; }
+    }
+
+    private final Map<String, CacheEntry<StockResponseDto>>       priceCache       = new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<List<StockResponseDto>>> rankCache        = new ConcurrentHashMap<>();
+    private volatile CacheEntry<StockResponseDto>                 kospiCache       = null;
+    private volatile CacheEntry<StockResponseDto>                 kosdaqCache      = null;
+
     // ── 종목 시세 ────────────────────────────────────────────
 
-    /** 현재가 조회 (현재가, 시가, 고가, 저가, 거래량) */
+    /** 현재가 조회 (5초 캐싱) */
     public StockResponseDto getCurrentPrice(String stockCode) {
+        CacheEntry<StockResponseDto> cached = priceCache.get(stockCode);
+        if (cached != null && !cached.isExpired()) return cached.data();
+
         kisApi.issueToken();
         StockResponseDto dto = new StockResponseDto();
         dto.setStockName(stockCode);
@@ -46,9 +66,15 @@ public class StockPriceService {
             dto.setHighPrice(o.get("stck_hgpr").asText());
             dto.setLowPrice(o.get("stck_lwpr").asText());
             dto.setVolume(o.get("acml_vol").asText());
+            dto.setChangeRate(o.get("prdy_ctrt").asText());
+            String vrssSign = o.path("prdy_vrss_sign").asText("3");
+            String vrss     = o.path("prdy_vrss").asText("0");
+            boolean negative = vrssSign.equals("4") || vrssSign.equals("5");
+            dto.setPriceChange(negative ? "-" + vrss : vrss);
         } catch (Exception e) {
             System.out.println("현재가 조회 실패 [" + stockCode + "]: " + e.getMessage());
         }
+        priceCache.put(stockCode, new CacheEntry<>(dto, System.currentTimeMillis() + PRICE_TTL_MS));
         return dto;
     }
 
@@ -115,8 +141,10 @@ public class StockPriceService {
 
     // ── 지수 ─────────────────────────────────────────────────
 
-    /** 코스피 현재 지수 */
+    /** 코스피 현재 지수 (30초 캐싱) */
     public StockResponseDto getKospiIndex() {
+        if (kospiCache != null && !kospiCache.isExpired()) return kospiCache.data();
+
         kisApi.issueToken();
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0"); dto.setChangeRate("0");
@@ -136,6 +164,7 @@ public class StockPriceService {
         } catch (Exception e) {
             System.out.println("코스피 조회 실패: " + e.getMessage());
         }
+        kospiCache = new CacheEntry<>(dto, System.currentTimeMillis() + INDEX_TTL_MS);
         return dto;
     }
 
@@ -161,8 +190,10 @@ public class StockPriceService {
         }
     }
 
-    /** 코스닥 현재 지수 */
+    /** 코스닥 현재 지수 (30초 캐싱) */
     public StockResponseDto getKosdaqIndex() {
+        if (kosdaqCache != null && !kosdaqCache.isExpired()) return kosdaqCache.data();
+
         kisApi.issueToken();
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0"); dto.setPriceChange("0"); dto.setChangeRate("0");
@@ -180,13 +211,17 @@ public class StockPriceService {
         } catch (Exception e) {
             System.out.println("코스닥 조회 실패: " + e.getMessage());
         }
+        kosdaqCache = new CacheEntry<>(dto, System.currentTimeMillis() + INDEX_TTL_MS);
         return dto;
     }
 
     // ── 순위 ─────────────────────────────────────────────────
 
-    /** 등락률 상위 10개 종목 (거래량 10만 이상) */
+    /** 등락률 상위 20개 종목 (30초 캐싱) */
     public List<StockResponseDto> getTopFluctuation() {
+        CacheEntry<List<StockResponseDto>> cached = rankCache.get("fluctuation");
+        if (cached != null && !cached.isExpired()) return cached.data();
+
         kisApi.issueToken();
         List<StockResponseDto> result = new ArrayList<>();
         try {
@@ -197,7 +232,7 @@ public class StockPriceService {
                     .queryParam("fid_cond_scr_div_code", "20170")
                     .queryParam("fid_input_iscd", "0000")
                     .queryParam("fid_rank_sort_cls_code", "0")
-                    .queryParam("fid_input_cnt_1", "10")
+                    .queryParam("fid_input_cnt_1", "20")
                     .queryParam("fid_prc_cls_code", "0")
                     .queryParam("fid_input_price_1", "0")
                     .queryParam("fid_input_price_2", "1000000")
@@ -210,16 +245,96 @@ public class StockPriceService {
             if (response == null || response.get("output") == null) return result;
             for (JsonNode item : response.get("output")) {
                 StockResponseDto dto = new StockResponseDto();
+                dto.setStockCode(item.get("stck_shrn_iscd").asText());
                 dto.setStockName(item.get("hts_kor_isnm").asText());
                 dto.setCurrentPrice(item.get("stck_prpr").asText());
                 dto.setChangeRate(item.get("prdy_ctrt").asText());
                 dto.setPriceChange(item.get("prdy_vrss").asText());
+                dto.setVolume(item.get("acml_vol").asText());
+                // 거래대금 (만원 단위)
+                if (item.has("acml_tr_pbmn")) dto.setTradeAmount(item.get("acml_tr_pbmn").asText());
                 result.add(dto);
             }
         } catch (Exception e) {
             System.out.println("등락률 순위 조회 실패: " + e.getMessage());
         }
+        if (!result.isEmpty()) rankCache.put("fluctuation", new CacheEntry<>(result, System.currentTimeMillis() + RANK_TTL_MS));
         return result;
+    }
+
+    // ── 거래대금 순위 ─────────────────────────────────────────
+
+    /**
+     * 거래대금 상위 20개 종목 (30초 캐싱)
+     * - fid_trgt_exls_cls_code: 우선주(index 3)·ETF(index 9) API 레벨 제외
+     * - 서버 레벨: 이름/코드 패턴으로 우선주 추가 필터
+     */
+    public List<StockResponseDto> getTopByTradeAmount() {
+        CacheEntry<List<StockResponseDto>> cached = rankCache.get("trade");
+        if (cached != null && !cached.isExpired()) return cached.data();
+
+        kisApi.issueToken();
+        List<StockResponseDto> result = new ArrayList<>();
+        try {
+            JsonNode response = kisApi.get(uriBuilder -> uriBuilder
+                    .path("/uapi/domestic-stock/v1/quotations/volume-rank")
+                    .queryParam("fid_cond_mrkt_div_code", "J")
+                    .queryParam("fid_cond_scr_div_code", "20171")
+                    .queryParam("fid_input_iscd", "0000")
+                    .queryParam("fid_div_cls_code", "2")           // 거래대금 기준
+                    .queryParam("fid_blng_cls_code", "0")
+                    .queryParam("fid_trgt_cls_code", "111111111")
+                    .queryParam("fid_trgt_exls_cls_code", "0001000001") // 우선주(3)·ETF(9) 제외
+                    .queryParam("fid_input_price_1", "")
+                    .queryParam("fid_input_price_2", "")
+                    .queryParam("fid_vol_cnt", "0")
+                    .queryParam("fid_input_date_1", "")
+                    .build(), "FHPST01710000");
+
+            if (response == null || response.get("output") == null) {
+                System.out.println("거래대금 API 응답 없음");
+                return result;
+            }
+            for (JsonNode item : response.get("output")) {
+                StockResponseDto dto = new StockResponseDto();
+                String code = item.has("mksc_shrn_iscd")
+                        ? item.get("mksc_shrn_iscd").asText()
+                        : item.get("stck_shrn_iscd").asText();
+                dto.setStockCode(code);
+                dto.setStockName(item.get("hts_kor_isnm").asText());
+                dto.setCurrentPrice(item.get("stck_prpr").asText());
+                dto.setChangeRate(item.get("prdy_ctrt").asText());
+                dto.setPriceChange(item.get("prdy_vrss").asText());
+                dto.setVolume(item.get("acml_vol").asText());
+                if (item.has("acml_tr_pbmn")) dto.setTradeAmount(item.get("acml_tr_pbmn").asText());
+                result.add(dto);
+            }
+            System.out.println("거래대금 순위 원본: " + result.size() + "개");
+        } catch (Exception e) {
+            System.out.println("거래대금 순위 조회 실패: " + e.getMessage());
+        }
+
+        // 서버 레벨 우선주 추가 필터
+        // - 이름이 "우", "우B", "우C"로 끝나는 종목
+        // - 코드 마지막 자리가 5 (한국 우선주 코드 패턴: 005935, 005385 등)
+        // - 코드에 알파벳 포함 (ETF/특수 종목: 00680K 등)
+        List<StockResponseDto> filtered = result.stream()
+                .filter(dto -> {
+                    String name = dto.getStockName() != null ? dto.getStockName() : "";
+                    String code = dto.getStockCode() != null ? dto.getStockCode() : "";
+                    boolean prefByName = name.endsWith("우") || name.endsWith("우B") || name.endsWith("우C");
+                    boolean prefByCode = code.length() == 6 && code.charAt(5) == '5';
+                    boolean isSpecial  = !code.matches("\\d{6}");
+                    return !prefByName && !prefByCode && !isSpecial;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        System.out.println("거래대금 순위 (우선주 제외 후): " + filtered.size() + "개");
+
+        // 필터 결과가 비어도 캐시에 저장 (반복 API 호출 방지)
+        List<StockResponseDto> finalResult = filtered.isEmpty() ? result : filtered;
+        if (!finalResult.isEmpty()) rankCache.put("trade", new CacheEntry<>(finalResult, System.currentTimeMillis() + RANK_TTL_MS));
+        return finalResult;
     }
 
     // ── 차트 파싱 헬퍼 ───────────────────────────────────────

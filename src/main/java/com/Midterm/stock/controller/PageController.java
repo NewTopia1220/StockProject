@@ -1,5 +1,7 @@
 package com.Midterm.stock.controller;
 
+import com.Midterm.stock.dto.StockResponseDto;
+import com.Midterm.stock.service.WatchListService;
 import com.Midterm.stock.service.stock.StockPriceService;
 import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.NewsDao;
@@ -9,6 +11,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.*;
@@ -47,6 +50,7 @@ public class PageController {
 
     @Autowired private UserDao userDao;
     @Autowired private NewsDao newsDao;
+    @Autowired private WatchListService watchListService;
 
     @GetMapping("/login")    public String loginPage()    { return "login"; }
     @GetMapping("/register") public String registerPage() { return "register"; }
@@ -62,6 +66,8 @@ public class PageController {
      *
      * @param code 초기 표시 종목코드 (기본값: 005930 삼성전자)
      */
+
+
     @GetMapping("/stock")
     public String stockPage(@RequestParam(defaultValue = "005930") String code,
                             HttpSession session, Model model) {
@@ -166,6 +172,39 @@ public class PageController {
             if (dn.contains(kn) || kn.contains(dn)) return e.getValue();
         }
         return null;
+    }
+
+    // ── 종목 리스트 페이지 ────────────────────────────────────
+
+    /**
+     * 거래대금 상위 20종목 리스트
+     * GET /market
+     */
+    @GetMapping("/market")
+    public String marketPage(HttpSession session, Model model) {
+        if (session.getAttribute("loginUser") == null) return "redirect:/login";
+        model.addAttribute("currentPage", "market");
+        return "market";  // 데이터는 JS에서 /api/stock/top-trade 로 비동기 로딩
+    }
+
+    /**
+     * 종목 상세 페이지
+     * GET /market/{code}
+     */
+    @GetMapping("/market/{code}")
+    public String marketDetailPage(@PathVariable String code,
+                                   HttpSession session, Model model) {
+        if (session.getAttribute("loginUser") == null) return "redirect:/login";
+
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        StockResponseDto stockInfo = stockPriceService.getCurrentPrice(code);
+        boolean watching = loginNum != null && watchListService.isWatching(loginNum, code);
+
+        model.addAttribute("stockInfo", stockInfo);
+        model.addAttribute("stockCode", code);
+        model.addAttribute("watching", watching);
+        model.addAttribute("currentPage", "market");
+        return "marketDetail";
     }
 
     // 마이페이지
