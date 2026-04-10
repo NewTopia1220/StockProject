@@ -314,10 +314,10 @@ async function initMainChart() {
 
                 // 2. 두께 설정
                 // intraday일 때 기존 6에서 10~12 정도로 키우면 훨씬 묵직하게 보입니다.
-                pointWidth: isIntraday ? 10 : undefined,
+                pointWidth: isIntraday ? 12 : undefined,
 
                 // 3. 테두리 두께 (캔들이 너무 얇을 때 효과적)
-                lineWidth: 2,
+                lineWidth: 5,
 
                 dataGrouping: { enabled: false }
             } : {

@@ -411,8 +411,11 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         data: ohlc,
         color: '#3b82f6', upColor: '#ef4444',
         lineColor: '#3b82f6', upLineColor: '#ef4444',
-        lineWidth: tab === 'minute' ? 2 : 1,
-        pointWidth: tab === 'time' ? 8 : tab === 'minute' ? 4 : undefined,
+
+        lineWidth: 5,
+
+        // 캔들 몸통 너비 (굵기)
+        pointWidth: isIntraday ? (tab === 'time' ? 12 : 6) : undefined,
         dataGrouping: { enabled: false }
     } : {
         type: 'line', name,

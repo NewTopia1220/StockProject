@@ -118,12 +118,16 @@ public class StockPriceService {
     public StockChartDto getTimePrice(String stockCode) {
         kisApi.issueToken();
         List<JsonNode> allItems = new ArrayList<>();
-        // 현재 시간 사용 (장마감 이후면 15:30 고정)
+
         String nowTime = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
         String hourParam = nowTime.compareTo("153000") > 0 ? "153000" : nowTime;
 
         try {
-            for (int call = 0; call < 25; call++) {
+            int callCount = 0;
+            int retryCount = 0; // 무한 루프 방지용
+
+            // for문 대신 while문 사용 (에러 시 카운트를 올리지 않기 위함)
+            while (callCount < 10 && retryCount < 5) {
                 final String hp = hourParam;
                 JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
@@ -134,7 +138,16 @@ public class StockPriceService {
                         .queryParam("FID_PW_DATA_INCU_YN", "Y")
                         .build(), "FHKST03010200");
 
+                // KIS API는 에러 발생 시 rt_cd 값이 "1"로 옵니다. (주로 TPS 초과)
+                if (response != null && "1".equals(response.path("rt_cd").asText())) {
+                    System.out.println("TPS 제한 도달, 재시도 대기...");
+                    Thread.sleep(100); // 에러가 났을 때만 0.1초 대기
+                    retryCount++;
+                    continue; // callCount를 올리지 않고 현재 시간으로 다시 요청!
+                }
+
                 if (response == null || response.get("output2") == null) break;
+
                 JsonNode output2 = response.get("output2");
                 if (!output2.isArray() || output2.size() == 0) break;
 
@@ -142,12 +155,14 @@ public class StockPriceService {
                 output2.forEach(batch::add);
                 allItems.addAll(batch);
 
-                // 배치 맨 마지막(가장 오래된) 시간 확인
-                String oldestTime = batch.get(batch.size() - 1)
-                        .path("stck_cntg_hour").asText("090000");
+                String oldestTime = batch.get(batch.size() - 1).path("stck_cntg_hour").asText("090000");
                 if (oldestTime.compareTo("090000") <= 0) break;
+
                 hourParam = oldestTime;
-                Thread.sleep(100);
+                callCount++; // 성공했을 때만 카운트 증가
+
+                // 성공했을 때는 sleep을 하지 않거나 아주 짧게(10ms)만 줍니다.
+                // Thread.sleep(10);
             }
         } catch (InterruptedException ie) {
             Thread.currentThread().interrupt();
@@ -156,7 +171,7 @@ public class StockPriceService {
         }
 
         if (allItems.isEmpty()) return emptyChart();
-        Collections.reverse(allItems); // 오래된 것부터 순서로
+        Collections.reverse(allItems);
         return parseHourlyChart(allItems);
     }
 
