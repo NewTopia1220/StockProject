@@ -20,7 +20,6 @@
 
                 <h1 class="postTitle" th:text="${dto.title}">제목</h1>
 
-                <!-- 태그 영역 -->
                 <div th:if="${dto.tagNames != null and !#strings.isEmpty(dto.tagNames)}" class="detailTags">
                     <div class="detailTagList">
                         <span class="detailTag"
@@ -32,10 +31,10 @@
                 <div class="postWriterRow">
                     <div class="writerInfo">
                         <div class="writerAvatar"
-                             th:text="${#strings.substring(dto.userName, 0, 1)}">이</div>
+                             th:text="${#strings.substring(dto.displayName, 0, 1)}">y</div>
 
                         <div class="writerMeta">
-                            <strong th:text="${dto.userName}">이윤희</strong>
+                            <strong th:text="${dto.displayName}">ya</strong>
                             <span th:text="${#dates.format(dto.created_at, 'yyyy-MM-dd HH:mm') + ' · 조회 ' + dto.view_count}">
                                 2026-04-07 01:43 · 조회 45
                             </span>
@@ -44,13 +43,11 @@
 
                     <div class="postActionButtons">
                         <div class="moreMenuWrap">
-                            <!-- 더보기 메뉴 열기 버튼 -->
                             <button type="button" class="moreMenuButton" onclick="toggleMoreMenu()">
                                 ⋮
                             </button>
 
                             <div class="moreMenuDropdown" id="moreMenuDropdown">
-                                <!-- 작성자 본인일 때만 수정 버튼 활성화 -->
                                 <button type="button"
                                         class="moreMenuItem"
                                         th:if="${isOwner}"
@@ -58,12 +55,10 @@
                                     수정하기
                                 </button>
 
-                                <!-- 작성자가 아니면 수정 버튼 비활성화 -->
                                 <button type="button" class="moreMenuItem disabled" th:if="${!isOwner}" disabled>
                                     수정하기
                                 </button>
 
-                                <!-- 작성자 본인일 때만 삭제 버튼 활성화 -->
                                 <form th:if="${isOwner}"
                                       th:action="@{/community/delete}" method="post"
                                       onsubmit="return confirm('정말 삭제하시겠습니까?');">
@@ -71,17 +66,14 @@
                                     <button type="submit" class="moreMenuItem danger">삭제하기</button>
                                 </form>
 
-                                <!-- 작성자가 아니면 삭제 버튼 비활성화 -->
                                 <button type="button" class="moreMenuItem disabled" th:if="${!isOwner}" disabled>
                                     삭제하기
                                 </button>
 
-                                <!-- 작성자 본인은 자기 글을 신고할 수 없도록 비활성화 -->
                                 <button type="button" class="moreMenuItem disabled" th:if="${isOwner}" disabled>
                                     신고하기
                                 </button>
 
-                                <!-- 작성자가 아니면 신고 버튼 활성화 -->
                                 <button type="button" class="moreMenuItem" th:if="${!isOwner}">
                                     신고하기
                                 </button>
@@ -99,7 +91,6 @@
                     </div>
                 </div>
 
-                <!-- 관련 뉴스  -->
                 <div class="relatedNewsInline" th:if="${relatedNewsTitle != null}">
                     <span class="relatedNewsLabel">관련 뉴스</span>
                     <a th:href="${dto.news_link}" target="_blank" th:text="${relatedNewsTitle}">뉴스 제목</a>
@@ -115,8 +106,6 @@
                 </div>
             </section>
 
-            <!-- 댓글 부분 -->
-
             <section class="commentCard">
                 <h2 class="commentTitle" th:text="'댓글 ' + ${commentCount} + '개'">댓글 0개</h2>
 
@@ -124,7 +113,7 @@
                     <input type="hidden" name="board_id" th:value="${dto.board_id}">
 
                     <div class="commentAvatar"
-                         th:text="${session.loginUser != null ? #strings.substring(#strings.arraySplit(session.loginUser, '@')[0], 0, 1) : '이'}">이</div>
+                         th:text="${session.loginUser != null ? #strings.substring(#strings.arraySplit(session.loginUser, '@')[0], 0, 1) : 'y'}">y</div>
 
                     <div class="commentInputArea">
                         <textarea name="content" maxlength="1000" placeholder="댓글을 입력하세요..." required></textarea>
@@ -142,11 +131,11 @@
                 <div class="commentList" th:if="${commentCount > 0}">
                     <div class="commentItem" th:each="comment : ${comments}">
                         <div class="commentAvatar"
-                             th:text="${#strings.substring(comment.userName, 0, 1)}">이</div>
+                             th:text="${#strings.substring(comment.displayName, 0, 1)}">y</div>
 
                         <div class="commentBody">
                             <div class="commentMeta">
-                                <strong th:text="${comment.userName}">이윤희</strong>
+                                <strong th:text="${comment.displayName}">ya</strong>
                                 <span th:text="${#dates.format(comment.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-07 01:43</span>
                             </div>
                             <p class="commentText" th:text="${comment.content}">댓글 내용</p>
@@ -159,9 +148,9 @@
         <aside class="detailSide">
             <section class="sideCard profileCard">
                 <div class="profileTop">
-                    <div class="profileAvatar" th:text="${#strings.substring(dto.userName, 0, 1)}">이</div>
+                    <div class="profileAvatar" th:text="${#strings.substring(dto.displayName, 0, 1)}">y</div>
                     <div class="profileInfo">
-                        <strong th:text="${dto.userName}">이윤희</strong>
+                        <strong th:text="${dto.displayName}">ya</strong>
                         <span>커뮤니티 활동 중</span>
                     </div>
                 </div>

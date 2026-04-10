@@ -6,6 +6,7 @@ public class CommunityDto {
     private int board_id;
     private int user_num;
     private String userName;
+    private String userEmail;
     private String category;
     private String title;
     private String news_link;
@@ -14,7 +15,6 @@ public class CommunityDto {
     private int like_count;
     private Timestamp created_at;
     private Timestamp updated_at;
-
     private String tagNames;
 
     public int getBoard_id() {
@@ -39,6 +39,24 @@ public class CommunityDto {
 
     public void setUserName(String userName) {
         this.userName = userName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public String getDisplayName() {
+        if (userEmail != null && userEmail.contains("@")) {
+            return userEmail.substring(0, userEmail.indexOf('@'));
+        }
+        if (userName != null && !userName.isBlank()) {
+            return userName;
+        }
+        return "";
     }
 
     public String getCategory() {

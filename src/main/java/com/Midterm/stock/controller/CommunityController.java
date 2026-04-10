@@ -3,6 +3,10 @@ package com.Midterm.stock.controller;
 import com.Midterm.stock.dto.CommunityCommentDto;
 import com.Midterm.stock.dto.CommunityDto;
 
+// 헤더 알림이 STOCK_ALERT 테이블을 사용하므로, 알림 한 건을 만들기 위해
+import com.Midterm.stock.entity.StockAlert;
+// 알림을 DB에 저장하려면 Repository가 필요
+import com.Midterm.stock.repository.StockAlertRepository;
 import com.Midterm.stock.repository.community.CommunityBoardDao;
 import com.Midterm.stock.repository.community.CommunityCommentDao;
 import com.Midterm.stock.repository.community.CommunityLikeDao;
@@ -37,6 +41,10 @@ public class CommunityController {
 
     @Autowired
     private CommunityTagDao communityTagDao;
+
+    @Autowired
+    private StockAlertRepository stockAlertRepository;
+
 
     // 게시글 목록
     @GetMapping({"", "/"})
@@ -244,9 +252,44 @@ public class CommunityController {
             return "redirect:/login";
         }
 
+        // 댓글 달린 게시글 정보 조회
+        // 누구 글인지, 제목이 뭔지 알아야 알림 수신자와 문구 생성 가능
+        CommunityDto article = communityBoardDao.getArticle(board_id);
+
+        // 없으면 목록으로
+        if (article == null) {
+            return "redirect:/community";
+        }
+
+        // 공백만 있는 댓글 방지
         String trimmedContent = content == null ? "" : content.trim();
         if (!trimmedContent.isEmpty()) {
-            communityCommentDao.insertComment(board_id, loginNum, trimmedContent);
+            // 댓글 먼저 저장
+            int result = communityCommentDao.insertComment(board_id, loginNum, trimmedContent);
+
+            // 댓글 저장 성공   // 내가 내 글에 단 댓글이 아닐 때만 알림 생성
+            if (result > 0 && article.getUser_num() != loginNum) {
+                String commenterName = loginUser.contains("@")
+                        ? loginUser.substring(0, loginUser.indexOf('@'))
+                        : loginUser;
+
+                StockAlert alert = new StockAlert();
+                // 알림을 받을 사람 = 게시글 작성자
+                alert.setUserNum(article.getUser_num());
+                // 게시글 번호
+                alert.setStockCode(String.valueOf(board_id));
+                // 게시글 제목을 stockName에 저장
+                alert.setStockName(article.getTitle());
+                alert.setChangeRate(commenterName);
+                // 주식 알림과 구분하기 위한 타입값
+                alert.setAlertType("댓글");
+                // 기존 테이블 구조상 값이 필요해서 기본값 0 저장
+                alert.setPrice("0");
+                // 새 알림이므로 읽지 않음 상태로 저장
+                alert.setAlertRead(false);
+                // 실제 알림 DB 저장
+                stockAlertRepository.save(alert);
+            }
         }
 
         return "redirect:/community/detail?board_id=" + board_id;

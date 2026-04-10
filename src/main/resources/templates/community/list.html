@@ -207,7 +207,7 @@
 
                             <div class="boardBottom">
                                 <div class="boardMeta">
-                                    <span th:text="'작성자 ' + ${featured.userName}">작성자</span>
+                                    <span th:text="'작성자 ' + ${featured.displayName}">작성자</span>
                                     <span th:text="${#dates.format(featured.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-09 12:00</span>
                                 </div>
 
@@ -282,7 +282,7 @@
 
                         <div class="boardBottom">
                             <div class="boardMeta">
-                                <span th:text="'작성자 번호 ' + ${dto.user_num}">작성자 번호</span>
+                                <span th:text="'작성자 ' + ${dto.displayName}">작성자</span>
                                 <span th:text="${#dates.format(dto.created_at, 'yyyy-MM-dd HH:mm')}">2026-03-30 12:00</span>
                             </div>
 

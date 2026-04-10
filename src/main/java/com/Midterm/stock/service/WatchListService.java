@@ -79,6 +79,8 @@ public class WatchListService {
 
         List<Map<String, Object>> items = alerts.stream().map(a -> {
             Map<String, Object> m = new HashMap<>();
+            boolean isCommunityComment = "댓글".equals(a.getAlertType());
+
             m.put("id", a.getId());
             m.put("stockCode", a.getStockCode());
             m.put("stockName", a.getStockName());
@@ -87,6 +89,19 @@ public class WatchListService {
             m.put("price", a.getPrice());
             m.put("read", a.isAlertRead());
             m.put("createdAt", a.getCreatedAt().toString());
+
+            if (isCommunityComment) {
+                m.put("link", "/community/detail?board_id=" + a.getStockCode());
+                m.put("title", "내 게시글에 새 댓글");
+                m.put("message", a.getChangeRate() + "님이 '" + a.getStockName() + "' 게시글에 댓글을 남겼습니다.");
+            } else {
+                m.put("link", "/market/" + a.getStockCode());
+                m.put("title", a.getStockName());
+                m.put("message", (("상승".equals(a.getAlertType()) ? "▲ " : "▼ ")
+                        + a.getChangeRate() + "% " + a.getAlertType() + " · "
+                        + NumberFormatHelper.formatPrice(a.getPrice()) + "원"));
+            }
+
             return m;
         }).collect(Collectors.toList());
 
@@ -94,5 +109,15 @@ public class WatchListService {
         result.put("unreadCount", unread);
         result.put("alerts", items);
         return result;
+    }
+
+    static class NumberFormatHelper {
+        static String formatPrice(String price) {
+            try {
+                return String.format("%,d", Long.parseLong(price));
+            } catch (Exception e) {
+                return price == null ? "0" : price;
+            }
+        }
     }
 }

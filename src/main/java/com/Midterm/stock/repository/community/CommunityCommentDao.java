@@ -17,7 +17,6 @@ public class CommunityCommentDao {
     private PreparedStatement pstmt = null;
     private ResultSet rs = null;
 
-    // 생성자: 드라이버 로딩 및 지갑 설정
     public CommunityCommentDao() {
         System.out.println("CommunityCommentDao 생성자 호출 - 클라우드 설정 시작");
         try {
@@ -30,7 +29,6 @@ public class CommunityCommentDao {
         }
     }
 
-    // DB 연결
     public Connection connect() {
         try {
             conn = DriverManager.getConnection(url, id, pw);
@@ -42,11 +40,11 @@ public class CommunityCommentDao {
         return conn;
     }
 
-    // 댓글 목록 조회
     public ArrayList<CommunityCommentDto> getCommentsByBoardId(int board_id) {
         connect();
         ArrayList<CommunityCommentDto> comments = new ArrayList<>();
-        String sql = "select cc.comment_id, cc.board_id, cc.user_num, u.name as user_name, "
+        String sql = "select cc.comment_id, cc.board_id, cc.user_num, "
+                + "u.name as user_name, u.email as user_email, "
                 + "cc.content, cc.created_at, cc.updated_at "
                 + "from community_comment cc "
                 + "join users u on cc.user_num = u.num "
@@ -64,6 +62,7 @@ public class CommunityCommentDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setContent(rs.getString("content"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
@@ -78,7 +77,6 @@ public class CommunityCommentDao {
         return comments;
     }
 
-    // 댓글 등록
     public int insertComment(int board_id, int user_num, String content) {
         connect();
         int count = -1;
@@ -100,7 +98,6 @@ public class CommunityCommentDao {
         return count;
     }
 
-    // 특정 사용자의 댓글 수 조회
     public int getCommentCountByUserNum(int user_num) {
         connect();
         int count = 0;
@@ -123,7 +120,6 @@ public class CommunityCommentDao {
         return count;
     }
 
-    // 공통 자원 해제
     private void closeAll() {
         try {
             if (rs != null) rs.close();

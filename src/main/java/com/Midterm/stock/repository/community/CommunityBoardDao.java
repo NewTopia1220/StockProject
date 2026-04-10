@@ -21,7 +21,6 @@ public class CommunityBoardDao {
     @Autowired
     private CommunityTagDao communityTagDao;
 
-    // 생성자: 드라이버 로딩 및 지갑 설정
     public CommunityBoardDao() {
         System.out.println("CommunityBoardDao 생성자 호출 - 클라우드 설정 시작");
         try {
@@ -34,7 +33,6 @@ public class CommunityBoardDao {
         }
     }
 
-    // DB 연결
     public Connection connect() {
         try {
             conn = DriverManager.getConnection(url, id, pw);
@@ -46,14 +44,13 @@ public class CommunityBoardDao {
         return conn;
     }
 
-    // 전체 게시글 목록 조회
     public ArrayList<CommunityDto> getArticles(int start, int end) {
         connect();
 
         ArrayList<CommunityDto> lists = new ArrayList<>();
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
@@ -70,6 +67,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -89,14 +87,13 @@ public class CommunityBoardDao {
         return lists;
     }
 
-    // 카테고리별 게시글 목록 조회
     public ArrayList<CommunityDto> getArticlesByCategory(String category, int start, int end) {
         connect();
 
         ArrayList<CommunityDto> lists = new ArrayList<>();
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
@@ -115,6 +112,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -134,15 +132,13 @@ public class CommunityBoardDao {
         return lists;
     }
 
-    // 키워드 검색 목록 조회
-    // 제목, 내용, 태그까지 같이 검색
     public ArrayList<CommunityDto> searchArticles(String keyword, int start, int end) {
         connect();
         ArrayList<CommunityDto> lists = new ArrayList<>();
 
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
@@ -171,6 +167,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -190,15 +187,13 @@ public class CommunityBoardDao {
         return lists;
     }
 
-    // 카테고리 + 키워드 검색 목록 조회
-    // 제목, 내용, 태그까지 같이 검색
     public ArrayList<CommunityDto> getArticlesByCategoryAndKeyword(String category, String keyword, int start, int end) {
         connect();
         ArrayList<CommunityDto> lists = new ArrayList<>();
 
         String sql = "select * from ( "
                 + " select row_number() over(order by c.board_id desc) as rnum, "
-                + " c.board_id, c.user_num, u.name as user_name, "
+                + " c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
@@ -231,6 +226,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -251,7 +247,6 @@ public class CommunityBoardDao {
         return lists;
     }
 
-    // 전체 게시글 수 조회
     public int getArticleCount() {
         connect();
         int count = 0;
@@ -273,28 +268,22 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 전체 인기글 목록 조회
     public ArrayList<CommunityDto> getPopularArticles(int start, int end) {
         return getPopularArticles(null, null, start, end);
     }
 
-    // 인기글 키워드 검색 목록 조회
     public ArrayList<CommunityDto> searchPopularArticles(String keyword, int start, int end) {
         return getPopularArticles(null, keyword, start, end);
     }
 
-    // 전체 인기글 수 조회
     public int getPopularArticleCount() {
         return getPopularArticleCount(null, null);
     }
 
-    // 인기글 키워드 검색 게시글 수 조회
     public int getPopularArticleCountByKeyword(String keyword) {
         return getPopularArticleCount(null, keyword);
     }
 
-    // 인기글 통합 조회
-    // 테마 + 제목/내용 + 태그 검색
     public ArrayList<CommunityDto> getPopularArticles(String themeName, String keyword, int start, int end) {
         connect();
         ArrayList<CommunityDto> lists = new ArrayList<>();
@@ -302,7 +291,7 @@ public class CommunityBoardDao {
         StringBuilder sql = new StringBuilder(
                 "select * from ( "
                         + " select row_number() over(order by c.like_count desc, c.created_at desc, c.board_id desc) as rnum, "
-                        + " c.board_id, c.user_num, u.name as user_name, "
+                        + " c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                         + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                         + " from community_board c "
                         + " join users u on c.user_num = u.num "
@@ -354,6 +343,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -374,8 +364,6 @@ public class CommunityBoardDao {
         return lists;
     }
 
-    // 인기글 수 조회
-    // 테마 + 제목/내용 + 태그 검색
     public int getPopularArticleCount(String themeName, String keyword) {
         connect();
         int count = 0;
@@ -433,13 +421,12 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 메인 화면 추천글 조회
     public ArrayList<CommunityDto> getFeaturedArticles(int limit) {
         connect();
 
         ArrayList<CommunityDto> lists = new ArrayList<>();
         String sql = "select * from ( "
-                + " select c.board_id, c.user_num, u.name as user_name, "
+                + " select c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + " c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + " from community_board c "
                 + " join users u on c.user_num = u.num "
@@ -457,6 +444,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -477,7 +465,6 @@ public class CommunityBoardDao {
         return lists;
     }
 
-    // 카테고리별 게시글 수 조회
     public int getArticleCountByCategory(String category) {
         connect();
         int count = 0;
@@ -500,8 +487,6 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 키워드 검색 게시글 수 조회
-    // 제목, 내용, 태그까지 같이 검색
     public int getArticleCountByKeyword(String keyword) {
         connect();
         int count = 0;
@@ -537,8 +522,6 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 카테고리 + 키워드 검색 게시글 수 조회
-    // 제목, 내용, 태그까지 같이 검색
     public int getArticleCountByCategoryAndKeyword(String category, String keyword) {
         connect();
         int count = 0;
@@ -578,8 +561,6 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 게시글 작성
-    // 게시글 저장 후 태그도 같이 저장
     public int insertArticle(CommunityDto dto) {
         connect();
         int count = -1;
@@ -622,12 +603,10 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 게시글 상세 조회
-    // 태그 문자열도 같이 세팅
     public CommunityDto getArticle(int board_id) {
         connect();
         CommunityDto dto = null;
-        String sql = "select c.board_id, c.user_num, u.name as user_name, "
+        String sql = "select c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + "c.category, c.title, c.content, c.news_link, c.view_count, c.like_count, c.created_at, c.updated_at "
                 + "from community_board c "
                 + "join users u on c.user_num = u.num "
@@ -643,6 +622,7 @@ public class CommunityBoardDao {
                 dto.setBoard_id(rs.getInt("board_id"));
                 dto.setUser_num(rs.getInt("user_num"));
                 dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
                 dto.setCategory(rs.getString("category"));
                 dto.setTitle(rs.getString("title"));
                 dto.setNews_link(rs.getString("news_link"));
@@ -661,7 +641,6 @@ public class CommunityBoardDao {
         return dto;
     }
 
-    // 조회수 증가
     public void updateViewcount(int board_id) {
         connect();
         String sql = "update community_board set view_count = view_count + 1 where board_id = ?";
@@ -676,8 +655,6 @@ public class CommunityBoardDao {
         }
     }
 
-    // 게시글 수정
-    // 수정 후 태그를 다시 저장
     public int updateArticle(CommunityDto dto) {
         connect();
         int count = -1;
@@ -705,8 +682,6 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 게시글 삭제
-    // 삭제 전에 태그 매핑도 같이 삭제
     public int deleteArticle(int board_id) {
         connect();
         int count = -1;
@@ -726,7 +701,6 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 특정 사용자의 게시글 수 조회
     public int getArticleCountByUserNum(int user_num) {
         connect();
         int count = 0;
@@ -749,7 +723,6 @@ public class CommunityBoardDao {
         return count;
     }
 
-    // 공통 자원 해제
     private void closeAll() {
         try {
             if (rs != null) rs.close();
@@ -760,4 +733,3 @@ public class CommunityBoardDao {
         }
     }
 }
-
