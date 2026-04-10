@@ -204,6 +204,9 @@ async function initMainChart() {
 
     try {
     mainChart = Highcharts.stockChart('mainChart', {
+        time: {
+            useUTC: false
+        },
         chart: {
             backgroundColor: '#fff',
             style: { fontFamily: 'inherit' },
@@ -246,7 +249,10 @@ async function initMainChart() {
             }
         },
         xAxis: {
-            type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb',
+            type: 'datetime',
+            ordinal: false, // 데이터 사이의 시간 간격을 실제 시간대로 표시
+            lineColor: '#e5e7eb',
+            tickColor: '#e5e7eb',
             dateTimeLabelFormats: isIntraday
                 ? { minute: '%H:%M', hour: '%H:%M' }
                 : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
@@ -293,12 +299,25 @@ async function initMainChart() {
 
 function stockDateToTs(s) {
     if (!s) return 0;
+
+    // 1. 시간 형식 (예: "14:10") 처리
     if (s.includes(':')) {
         const [h, m] = s.split(':').map(Number);
-        const d = new Date();
-        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), h, m) - 9 * 3600000;
+        const now = new Date();
+        // 현재 날짜의 '로컬' 시/분으로 설정 (Date.UTC 사용 금지)
+        return new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m, 0, 0).getTime();
     }
-    return Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8));
+
+    // 2. 일별 형식 (예: "20260409") 처리
+    if (s.length === 8) {
+        const y = +s.slice(0, 4);
+        const m = +s.slice(4, 6) - 1; // 월은 0부터 시작
+        const d = +s.slice(6, 8);
+        // 해당 날짜의 00시 00분 '로컬' 타임스탬프 생성
+        return new Date(y, m, d, 0, 0, 0, 0).getTime();
+    }
+
+    return 0;
 }
 
 /* ── 게이지 애니메이션 ── */
@@ -467,7 +486,8 @@ async function updateExchange() {
 async function updateTopStocks() {
     try {
         const res = await fetch('/api/stock/top-fluctuation');
-        const stocks = await res.json();
+        const getAllStocks = await res.json();
+        const stocks = getAllStocks.slice(0, 15);
         if (!stocks || stocks.length === 0) return;
 
         // 티커 아이템 HTML 생성

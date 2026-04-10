@@ -336,15 +336,26 @@ async function updatePanelPrice() {
 // ── Highcharts 공통 유틸 ────────────────────────────────
 
 /** "YYYYMMDD" → UTC timestamp */
+/** "YYYYMMDD" 또는 "HH:mm" → 로컬 타임스탬프 */
 function dateStrToTs(s) {
     if (!s) return 0;
+
+    // 시간 형식 (예: "14:10") 처리
     if (s.includes(':')) {
-        // "HH:mm" → 오늘 날짜 + 시간 (KST → UTC)
         const [h, m] = s.split(':').map(Number);
         const d = new Date();
-        return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate(), h, m) - 9 * 3600000;
+        // 핵심: 수동 계산(-9시간) 없이 로컬 시/분으로 생성
+        return new Date(d.getFullYear(), d.getMonth(), d.getDate(), h, m, 0, 0).getTime();
     }
-    return Date.UTC(+s.slice(0,4), +s.slice(4,6)-1, +s.slice(6,8));
+
+    // 일별 형식 (예: "20260409") 처리
+    if (s.length === 8) {
+        const y = +s.slice(0, 4);
+        const m = +s.slice(4, 6) - 1;
+        const d = +s.slice(6, 8);
+        return new Date(y, m, d, 0, 0, 0, 0).getTime();
+    }
+    return 0;
 }
 
 /** OHLCV 배열 빌드 */
@@ -367,37 +378,68 @@ function buildOhlcv(data) {
 /** Highcharts 공통 옵션
  * @param tab 'daily' | 'time' | 'minute'  → tooltip/rangeSelector 포맷 결정
  */
+/** Highcharts 공통 옵션
+ * @param tab 'daily' | 'time' | 'minute'
+ */
 function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
     const isIntraday = (tab === 'time' || tab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
-    // 일별: 1개월/3개월/전체  |  장중: rangeSelector 끔
-    const rangeSelector = compact || isIntraday
-        ? { enabled: false }
-        : {
+    // ── 장중(time, minute)인 경우 Area 차트 스타일 정의 ──
+    // 요청하신 USD/EUR 스타일 그라데이션 적용
+    const areaStyle = {
+        type: 'area',
+        name: name,
+        data: ohlc, // 분별/시간별은 [ts, price] 형태의 데이터 사용
+        color: {
+            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+            stops: [
+                [0, 'rgb(199, 113, 243)'], // 상단 보라
+                [0.7, 'rgb(76, 175, 254)'] // 하단 파랑
+            ]
+        },
+        lineWidth: 2,
+        fillOpacity: 0.3,
+        threshold: null,
+        marker: { enabled: false, radius: 2, states: { hover: { enabled: true } } }
+    };
+
+    // ── 일별(daily)인 경우 기존 캔들스틱 스타일 정의 ──
+    const candleStyle = hasOhlc ? {
+        type: 'candlestick',
+        name: name,
+        data: ohlc,
+        color: '#3b82f6',    upColor: '#ef4444',
+        lineColor: '#3b82f6', upLineColor: '#ef4444',
+        dataGrouping: { enabled: false }
+    } : {
+        type: 'line',
+        name: name,
+        data: ohlc,
+        color: '#0E0F37',
+        lineWidth: 2,
+        marker: { enabled: false }
+    };
+
+    return {
+        time: { useUTC: false },
+        chart: {
+            backgroundColor: '#fff',
+            style: { fontFamily: 'inherit' },
+            animation: false,
+            height: compact ? 220 : 340,
+            zooming: { type: 'x' } // 요청하신 줌 기능 추가
+        },
+        credits: { enabled: false },
+        rangeSelector: (compact || isIntraday) ? { enabled: false } : {
             selected: 1,
             inputEnabled: false,
             buttons: [
                 { type: 'month', count: 1, text: '1개월' },
                 { type: 'month', count: 3, text: '3개월' },
-                { type: 'all',              text: '전체'   }
-            ],
-            buttonTheme: {
-                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
-                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
-                states: { select: { fill: '#0E0F37', style: { color: '#fff' } } }
-            }
-        };
-
-    return {
-        chart: {
-            backgroundColor: '#fff',
-            style: { fontFamily: 'inherit' },
-            animation: false,
-            height: compact ? 220 : 340   // 명시적 높이 필수
+                { type: 'all', text: '전체' }
+            ]
         },
-        credits: { enabled: false },
-        rangeSelector,
         navigator: { enabled: !compact && !isIntraday },
         scrollbar: { enabled: false },
         tooltip: {
@@ -413,7 +455,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                     } else if (p.series.type === 'column') {
                         s += `거래량 ${p.y?.toLocaleString()}<br/>`;
                     } else {
-                        s += `${p.y?.toLocaleString()}원<br/>`;
+                        s += `현재가 <b>${p.y?.toLocaleString()}</b>원<br/>`;
                     }
                 });
                 return s;
@@ -421,50 +463,35 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         },
         xAxis: {
             type: 'datetime',
-            lineColor: '#e5e7eb', tickColor: '#e5e7eb',
+            lineColor: '#e5e7eb',
+            tickColor: '#e5e7eb',
             dateTimeLabelFormats: isIntraday
                 ? { minute: '%H:%M', hour: '%H:%M' }
                 : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
         },
         yAxis: [{
-            labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
-                      formatter: function() { return this.value.toLocaleString(); } },
+            labels: { align: 'left', style: { fontSize: '10px' }, formatter: function() { return this.value.toLocaleString(); } },
             height: '72%',
-            gridLineColor: '#f3f4f6',
-            resize: { enabled: !compact }
+            gridLineColor: '#f3f4f6'
         }, {
-            labels: { align: 'left', style: { color: '#9ca3af', fontSize: '10px' } },
+            labels: { enabled: false }, // 거래량 라벨 숨김 (깔끔하게)
             top: '72%', height: '28%', offset: 0,
             gridLineColor: '#f9fafb'
         }],
+        // [핵심] 장중이면 areaStyle, 일별이면 candleStyle 적용
         series: [
-            hasOhlc ? {
-                type: 'candlestick', name,
-                data: ohlc,
-                color: '#3b82f6',    upColor: '#ef4444',
-                lineColor: '#3b82f6', upLineColor: '#ef4444',
-                dataGrouping: { enabled: false }
-            } : {
-                type: 'line', name,
-                data: ohlc,
-                color: '#0E0F37', lineWidth: 2,
-                marker: { enabled: false },
-                dataGrouping: { enabled: false }
-            },
+            (isIntraday ? areaStyle : candleStyle),
             {
-                type: 'column', name: '거래량',
-                data: vol, yAxis: 1,
+                type: 'column',
+                name: '거래량',
+                data: vol,
+                yAxis: 1,
                 color: '#e5e7eb',
                 dataGrouping: { enabled: false }
             }
-        ],
-        responsive: {
-            rules: [{ condition: { maxWidth: 500 },
-                chartOptions: { rangeSelector: { inputEnabled: false } } }]
-        }
+        ]
     };
 }
-
 // ── 패널 차트 (market 페이지 오른쪽 패널) ────────────────
 
 async function initPanelChart() {

@@ -105,7 +105,11 @@ public class PageController {
             } else if (negScore >= 60) {
                 sentimentLabel = "부정"; statusBadge = "약세";
                 analysisDesc = "현재 시장은 부정적인 흐름입니다. 악재성 뉴스가 많아 신중한 접근이 필요합니다.";
-            } else if (noiseProb >= 50) {
+            }else{
+                analysisDesc = "현재 시장은 중립적인 상태입니다. 시장의 방향성이 결정될 때까지 신중한 접근이 필요합니다.";
+            }
+
+            if (noiseProb >= 50) {
                 statusBadge = "주의";
                 analysisDesc = "정보 노이즈(낚시성 기사)가 높게 감지됩니다. 투자 정보를 신중히 선별하세요.";
             }
