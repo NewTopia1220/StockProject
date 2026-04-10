@@ -26,7 +26,7 @@ public class PageController {
     private static final List<String[]> FIXED_SECTORS = Arrays.asList(
         new String[]{"IT/반도체",      "반도체·AI"},
         new String[]{"2차전지",         "2차전지"},
-        new String[]{"바이오",          "제약·바이오"},
+        new String[]{"제약/바이오",          "제약·바이오"},
         new String[]{"자동차/모빌리티", "자동차·모빌리티"},
         new String[]{"IT/플랫폼",       "IT·플랫폼"},
         new String[]{"금융/밸류업",     "금융·밸류업"},

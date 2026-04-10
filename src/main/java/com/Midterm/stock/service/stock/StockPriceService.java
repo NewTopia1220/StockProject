@@ -73,8 +73,10 @@ public class StockPriceService {
             String vrss     = o.path("prdy_vrss").asText("0");
             if (vrss.isBlank()) vrss = "0";
             boolean negative = vrssSign.equals("4") || vrssSign.equals("5");
-            // prdy_vrss가 0인데 등락률은 있는 경우 → 현재가×등락률로 역산
-            if (vrss.equals("0")) {
+            // prdy_vrss가 0(또는 0.00 등)이고 등락률이 있으면 현재가×등락률로 역산
+            double vrssNum;
+            try { vrssNum = Double.parseDouble(vrss); } catch (Exception e) { vrssNum = 0.0; }
+            if (vrssNum == 0.0) {
                 try {
                     double cp = Double.parseDouble(o.get("stck_prpr").asText("0"));
                     double cr = Double.parseDouble(changeRateStr) / 100.0;
@@ -403,9 +405,7 @@ public class StockPriceService {
         for (JsonNode item : items) {
             String raw = item.get("stck_cntg_hour").asText();
             int hh  = parseIntSafe(raw.substring(0, 2));
-            int mm  = parseIntSafe(raw.substring(2, 4));
-            int mm5 = (mm / 5) * 5; // 5분 단위로 내림 (0,5,10,15...)
-            String key = String.format("%02d:%02d", hh, mm5);
+            String key = String.format("%02d:00", hh); // 1시간 단위 버킷
             int price = parseIntSafe(item.get("stck_prpr").asText("0"));
             int vol   = parseIntSafe(item.get("cntg_vol").asText("0"));
             priceGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(price);

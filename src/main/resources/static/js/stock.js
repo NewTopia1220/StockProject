@@ -1,3 +1,7 @@
+// Highcharts 전역 로컬 시간 설정
+if (typeof Highcharts !== 'undefined') {
+    Highcharts.setOptions({ time: { useUTC: false } });
+}
 
 // 지수/종목 폴링 : 5초
 // 등락률 순위 : 30초
@@ -248,15 +252,26 @@ async function initMainChart() {
                 return s;
             }
         },
-        xAxis: {
-            type: 'datetime',
-            ordinal: false, // 데이터 사이의 시간 간격을 실제 시간대로 표시
-            lineColor: '#e5e7eb',
-            tickColor: '#e5e7eb',
-            dateTimeLabelFormats: isIntraday
-                ? { minute: '%H:%M', hour: '%H:%M' }
-                : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
-        },
+        xAxis: (() => {
+            const base = { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' };
+            if (currentTab === 'daily') {
+                return { ...base, ordinal: true,
+                    dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
+            }
+            if (currentTab === 'time') {
+                const _n = new Date();
+                const _at9 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 9, 0) - 9 * 3600000;
+                const _now = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),
+                                      _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                return { ...base, ordinal: false,
+                    tickInterval: 3600000,
+                    min: _at9,
+                    max: Math.max(_now, _at9 + 3600000),
+                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+            }
+            return { ...base, ordinal: false,
+                dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+        })(),
         yAxis: [{
             labels: {
                 align: 'left',
@@ -277,6 +292,7 @@ async function initMainChart() {
                 data: ohlc,
                 color: '#3b82f6', upColor: '#ef4444',
                 lineColor: '#3b82f6', upLineColor: '#ef4444',
+                pointWidth: isIntraday ? 6 : undefined,
                 dataGrouping: { enabled: false }
             } : {
                 type: 'line', name: currentCode,
@@ -399,8 +415,13 @@ async function updateStockInfo(stockName = '') {
         document.getElementById('chartCurrentPrice').textContent = `${price.toLocaleString()} KRW`;
 
         // 등락 = API priceChange / changeRate 기준 (전일 대비)
-        const change     = parseFloat(data.priceChange) || 0;
-        const changeRate = parseFloat(data.changeRate)  || 0;
+        const changeRate = parseFloat(data.changeRate) || 0;
+        let   change     = parseFloat(data.priceChange);
+        if (!change || isNaN(change)) {
+            change = (price > 0 && changeRate !== 0)
+                ? Math.round(price * (changeRate / 100) / (1 + changeRate / 100))
+                : 0;
+        }
         const dir        = changeRate !== 0 ? changeRate : change;
         const sign       = dir >= 0 ? '+' : '';
         const arrow      = dir >= 0 ? '▲' : '▼';
