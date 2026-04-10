@@ -379,16 +379,36 @@ public class UserDao {
 
 
     // ---------------------------------- 민경추가-----------------
+//    public int findNotifyStockStatusByNum(int userNum) {
+//        String sql = "SELECT notify_stock FROM users WHERE num = ?";
+//        try (Connection conn = connect();
+//             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+//            pstmt.setInt(1, userNum);
+//            try (ResultSet rs = pstmt.executeQuery()) {
+//                if (rs.next()) return rs.getInt("notify_stock");
+//            }
+//        } catch (SQLException e) { e.printStackTrace(); }
+//        return 1; // 에러 나거나 데이터 없으면 기본값으로 알림 켬(1) 반환
+//    }
     public int findNotifyStockStatusByNum(int userNum) {
         String sql = "SELECT notify_stock FROM users WHERE num = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userNum);
             try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) return rs.getInt("notify_stock");
+                if (rs.next()) {
+                    int status = rs.getInt("notify_stock");
+                    System.out.println("DAO DEBUG: DB에서 가져온 값 -> " + status);
+                    return status;
+                } else {
+                    System.out.println("DAO DEBUG: 유저를 찾을 수 없음 (num=" + userNum + ")");
+                }
             }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return 1; // 에러 나거나 데이터 없으면 기본값으로 알림 켬(1) 반환
+        } catch (SQLException e) {
+            System.out.println("DAO DEBUG: SQL 에러 발생!");
+            e.printStackTrace();
+        }
+        return 0; // 👈 에러나 데이터가 없으면 알림을 안 보내는 게(0) 더 안전할 수 있습니다.
     }
 
     public void updateNotifySetting(int userNum, int status) {

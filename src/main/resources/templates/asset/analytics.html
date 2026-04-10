@@ -35,7 +35,7 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li>
-                        <a href="/asset/dashboard" class="nav-item">
+                        <a href="/asset/analytics" class="nav-item">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
                                 <polyline points="9 22 9 12 15 12 15 22"/>
@@ -87,7 +87,7 @@
                             </svg>
                         </div>
 
-                        <a th:if="${hasPrevData}" th:href="@{/asset/dashboard(month=${prevMonth}, year=${prevYear})}" class="btn-month"> <!--이전달-->
+                        <a th:if="${hasPrevData}" th:href="@{/asset/analytics(month=${prevMonth}, year=${prevYear})}" class="btn-month"> <!--이전달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
@@ -97,7 +97,7 @@
                             <span th:text="|${selectedYear}년 ${selectedMonth}월|">2025년 4월 소비분석</span>   <!--현재달-->
                         </h1>
 
-                            <a th:if="${hasNextData}" th:href="@{/asset/dashboard(month=${nextMonth}, year=${nextYear})}" class="btn-month">  <!--다음달-->
+                            <a th:if="${hasNextData}" th:href="@{/asset/analytics(month=${nextMonth}, year=${nextYear})}" class="btn-month">  <!--다음달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>

@@ -103,10 +103,15 @@ public class WatchListService {
 
     /** 알림 설정 여부 확인 (스케줄러에서 사용) */
     public boolean isNotifyEnabled(Integer userNum) {
-        // 유저 리포지토리에서 해당 유저의 notifyStock 값을 가져옴
-        // 여기서는 예시로 간단히 구현 (실제로는 userRepository 사용 권장)
+        // 유저dao에서 해당 유저의 notifyStock 값을 가져옴
         Integer status = userDao.findNotifyStockStatusByNum(userNum);
-        return status != null && status == 1;
+        // [로그 추가] DB에서 실제로 꺼내온 값이 뭔지 확인
+        System.out.println("DEBUG: 유저 " + userNum + "의 DB상 알림 상태값 -> " + status);
+
+        boolean result = (status != null && status == 1);
+        System.out.println("DEBUG: 최종 판단 결과 (true면 알림 보냄) -> " + result);
+
+        return result;
     }
 
     /** 알림 설정 변경 (토글 클릭 시 사용) */
