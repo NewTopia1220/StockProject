@@ -835,6 +835,10 @@ a{
     color:#2563eb;
 }
 
+.priceNeutral{
+    color:#64748b;
+}
+
 .sideEmptyText{
     margin:0;
     font-size:13px;

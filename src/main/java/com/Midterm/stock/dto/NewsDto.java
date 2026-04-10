@@ -204,7 +204,7 @@ public class NewsDto {
     }
 
     public void setRiseConfidence(String riseConfidence) {
-        this.riseConfidence = riseConfidence;
+        this.riseConfidence = normalizeConfidenceLabel(riseConfidence);
     }
 
     public String getClickbaitProbStr() {
@@ -267,22 +267,16 @@ public class NewsDto {
     }
 
     public String getRiseProbabilityDisplay() {
-        if (!hasRisePrediction()) {
-            return "계산 중";
-        }
         return getRiseProbabilityPercent() + "%";
     }
 
     public int getRiseProbabilityPercent() {
-        if (!hasRisePrediction()) {
-            return 0;
-        }
-        return (int) Math.round(normalizeRiseProbability(riseProbability) * 100.0);
+        return (int) Math.round(effectiveRiseProbability() * 100.0);
     }
 
     public String getRiseHoverBody() {
         if (!hasRisePrediction()) {
-            return "최근 뉴스 묶음과 현재 시세 흐름을 반영한 익일 예측이 아직 계산되지 않았습니다.";
+            return "모델 예측값이 없어 감성/신뢰도 기반의 휴리스틱 확률을 표시합니다.";
         }
 
         String direction = isRisePositive()
@@ -371,7 +365,7 @@ public class NewsDto {
 
     public String getRiseSummaryText() {
         if (!hasRisePrediction()) {
-            return "계산 중";
+            return "휴리스틱";
         }
         if (!isBlank(riseConfidence)) {
             return riseConfidence;
@@ -402,10 +396,7 @@ public class NewsDto {
     }
 
     private String getRiseTone() {
-        if (!hasRisePrediction()) {
-            return "neutral";
-        }
-        double probability = normalizeRiseProbability(riseProbability);
+        double probability = effectiveRiseProbability();
         if (probability >= 0.55) {
             return "positive";
         }
@@ -533,11 +524,46 @@ public class NewsDto {
         return clamp(value, 0.0, 1.0);
     }
 
+    private double effectiveRiseProbability() {
+        if (hasRisePrediction()) {
+            return normalizeRiseProbability(riseProbability);
+        }
+
+        int sentimentSign = getSentimentSign();
+        double reliability = clamp((typeProb * 0.65) + ((100.0 - clickbaitProb) * 0.35), 0.0, 100.0);
+        double reliabilityScore = (reliability - 50.0) / 50.0;
+
+        double heuristic = 0.5;
+        heuristic += sentimentSign * 0.14;
+        heuristic += reliabilityScore * 0.10;
+        return clamp(heuristic, 0.05, 0.95);
+    }
+
     private double clamp(double value, double min, double max) {
         return Math.max(min, Math.min(max, value));
     }
 
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
+    }
+
+    private String normalizeConfidenceLabel(String value) {
+        if (value == null) {
+            return null;
+        }
+        String normalized = value.replace('\uFFFD', ' ').trim();
+        if (normalized.isBlank()) {
+            return null;
+        }
+        if (normalized.contains("높")) {
+            return "높음";
+        }
+        if (normalized.contains("중")) {
+            return "중간";
+        }
+        if (normalized.contains("낮")) {
+            return "낮음";
+        }
+        return null;
     }
 }

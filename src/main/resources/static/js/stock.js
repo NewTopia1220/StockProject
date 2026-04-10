@@ -9,6 +9,14 @@ let latestChartData = emptyChartData();
 let aiRotatorItems = [];
 let aiRotatorIndex = 0;
 let aiRotatorTimer = null;
+let aiRefreshToken = 0;
+// 환율은 같은 통화를 반복 조회하는 경우가 많아서 브라우저 메모리에 짧게 캐시한다.
+const EXCHANGE_QUOTE_TTL_MS = 60 * 1000;
+const EXCHANGE_CHART_TTL_MS = 30 * 60 * 1000;
+const exchangeQuoteCache = new Map();
+const exchangeChartCache = new Map();
+const exchangeQuoteRequests = new Map();
+const exchangeChartRequests = new Map();
 
 document.addEventListener('DOMContentLoaded', () => {
     currentStockName = document.getElementById('chartStockName')?.textContent.trim() || '삼성전자';
@@ -18,7 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
     bindChartTabs();
     bindSearchHandlers();
     bindTickerCards();
+    bindTopStockTicker();
     bindExchangeSelector();
+    bindSectorTrendCards();
     syncChartTabs();
     applyActiveTickerState();
     initAiRotator();
@@ -78,11 +88,12 @@ function bindSearchHandlers() {
 
                 dropdown.querySelectorAll('.searchItem').forEach((entry) => {
                     entry.addEventListener('click', async () => {
-                        currentCode = entry.dataset.code;
-                        currentStockName = entry.dataset.name || entry.dataset.code;
-                        searchInput.value = `${currentStockName} (${currentCode})`;
+                        await selectStockAndActivate(
+                            entry.dataset.code,
+                            entry.dataset.name || entry.dataset.code,
+                            searchInput
+                        );
                         dropdown.style.display = 'none';
-                        await activateStockSource();
                     });
                 });
 
@@ -93,20 +104,20 @@ function bindSearchHandlers() {
         }, 300);
     });
 
-    searchInput.addEventListener('keypress', async (event) => {
+    searchInput.addEventListener('keydown', async (event) => {
         if (event.key !== 'Enter') {
             return;
         }
+        event.preventDefault();
 
         const keyword = event.target.value.trim();
         if (!keyword) {
             return;
         }
 
-        currentCode = keyword;
-        currentStockName = keyword;
+        const selection = await resolveSearchSelection(keyword);
+        await selectStockAndActivate(selection.code, selection.name, searchInput);
         dropdown.style.display = 'none';
-        await activateStockSource();
     });
 
     document.addEventListener('click', (event) => {
@@ -114,6 +125,101 @@ function bindSearchHandlers() {
             dropdown.style.display = 'none';
         }
     });
+}
+
+async function resolveSearchSelection(keyword) {
+    const parsed = parseSearchKeyword(keyword);
+    if (parsed?.resolved) {
+        return parsed;
+    }
+
+    try {
+        const lookupKeyword = parsed?.code || keyword;
+        const items = await fetchJson(`/api/stock/search?keyword=${encodeURIComponent(lookupKeyword)}`);
+        if (!Array.isArray(items) || items.length === 0) {
+            return {
+                code: parsed?.code || keyword,
+                name: parsed?.name || parsed?.code || keyword
+            };
+        }
+
+        const normalizedKeyword = String(lookupKeyword || '').trim().toLowerCase();
+        const exact = items.find((item) => {
+            const code = String(item?.code || '').trim().toLowerCase();
+            const name = String(item?.name || '').trim().toLowerCase();
+            return code === normalizedKeyword || name === normalizedKeyword;
+        });
+        const candidate = exact || items[0];
+        return {
+            code: candidate?.code || keyword,
+            name: candidate?.name || candidate?.code || keyword
+        };
+    } catch (error) {
+        console.log('search resolve error:', error);
+        return { code: keyword, name: keyword };
+    }
+}
+
+async function ensureResolvedCurrentCode() {
+    const rawCode = String(currentCode || '').trim();
+    if (/^\d{6}$/.test(rawCode)) {
+        return;
+    }
+
+    const keyword = rawCode || String(currentStockName || '').trim();
+    if (!keyword) {
+        return;
+    }
+
+    const selection = await resolveSearchSelection(keyword);
+    applySearchSelection(
+        selection.code,
+        selection.name,
+        document.getElementById('stockSearch')
+    );
+}
+
+function parseSearchKeyword(keyword) {
+    const value = String(keyword || '').trim();
+    if (!value) {
+        return null;
+    }
+
+    const labeledMatch = value.match(/^(.*?)\s*\((\d{6})\)$/);
+    if (labeledMatch) {
+        return {
+            code: labeledMatch[2],
+            name: labeledMatch[1].trim() || labeledMatch[2],
+            resolved: true
+        };
+    }
+
+    const codeMatch = value.match(/^(\d{6})$/);
+    if (codeMatch) {
+        return {
+            code: codeMatch[1],
+            name: codeMatch[1],
+            resolved: false
+        };
+    }
+
+    return null;
+}
+
+function applySearchSelection(code, name, searchInput) {
+    currentCode = String(code || '').trim();
+    currentStockName = String(name || code || '').trim();
+    if (searchInput) {
+        searchInput.value = currentStockName && currentCode
+            ? `${currentStockName} (${currentCode})`
+            : (currentStockName || currentCode);
+    }
+}
+
+// 검색, 전광판 클릭 등 종목 전환 진입점을 하나로 묶어 차트와 AI 브리핑이 함께 갱신되게 한다.
+async function selectStockAndActivate(code, name, searchInput = document.getElementById('stockSearch')) {
+    applySearchSelection(code, name, searchInput);
+    await activateStockSource();
 }
 
 function bindTickerCards() {
@@ -128,6 +234,35 @@ function bindTickerCards() {
     });
 }
 
+function bindTopStockTicker() {
+    const handleClick = async (event) => {
+        const item = event.target.closest('.topStockItem');
+        if (!item) {
+            return;
+        }
+
+        event.preventDefault();
+        const fallbackName = item.dataset.name || '';
+        let stockCode = item.dataset.code || '';
+        let stockName = fallbackName;
+
+        if (!/^\d{6}$/.test(stockCode)) {
+            const selection = await resolveSearchSelection(fallbackName);
+            stockCode = selection.code;
+            stockName = selection.name;
+        }
+
+        if (!stockCode) {
+            return;
+        }
+
+        await selectStockAndActivate(stockCode, stockName || stockCode);
+    };
+
+    document.getElementById('tickerContent1')?.addEventListener('click', handleClick);
+    document.getElementById('tickerContent2')?.addEventListener('click', handleClick);
+}
+
 function bindExchangeSelector() {
     const currencySelect = document.getElementById('currencySelect');
     if (!currencySelect) {
@@ -138,13 +273,73 @@ function bindExchangeSelector() {
         event.stopPropagation();
     });
 
-    currencySelect.addEventListener('change', async (event) => {
-        event.stopPropagation();
-        const data = await updateExchangeCard();
-        if (currentChartSource === 'exchange') {
-            await updateMainChart();
-            renderExchangeSummary(data);
+    currencySelect.addEventListener('change', handleExchangeCurrencyChange);
+}
+
+async function handleExchangeCurrencyChange(event) {
+    event.stopPropagation();
+
+    if (currentChartSource !== 'exchange') {
+        await updateExchangeCard();
+        return;
+    }
+
+    const currency = getSelectedCurrency();
+    const { quote, chartData } = await loadExchangeSelectionData(currency);
+    latestChartData = chartData;
+    await updateMainChart();
+    renderExchangeSummary(quote, chartData);
+}
+
+// 환율 화면에서는 시세를 먼저 갱신하고, 차트는 같은 통화 캐시를 재사용해서 뒤이어 반영한다.
+async function loadExchangeSelectionData(currency) {
+    const quotePromise = getExchangeQuote(currency);
+    const chartPromise = getExchangeChart(currency);
+    const quote = await quotePromise;
+    await updateExchangeCard(quote, null, currency);
+    const chartData = await chartPromise;
+    return { quote, chartData };
+}
+
+function bindSectorTrendCards() {
+    const setCollapsedState = (box, collapsed) => {
+        box.classList.toggle('is-collapsed', collapsed);
+        const toggle = box.querySelector('.scTrendToggle');
+        if (!toggle) {
+            return;
         }
+
+        toggle.setAttribute('aria-expanded', String(!collapsed));
+        toggle.setAttribute('aria-label', collapsed ? '상승 점수 펼치기' : '상승 점수 접기');
+    };
+
+    const getRowTrendBoxes = (sourceBox) => {
+        const card = sourceBox.closest('.sectorCard');
+        if (!card || !card.parentElement) {
+            return [sourceBox];
+        }
+
+        const rowTop = card.offsetTop;
+        return Array.from(card.parentElement.querySelectorAll('.sectorCard'))
+            .filter((item) => Math.abs(item.offsetTop - rowTop) <= 4)
+            .map((item) => item.querySelector('.scTrendBox'))
+            .filter(Boolean);
+    };
+
+    document.querySelectorAll('.scTrendBox').forEach((box) => {
+        const toggle = box.querySelector('.scTrendToggle');
+        if (!toggle) {
+            return;
+        }
+
+        setCollapsedState(box, box.classList.contains('is-collapsed'));
+
+        toggle.addEventListener('click', (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            const nextCollapsed = !box.classList.contains('is-collapsed');
+            getRowTrendBoxes(box).forEach((rowBox) => setCollapsedState(rowBox, nextCollapsed));
+        });
     });
 }
 
@@ -201,7 +396,9 @@ async function startPolling() {
 }
 
 async function activateStockSource() {
+    await ensureResolvedCurrentCode();
     currentChartSource = 'stock';
+    showPendingStockAiCard(currentCode, currentStockName || currentCode);
     await refreshActiveView();
     await refreshAiPredictionForCurrentCode();
 }
@@ -252,6 +449,18 @@ function applyActiveTickerState() {
 
 async function fetchMainChartData() {
     syncChartTabs();
+
+    if (currentChartSource === 'exchange') {
+        try {
+            const data = await getExchangeChart(getSelectedCurrency());
+            latestChartData = data;
+            return data;
+        } catch (error) {
+            console.log('exchange chart fetch error:', error);
+            latestChartData = emptyChartData();
+            return latestChartData;
+        }
+    }
 
     const endpoint = getChartEndpoint(currentChartSource, currentTab);
     if (!endpoint) {
@@ -419,7 +628,13 @@ async function refreshActiveSummary() {
     }
 
     if (currentChartSource === 'exchange') {
-        await updateExchangeInfo();
+        try {
+            const exchangeData = await getExchangeQuote(getSelectedCurrency());
+            await updateExchangeInfo(exchangeData, latestChartData);
+        } catch (error) {
+            console.log('exchange summary refresh error:', error);
+            await updateExchangeInfo(null, latestChartData);
+        }
         return;
     }
 
@@ -502,21 +717,24 @@ function renderIndexSummary(source, data) {
     });
 }
 
-async function updateExchangeInfo(existingData = null) {
+async function updateExchangeInfo(existingData = null, existingChartData = null) {
     try {
-        const data = existingData || await fetchJson(`/api/exchange?currency=${encodeURIComponent(getSelectedCurrency())}`);
-        renderExchangeSummary(data);
+        const currency = getSelectedCurrency();
+        const data = existingData || await getExchangeQuote(currency);
+        const chartData = existingChartData || (currentChartSource === 'exchange' ? latestChartData : null);
+        renderExchangeSummary(data, chartData);
     } catch (error) {
         console.log('exchange info error:', error);
     }
 }
 
-function renderExchangeSummary(data) {
-    const metrics = resolveChangeMetrics(data);
-    const recentHigh = getMaxValue(latestChartData.closePrices);
-    const recentLow = getMinValue(latestChartData.closePrices);
-    const latestLabel = latestChartData.labels.length > 0
-        ? latestChartData.labels[latestChartData.labels.length - 1]
+function renderExchangeSummary(data, chartData = latestChartData) {
+    const normalizedChartData = normalizeChartData(chartData);
+    const metrics = resolveChangeMetrics(data, normalizedChartData);
+    const recentHigh = getMaxValue(normalizedChartData.closePrices);
+    const recentLow = getMinValue(normalizedChartData.closePrices);
+    const latestLabel = normalizedChartData.labels.length > 0
+        ? normalizedChartData.labels[normalizedChartData.labels.length - 1]
         : '-';
     const previousPrice = Number.isNaN(metrics.current) || Number.isNaN(metrics.change)
         ? NaN
@@ -603,10 +821,10 @@ function renderIndexTicker(priceId, rateId, data) {
     }
 }
 
-async function updateExchangeCard() {
+async function updateExchangeCard(existingData = null, existingChartData = null, currency = getSelectedCurrency()) {
     try {
-        const data = await fetchJson(`/api/exchange?currency=${encodeURIComponent(getSelectedCurrency())}`);
-        const metrics = resolveChangeMetrics(data);
+        const data = existingData || await getExchangeQuote(currency);
+        const metrics = await resolveExchangeMetrics(data, existingChartData, currency);
         const rateInfo = buildRateOnly(metrics.rate, metrics.direction);
 
         setText('exchangePrice', formatNumber(metrics.current, 2));
@@ -635,12 +853,14 @@ async function updateTopStocks() {
             const rate = parseNumber(stock.changeRate);
             const rateInfo = buildRateOnly(rate);
             const currentPrice = formatNumber(parseNumber(stock.currentPrice), 0);
+            const stockCode = String(stock.stockCode || '').trim();
+            const stockName = String(stock.stockName || '').trim();
 
             return `
-                <div class="t-item">
-                    <span>${stock.stockName}</span>
+                <a href="#" class="t-item topStockItem" data-code="${stockCode}" data-name="${stockName}">
+                    <span>${stockName}</span>
                     <strong class="${rateInfo.className}">${currentPrice} ${rateInfo.text}</strong>
-                </div>
+                </a>
             `;
         }).join('');
 
@@ -656,20 +876,37 @@ function initAiRotator() {
     startAiRotator();
 }
 
+function stopAiRotator() {
+    if (aiRotatorTimer) {
+        clearInterval(aiRotatorTimer);
+        aiRotatorTimer = null;
+    }
+}
+
+// 종목을 새로 검색했을 때는 기존 섹터 로테이션을 잠깐 멈추고, 해당 종목 확률 카드를 먼저 보여준다.
+function showPendingStockAiCard(stockCode, stockName) {
+    if (!stockCode) {
+        return;
+    }
+
+    const seed = window.AI_ROTATOR_DATA || {};
+    seed.stock = createPendingStockAiSeed(stockCode, stockName || stockCode);
+    window.AI_ROTATOR_DATA = seed;
+    stopAiRotator();
+    rebuildAiRotatorItems(true);
+}
+
 function rebuildAiRotatorItems(resetIndex = false) {
     const seed = window.AI_ROTATOR_DATA || {};
     const sectorItems = Array.isArray(seed.sectors)
         ? seed.sectors.map(buildSectorAiRotatorItem).filter(Boolean)
         : [];
     const items = [];
-
     const stockItem = buildStockAiRotatorItem(seed.stock || {}, sectorItems.length === 0);
     if (stockItem) {
         items.push(stockItem);
     }
-
     items.push(...sectorItems);
-
     aiRotatorItems = items;
 
     if (resetIndex || aiRotatorIndex >= aiRotatorItems.length) {
@@ -680,9 +917,7 @@ function rebuildAiRotatorItems(resetIndex = false) {
 }
 
 function startAiRotator() {
-    if (aiRotatorTimer) {
-        clearInterval(aiRotatorTimer);
-    }
+    stopAiRotator();
 
     if (aiRotatorItems.length <= 1) {
         return;
@@ -703,32 +938,35 @@ async function refreshAiPredictionForCurrentCode() {
         return;
     }
 
+    const requestedCode = currentCode;
+    const requestedName = currentStockName || requestedCode;
+    const refreshToken = ++aiRefreshToken;
+    showPendingStockAiCard(requestedCode, requestedName);
+    const seed = window.AI_ROTATOR_DATA || {};
+
     try {
-        const stockAi = await fetchJson(`/api/stock/${currentCode}/ai`);
-        const seed = window.AI_ROTATOR_DATA || {};
-        seed.stock = {
-            valid: !!stockAi?.valid,
-            stockCode: stockAi?.stockCode || currentCode,
-            stockName: stockAi?.stockName || currentStockName || currentCode,
-            prediction: stockAi?.prediction || '',
-            up: !!stockAi?.up,
-            probabilityPercent: stockAi?.probabilityPercent ?? 0,
-            confidence: stockAi?.confidence || '',
-            articleCount: stockAi?.articleCount ?? 0,
-            sentimentMean: stockAi?.sentimentMean ?? 0,
-            clickbaitMean: stockAi?.clickbaitMean ?? 0,
-            typeProbMean: stockAi?.typeProbMean ?? 0,
-            factRatio: stockAi?.factRatio ?? 0,
-            volatility20d: stockAi?.volatility20d ?? 0,
-            cvAuc: stockAi?.cvAuc ?? 0,
-            nTrain: stockAi?.nTrain ?? 0,
-            message: stockAi?.message || stockAi?.error || ''
-        };
+        const stockAi = await fetchJson(`/api/stock/${encodeURIComponent(requestedCode)}/ai?ts=${Date.now()}`);
+        if (refreshToken !== aiRefreshToken || requestedCode !== currentCode) {
+            return;
+        }
+
+        seed.stock = normalizeAiPredictionResponse(stockAi, requestedCode, requestedName);
         window.AI_ROTATOR_DATA = seed;
         rebuildAiRotatorItems(true);
         startAiRotator();
     } catch (error) {
         console.log('ai prediction refresh error:', error);
+        if (refreshToken !== aiRefreshToken || requestedCode !== currentCode) {
+            return;
+        }
+        seed.stock = {
+            ...createPendingStockAiSeed(requestedCode, requestedName),
+            message: 'AI 예측을 다시 불러오지 못했습니다.',
+            loading: false
+        };
+        window.AI_ROTATOR_DATA = seed;
+        rebuildAiRotatorItems(true);
+        startAiRotator();
     }
 }
 
@@ -747,14 +985,33 @@ function buildStockAiRotatorItem(stock, allowFallbackCard = false) {
     const nTrain = safeNumber(parseNumber(stock?.nTrain));
     const factRatio = safeNumber(parseNumber(stock?.factRatio)) * 100;
 
+    if (stock?.loading) {
+        return {
+            title: 'AI 시장 흐름 브리핑',
+            badge: '현재 종목',
+            badgeClass: 'badge-neutral',
+            subject: `${stockName} · ${stockCode}`,
+            arrowClass: 'arrow-neutral',
+            arrowText: '•',
+            headline: '예측 데이터 불러오는 중',
+            subline: '최근 뉴스와 가격 흐름을 다시 계산하고 있습니다.',
+            factors: [
+                createAiFactor('최근 뉴스', 0, 'fill-neutral', '계산중', 'neutral'),
+                createAiFactor('모델 상태', 0, 'fill-neutral', '로딩중', 'neutral'),
+                createAiFactor('기사 수', 0, 'fill-neutral', '-', 'neutral')
+            ],
+            meta: '잠시 후 최신 종목 예측으로 갱신됩니다.'
+        };
+    }
+
     if (!stock?.valid) {
         if (!allowFallbackCard) {
             return null;
         }
 
         return {
-            title: 'AI 주가 영향도 예측',
-            badge: 'INFO',
+            title: 'AI 시장 흐름 브리핑',
+            badge: '현재 종목',
             badgeClass: 'badge-neutral',
             subject: `${stockName} · ${stockCode}`,
             arrowClass: 'arrow-neutral',
@@ -771,14 +1028,14 @@ function buildStockAiRotatorItem(stock, allowFallbackCard = false) {
     }
 
     return {
-        title: 'AI 주가 영향도 예측',
-        badge: 'NEW',
+        title: 'AI 시장 흐름 브리핑',
+        badge: '현재 종목',
         badgeClass: 'badge-info',
         subject: `${stockName} · ${stockCode}`,
         arrowClass: stock?.up ? 'arrow-up' : 'arrow-down',
         arrowText: stock?.up ? '↑' : '↓',
         headline: `${stock?.prediction || '예측'} 예측`,
-        subline: `확률 ${safeNumber(parseNumber(stock?.probabilityPercent)).toFixed(1)}% · 확신도 ${stock?.confidence || '참고용'}`,
+        subline: `익일 상승 확률 ${safeNumber(parseNumber(stock?.probabilityPercent)).toFixed(1)}% · 확신도 ${stock?.confidence || '참고용'}`,
         factors: [
             createAiFactor(
                 `낚시성 ${describeClickbait(clickbaitMean)}`,
@@ -806,12 +1063,80 @@ function buildStockAiRotatorItem(stock, allowFallbackCard = false) {
     };
 }
 
+function createPendingStockAiSeed(code, name) {
+    return {
+        valid: false,
+        stockCode: code,
+        stockName: name,
+        prediction: '',
+        up: false,
+        probabilityPercent: 0,
+        confidence: '',
+        articleCount: 0,
+        sentimentMean: 0,
+        clickbaitMean: 0,
+        typeProbMean: 0,
+        factRatio: 0,
+        volatility20d: 0,
+        cvAuc: 0,
+        nTrain: 0,
+        message: '',
+        loading: true
+    };
+}
+
+function normalizeAiPredictionResponse(stockAi, fallbackCode, fallbackName) {
+    const recentArticles = Array.isArray(stockAi?.recentArticles)
+        ? stockAi.recentArticles
+        : (Array.isArray(stockAi?.recent_articles) ? stockAi.recent_articles : []);
+    const probability = firstDefined(stockAi?.probabilityPercent, stockAi?.probability_percent);
+    const rawProbability = firstDefined(probability, stockAi?.probability);
+    const prediction = stockAi?.prediction || '';
+    const predictionInt = firstDefined(stockAi?.predictionInt, stockAi?.prediction_int);
+    const probabilityPercent = probability != null
+        ? safeNumber(parseNumber(probability))
+        : safeNumber(parseNumber(rawProbability)) * (rawProbability != null && safeNumber(parseNumber(rawProbability)) <= 1 ? 100 : 1);
+    const stockCode = stockAi?.stockCode || stockAi?.stock_code || fallbackCode;
+    const stockName = stockAi?.stockName || stockAi?.stock_name || fallbackName || stockCode;
+
+    return {
+        valid: firstDefined(stockAi?.valid, !!prediction),
+        stockCode,
+        stockName,
+        prediction,
+        up: firstDefined(stockAi?.up, prediction === '상승' || predictionInt === 1, false),
+        probabilityPercent,
+        confidence: stockAi?.confidence || '',
+        articleCount: firstDefined(stockAi?.articleCount, stockAi?.article_count, recentArticles.length, 0),
+        sentimentMean: firstDefined(stockAi?.sentimentMean, stockAi?.sentiment_mean, 0),
+        clickbaitMean: firstDefined(stockAi?.clickbaitMean, stockAi?.clickbait_mean, 0),
+        typeProbMean: firstDefined(stockAi?.typeProbMean, stockAi?.type_prob_mean, 0),
+        factRatio: firstDefined(stockAi?.factRatio, stockAi?.fact_ratio, 0),
+        volatility20d: firstDefined(stockAi?.volatility20d, stockAi?.volatility_20d, 0),
+        cvAuc: firstDefined(stockAi?.cvAuc, stockAi?.cv_auc, stockAi?.model_meta?.cv_auc, 0),
+        nTrain: firstDefined(stockAi?.nTrain, stockAi?.ntrain, stockAi?.n_train, stockAi?.model_meta?.n_train, 0),
+        message: stockAi?.message || stockAi?.error || ''
+    };
+}
+
+function firstDefined(...values) {
+    for (const value of values) {
+        if (value !== undefined && value !== null) {
+            return value;
+        }
+    }
+    return undefined;
+}
+
 function buildSectorAiRotatorItem(card) {
     const articleCount = safeNumber(parseNumber(card?.articleCount));
     const trendScore = parseNumber(card?.trendScore);
     const posRatio = parseNumber(card?.posRatio);
     const avgTypeProb = parseNumber(card?.avgTypeProb);
     const avgClickbaitProb = parseNumber(card?.avgClickbaitProb);
+    const positiveCount = safeNumber(parseNumber(card?.positiveCount));
+    const negativeCount = safeNumber(parseNumber(card?.negativeCount));
+    const neutralCount = safeNumber(parseNumber(card?.neutralCount));
     const sectorName = `${card?.sectorName || card?.sectorKey || ''}`.trim();
     const trendLabel = `${card?.trendLabel || ''}`.trim();
 
@@ -830,14 +1155,14 @@ function buildSectorAiRotatorItem(card) {
     const direction = card?.trendDirection || 'neutral';
 
     return {
-        title: `${sectorName} · 뉴스 ${Math.round(articleCount)}건`,
-        badge: '참고용',
+        title: 'AI 시장 흐름 브리핑',
+        badge: '섹터 흐름',
         badgeClass: 'badge-subtle',
-        subject: '',
+        subject: `${sectorName} · 뉴스 ${Math.round(articleCount)}건`,
         arrowClass: direction === 'up' ? 'arrow-up' : direction === 'down' ? 'arrow-down' : 'arrow-neutral',
         arrowText: direction === 'up' ? '↑' : direction === 'down' ? '↓' : '•',
         headline: trendLabel,
-        subline: `상승 점수 ${formatNumber(safeNumber(trendScore), 0)}점`,
+        subline: `상승 점수 ${formatNumber(safeNumber(trendScore), 0)}점 · 신뢰도 ${formatNumber(safeNumber(avgTypeProb), 0)}%`,
         factors: [
             createAiFactor(
                 '호재 비중',
@@ -861,7 +1186,7 @@ function buildSectorAiRotatorItem(card) {
                 safeNumber(avgClickbaitProb) <= 30 ? 'positive' : 'negative'
             )
         ],
-        meta: `${sectorName} · 신뢰 ${card?.avgTypeProb || '0.0'}% · 노이즈 ${card?.avgClickbaitProb || '0.0'}%`
+        meta: `호재 ${formatNumber(positiveCount, 0)}건 · 악재 ${formatNumber(negativeCount, 0)}건 · 중립 ${formatNumber(neutralCount, 0)}건 · 노이즈 ${card?.avgClickbaitProb || '0.0'}%`
     };
 }
 
@@ -872,19 +1197,19 @@ function renderAiRotatorItem(item) {
     }
 
     if (!item) {
-        setText('aiRotatorTitle', 'AI 주가 영향도 예측');
+        setText('aiRotatorTitle', 'AI 시장 흐름 브리핑');
         setText('aiRotatorBadge', 'INFO');
         setElementClass('aiRotatorBadge', 'aiPredictBadge badge-neutral');
         setText('aiRotatorSubject', currentCode || '-');
         setElementClass('aiRotatorSubject', 'aiPredictSubject');
         setText('aiRotatorHeadline', '표시할 데이터 없음');
-        setText('aiRotatorSubline', '예측 또는 섹터 데이터가 준비되면 자동으로 반영됩니다.');
+        setText('aiRotatorSubline', 'AI 예측 데이터가 준비되면 자동으로 반영됩니다.');
         setElementClass('aiRotatorArrow', 'aiPredictArrow arrow-neutral');
         setText('aiRotatorArrow', '•');
         setText('aiRotatorMeta', '참고용');
         setAiFactor(1, createAiFactor('뉴스 데이터', 0, 'fill-neutral', '-', 'neutral'));
-        setAiFactor(2, createAiFactor('AI 예측', 0, 'fill-neutral', '-', 'neutral'));
-        setAiFactor(3, createAiFactor('섹터 참고', 0, 'fill-neutral', '-', 'neutral'));
+        setAiFactor(2, createAiFactor('모델 상태', 0, 'fill-neutral', '-', 'neutral'));
+        setAiFactor(3, createAiFactor('신뢰도', 0, 'fill-neutral', '-', 'neutral'));
         return;
     }
 
@@ -1007,15 +1332,53 @@ function normalizeCurrency(currency) {
     return String(currency || 'USD').toUpperCase().split('(')[0].trim();
 }
 
-function resolveChangeMetrics(data) {
-    const current = parseNumber(data?.currentPrice);
-    const change = parseNumber(data?.priceChange);
-    let rate = parseNumber(data?.changeRate);
+async function resolveExchangeMetrics(data, fallbackChartData = null, currency = getSelectedCurrency()) {
+    let metrics = resolveChangeMetrics(
+        data,
+        fallbackChartData || (currentChartSource === 'exchange' ? latestChartData : null)
+    );
+    if (hasResolvedMetrics(metrics)) {
+        return metrics;
+    }
 
-    if (Number.isNaN(rate) && !Number.isNaN(change) && !Number.isNaN(current)) {
-        const previousPrice = current - change;
+    try {
+        const chartData = await getExchangeChart(currency);
+        metrics = resolveChangeMetrics(data, chartData);
+    } catch (error) {
+        console.log('exchange metrics fallback error:', error);
+    }
+
+    return metrics;
+}
+
+function resolveChangeMetrics(data, fallbackChartData = null) {
+    const current = parseNumber(data?.currentPrice);
+    let change = parseNumber(data?.priceChange);
+    let rate = parseNumber(data?.changeRate);
+    const fallbackMetrics = deriveMetricsFromChart(current, fallbackChartData);
+    const resolvedCurrent = Number.isNaN(current) ? fallbackMetrics.current : current;
+
+    if (Number.isNaN(change)) {
+        change = fallbackMetrics.change;
+    }
+    if (Number.isNaN(rate)) {
+        rate = fallbackMetrics.rate;
+    }
+
+    if (Number.isNaN(rate) && !Number.isNaN(change) && !Number.isNaN(resolvedCurrent)) {
+        const previousPrice = resolvedCurrent - change;
         if (previousPrice !== 0) {
             rate = (change / previousPrice) * 100;
+        }
+    }
+
+    if (Number.isNaN(change) && !Number.isNaN(rate) && !Number.isNaN(resolvedCurrent)) {
+        const denominator = 1 + (rate / 100);
+        if (denominator !== 0) {
+            const previousPrice = resolvedCurrent / denominator;
+            if (Number.isFinite(previousPrice)) {
+                change = resolvedCurrent - previousPrice;
+            }
         }
     }
 
@@ -1023,7 +1386,35 @@ function resolveChangeMetrics(data) {
         ? change
         : (!Number.isNaN(rate) ? rate : 0);
 
-    return { current, change, rate, direction };
+    return { current: resolvedCurrent, change, rate, direction };
+}
+
+function deriveMetricsFromChart(current, fallbackChartData) {
+    const priceSource = Array.isArray(fallbackChartData?.closePrices)
+        ? fallbackChartData.closePrices
+        : [];
+    const prices = priceSource.map(parseNumber).filter((value) => !Number.isNaN(value));
+    if (prices.length === 0) {
+        return { current: Number.NaN, change: Number.NaN, rate: Number.NaN };
+    }
+
+    const resolvedCurrent = Number.isNaN(current) ? prices[prices.length - 1] : current;
+    if (prices.length < 2) {
+        return { current: resolvedCurrent, change: Number.NaN, rate: Number.NaN };
+    }
+
+    const previousPrice = prices[prices.length - 2];
+    if (previousPrice === 0) {
+        return { current: resolvedCurrent, change: Number.NaN, rate: Number.NaN };
+    }
+
+    const change = resolvedCurrent - previousPrice;
+    const rate = (change / previousPrice) * 100;
+    return { current: resolvedCurrent, change, rate };
+}
+
+function hasResolvedMetrics(metrics) {
+    return !Number.isNaN(metrics?.change) || !Number.isNaN(metrics?.rate);
 }
 
 function buildChangeDisplay(change, rate, digits, amountSuffix) {
@@ -1082,6 +1473,76 @@ function normalizeChartData(data) {
         closePrices: Array.isArray(data?.closePrices) ? data.closePrices : [],
         volumes: Array.isArray(data?.volumes) ? data.volumes : []
     };
+}
+
+function getExchangeCacheKey(currency) {
+    return normalizeCurrency(currency || getSelectedCurrency());
+}
+
+function readExchangeCache(cache, key, ttlMs) {
+    const entry = cache.get(key);
+    if (!entry) {
+        return null;
+    }
+
+    if (Date.now() - entry.timestamp > ttlMs) {
+        cache.delete(key);
+        return null;
+    }
+
+    return entry.data;
+}
+
+function writeExchangeCache(cache, key, data) {
+    cache.set(key, {
+        data,
+        timestamp: Date.now()
+    });
+    return data;
+}
+
+async function getExchangeQuote(currency = getSelectedCurrency(), forceRefresh = false) {
+    const cacheKey = getExchangeCacheKey(currency);
+    if (!forceRefresh) {
+        const cached = readExchangeCache(exchangeQuoteCache, cacheKey, EXCHANGE_QUOTE_TTL_MS);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    const inFlight = exchangeQuoteRequests.get(cacheKey);
+    if (inFlight) {
+        return inFlight;
+    }
+
+    const request = fetchJson(`/api/exchange?currency=${encodeURIComponent(currency)}`)
+        .then((data) => writeExchangeCache(exchangeQuoteCache, cacheKey, data))
+        .finally(() => exchangeQuoteRequests.delete(cacheKey));
+
+    exchangeQuoteRequests.set(cacheKey, request);
+    return request;
+}
+
+async function getExchangeChart(currency = getSelectedCurrency(), forceRefresh = false) {
+    const cacheKey = getExchangeCacheKey(currency);
+    if (!forceRefresh) {
+        const cached = readExchangeCache(exchangeChartCache, cacheKey, EXCHANGE_CHART_TTL_MS);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    const inFlight = exchangeChartRequests.get(cacheKey);
+    if (inFlight) {
+        return inFlight;
+    }
+
+    const request = fetchJson(`/api/exchange/chart?currency=${encodeURIComponent(currency)}`)
+        .then((data) => writeExchangeCache(exchangeChartCache, cacheKey, normalizeChartData(data)))
+        .finally(() => exchangeChartRequests.delete(cacheKey));
+
+    exchangeChartRequests.set(cacheKey, request);
+    return request;
 }
 
 async function fetchJson(url) {

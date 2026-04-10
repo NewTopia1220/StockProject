@@ -42,6 +42,7 @@ public class StockPriceService {
         kisApi.issueToken();
 
         StockResponseDto dto = emptyResponseDto();
+        dto.setStockCode(stockCode);
         dto.setStockName(stockCode);
 
         try {
@@ -56,11 +57,18 @@ public class StockPriceService {
                 return dto;
             }
 
+            String stockName = text(output, "hts_kor_isnm");
+            if (!stockName.isBlank()) {
+                dto.setStockName(stockName);
+            }
             dto.setCurrentPrice(defaultZero(text(output, "stck_prpr")));
             dto.setOpenPrice(defaultZero(text(output, "stck_oprc")));
             dto.setHighPrice(defaultZero(text(output, "stck_hgpr")));
             dto.setLowPrice(defaultZero(text(output, "stck_lwpr")));
             dto.setVolume(defaultZero(text(output, "acml_vol")));
+            // 커뮤니티/뉴스 카드에서도 같은 DTO를 재사용하므로 전일 대비와 등락률을 함께 채운다.
+            dto.setPriceChange(defaultZero(text(output, "prdy_vrss")));
+            dto.setChangeRate(defaultZero(text(output, "prdy_ctrt")));
         } catch (Exception e) {
             System.out.println("Current price lookup failed [" + stockCode + "]: " + e.getMessage());
         }
@@ -162,6 +170,8 @@ public class StockPriceService {
 
             for (JsonNode item : output) {
                 StockResponseDto dto = emptyResponseDto();
+                // 전광판 클릭 시 바로 차트와 AI 패널을 연동할 수 있도록 종목코드를 함께 내려준다.
+                dto.setStockCode(defaultZero(text(item, "mksc_shrn_iscd", "stck_shrn_iscd", "iscd")));
                 dto.setStockName(text(item, "hts_kor_isnm"));
                 dto.setCurrentPrice(defaultZero(text(item, "stck_prpr")));
                 dto.setChangeRate(defaultZero(text(item, "prdy_ctrt")));
@@ -376,17 +386,30 @@ public class StockPriceService {
     }
 
     private String text(JsonNode node, String fieldName) {
-        if (node == null || fieldName == null) {
+        return text(node, new String[]{fieldName});
+    }
+
+    private String text(JsonNode node, String... fieldNames) {
+        if (node == null || fieldNames == null) {
             return "";
         }
 
-        JsonNode value = node.get(fieldName);
-        if (value == null || value.isNull()) {
-            return "";
-        }
+        for (String fieldName : fieldNames) {
+            if (fieldName == null || fieldName.isBlank()) {
+                continue;
+            }
 
-        String text = value.asText();
-        return text == null ? "" : text.trim();
+            JsonNode value = node.get(fieldName);
+            if (value == null || value.isNull()) {
+                continue;
+            }
+
+            String text = value.asText();
+            if (text != null && !text.trim().isEmpty()) {
+                return text.trim();
+            }
+        }
+        return "";
     }
 
     private String defaultZero(String value) {

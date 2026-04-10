@@ -270,6 +270,64 @@ public class NewsDao {
         return result;
     }
 
+    public void saveNewsImpact(String link, String stockCode, Double impact30m) {
+        if (isBlank(link) || isBlank(stockCode) || impact30m == null) {
+            return;
+        }
+
+        Connection conn = connect();
+        if (conn == null) {
+            return;
+        }
+        try {
+            String updateSql =
+                "UPDATE NEWS_IMPACT " +
+                "SET stock_code=?, impact_30m=?, created_at=SYSTIMESTAMP " +
+                "WHERE link=?";
+
+            try (PreparedStatement updatePs = conn.prepareStatement(updateSql)) {
+                updatePs.setString(1, stockCode);
+                updatePs.setDouble(2, impact30m);
+                updatePs.setString(3, link);
+                int updated = updatePs.executeUpdate();
+                if (updated > 0) {
+                    return;
+                }
+            } catch (SQLException e) {
+                System.err.println("saveNewsImpact(update): " + e.getMessage());
+            }
+
+            String insertNoIdSql =
+                "INSERT INTO NEWS_IMPACT (link, stock_code, impact_30m, created_at) " +
+                "VALUES (?, ?, ?, SYSTIMESTAMP)";
+
+            try (PreparedStatement insertPs = conn.prepareStatement(insertNoIdSql)) {
+                insertPs.setString(1, link);
+                insertPs.setString(2, stockCode);
+                insertPs.setDouble(3, impact30m);
+                insertPs.executeUpdate();
+                return;
+            } catch (SQLException ignored) {
+                // fall back to sequence insert for schemas without identity id
+            }
+
+            String insertWithSeqSql =
+                "INSERT INTO NEWS_IMPACT (id, link, stock_code, impact_30m, created_at) " +
+                "VALUES (NEWS_IMPACT_SEQ.NEXTVAL, ?, ?, ?, SYSTIMESTAMP)";
+
+            try (PreparedStatement insertPs = conn.prepareStatement(insertWithSeqSql)) {
+                insertPs.setString(1, link);
+                insertPs.setString(2, stockCode);
+                insertPs.setDouble(3, impact30m);
+                insertPs.executeUpdate();
+            } catch (SQLException e) {
+                System.err.println("saveNewsImpact(insert): " + e.getMessage());
+            }
+        } finally {
+            try { conn.close(); } catch (Exception ignore) {}
+        }
+    }
+
     /** 좋아요·댓글 수를 한 번에 로드해서 dto에 세팅 */
     private void loadLikeCommentCounts(List<NewsDto> list, int userNum) {
         Connection conn = connect(); if (conn == null) return;
@@ -511,5 +569,9 @@ public class NewsDao {
             } catch (SQLException ignore) {}
             return "";
         }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
     }
 }

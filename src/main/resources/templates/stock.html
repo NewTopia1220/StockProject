@@ -19,7 +19,9 @@
             <!-- 지수 티커 -->
             <div class="marketTicker">
                 <div class="tickerItem clickableTicker" id="kospiTicker" data-chart-source="kospi">
-                    <span class="label">KOSPI</span>
+                    <div class="tickerHead">
+                        <span class="label">KOSPI</span>
+                    </div>
                     <div class="valueGroup">
                         <strong id="kospiPrice" th:text="${kospiInfo.currentPrice}">-</strong>
                         <span id="kospiRate"
@@ -28,7 +30,9 @@
                     </div>
                 </div>
                 <div class="tickerItem clickableTicker" id="kosdaqTicker" data-chart-source="kosdaq">
-                    <span class="label">KOSDAQ</span>
+                    <div class="tickerHead">
+                        <span class="label">KOSDAQ</span>
+                    </div>
                     <div class="valueGroup">
                         <strong id="kosdaqPrice" th:text="${kosdaqInfo.currentPrice}">-</strong>
                         <span id="kosdaqRate"
@@ -37,9 +41,8 @@
                     </div>
                 </div>
                 <div class="tickerItem exchangeTicker clickableTicker" id="exchangeTicker" data-chart-source="exchange">
-                    <span class="label">환율</span>
-                    <div class="valueGroup">
-                        <!-- 통화 선택 셀렉트 -->
+                    <div class="tickerHead">
+                        <span class="label">환율</span>
                         <select id="currencySelect" class="tickerSelect">
                             <option value="USD">USD/KRW</option>
                             <option value="JPY(100)">JPY/KRW</option>
@@ -47,6 +50,8 @@
                             <option value="CNH">CNH/KRW</option>
                             <option value="GBP">GBP/KRW</option>
                         </select>
+                    </div>
+                    <div class="valueGroup">
                         <strong id="exchangePrice" th:text="${exchangeInfo.currentPrice}">-</strong>
                         <span id="exchangeRate"
                             th:classappend="${exchangeInfo.changeRate != null and #strings.startsWith(exchangeInfo.changeRate, '-')} ? 'down' : 'up'"
@@ -154,7 +159,7 @@
 
                     <div class="aiPredictPanel aiRotatorPanel" id="aiRotatorPanel">
                         <div class="aiPredictHeader">
-                            <span class="aiPredictTitle" id="aiRotatorTitle">AI 주가 영향도 예측</span>
+                            <span class="aiPredictTitle" id="aiRotatorTitle">AI 시장 흐름 브리핑</span>
                             <span class="aiPredictBadge" id="aiRotatorBadge">NEW</span>
                         </div>
 
@@ -254,45 +259,47 @@
                             </div>
                         </div>
 
-                        <div class="scTrendBox" th:if="${card['articleCount'] > 0}">
+                        <div class="scTrendBox is-collapsed" th:if="${card['articleCount'] > 0}">
                             <div class="scTrendTop">
                                 <span class="scTrendTitle">상승 점수</span>
-                                <span class="scTrendHint">참고용</span>
-                            </div>
-                            <div class="scTrendScoreRow">
-                                <strong class="scTrendScore" th:text="${card['trendScore']} + '점'">50점</strong>
-                                <span class="scTrendState"
-                                      th:classappend="${card['trendDirection'] == 'up'} ? ' trend-up' : (${card['trendDirection'] == 'down'} ? ' trend-down' : ' trend-neutral')"
-                                      th:text="${card['trendLabel']}">중립</span>
-                            </div>
-                            <div class="scTrendBar">
-                                <div class="scTrendFill"
-                                     th:classappend="${card['trendDirection'] == 'up'} ? ' fill-trend-up' : (${card['trendDirection'] == 'down'} ? ' fill-trend-down' : ' fill-trend-neutral')"
-                                     th:style="'width:' + ${card['trendScore']} + '%'"></div>
-                            </div>
-                            <div class="scTrendMeta">
-                                <span th:text="'신뢰 ' + ${card['avgTypeProb']} + '%'">신뢰 0%</span>
-                                <span th:text="'노이즈 ' + ${card['avgClickbaitProb']} + '%'">노이즈 0%</span>
-                            </div>
-                            <div class="scStats">
-                                <div class="scStat">
-                                    <span class="scStatNum up"   th:text="${card['positiveCount']}">0</span>
-                                    <span class="scStatLabel">호재</span>
+                                <div class="scTrendTools">
+                                    <span class="scTrendPreviewScore" th:text="${card['trendScore']} + '점'">50점</span>
+                                    <button type="button" class="scTrendToggle" aria-expanded="false" aria-label="상승 점수 펼치기">
+                                        <span class="scTrendToggleIcon">▾</span>
+                                    </button>
                                 </div>
-                                <div class="scStatDiv"></div>
-                                <div class="scStat">
-                                    <span class="scStatNum down" th:text="${card['negativeCount']}">0</span>
-                                    <span class="scStatLabel">악재</span>
+                            </div>
+                            <div class="scTrendBody">
+                                <div class="scTrendScoreRow">
+                                    <strong class="scTrendScore" th:text="${card['trendScore']} + '점'">50점</strong>
+                                    <span class="scTrendState"
+                                          th:classappend="${card['trendDirection'] == 'up'} ? ' trend-up' : (${card['trendDirection'] == 'down'} ? ' trend-down' : ' trend-neutral')"
+                                          th:text="${card['trendLabel']}">중립</span>
                                 </div>
-                                <div class="scStatDiv"></div>
-                                <div class="scStat">
-                                    <span class="scStatNum"      th:text="${card['neutralCount']}">0</span>
-                                    <span class="scStatLabel">중립</span>
+                                <div class="scTrendBar">
+                                    <div class="scTrendFill"
+                                         th:classappend="${card['trendDirection'] == 'up'} ? ' fill-trend-up' : (${card['trendDirection'] == 'down'} ? ' fill-trend-down' : ' fill-trend-neutral')"
+                                         th:style="'width:' + ${card['trendScore']} + '%'"></div>
                                 </div>
-                                <div class="scStatDiv"></div>
-                                <div class="scStat">
-                                    <span class="scStatNum trustNum" th:text="${card['avgTypeProb']} + '%'">0%</span>
-                                    <span class="scStatLabel">신뢰도</span>
+                                <div class="scTrendMeta">
+                                    <span class="scTrendConfidence" th:text="'신뢰도 ' + ${card['avgTypeProb']} + '%'">신뢰도 0%</span>
+                                    <span class="scTrendNoise" th:text="'노이즈 ' + ${card['avgClickbaitProb']} + '%'">노이즈 0%</span>
+                                </div>
+                                <div class="scStats">
+                                    <div class="scStat">
+                                        <span class="scStatNum up" th:text="${card['positiveCount']}">0</span>
+                                        <span class="scStatLabel">호재</span>
+                                    </div>
+                                    <div class="scStatDiv"></div>
+                                    <div class="scStat">
+                                        <span class="scStatNum down" th:text="${card['negativeCount']}">0</span>
+                                        <span class="scStatLabel">악재</span>
+                                    </div>
+                                    <div class="scStatDiv"></div>
+                                    <div class="scStat">
+                                        <span class="scStatNum" th:text="${card['neutralCount']}">0</span>
+                                        <span class="scStatLabel">중립</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>

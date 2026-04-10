@@ -85,6 +85,11 @@ body { background: var(--bg-page); color: var(--text-main); transition: backgrou
     padding: 20px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    min-height: 102px;
 }
 .clickableTicker {
     cursor: pointer;
@@ -102,43 +107,47 @@ body { background: var(--bg-page); color: var(--text-main); transition: backgrou
 .activeTicker .valueGroup strong {
     color: var(--primary);
 }
-.label {
-    display: inline-block;
-    margin-bottom: 10px;
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-.valueGroup {
+.tickerHead {
     display: flex;
     align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    min-height: 18px;
+}
+.label {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    line-height: 1;
+}
+.valueGroup {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 28px;
 }
 .valueGroup strong {
     font-size: 22px;
     font-weight: 800;
     color: var(--text-main);
+    line-height: 1;
 }
-.exchangeTicker {
-    position: relative;
-}
-.exchangeTicker .valueGroup {
-    align-items: end;
-    margin-top: 12px;
+.valueGroup span {
+    line-height: 1;
 }
 .tickerSelect {
-    position: absolute;
-    top: 20px;
-    right: 20px;
     border: none;
     background: transparent;
     color: var(--text-sub);
     font-size: 13px;
     font-weight: 700;
-    padding: 0;
+    padding: 0 16px 0 0;
     cursor: pointer;
     outline: none;
     width: fit-content;
+    margin-left: auto;
 }
 .exchangeTicker #exchangeRate {
     font-size: 14px;
@@ -453,6 +462,7 @@ a.t-item:hover span { color: var(--primary); }
     grid-template-columns: repeat(4, 1fr);
     gap: 18px;
     margin-top: 16px;
+    align-items: start;
 }
 .sectorCard {
     background: var(--bg-card);
@@ -469,6 +479,7 @@ a.t-item:hover span { color: var(--primary); }
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
+    align-self: start;
 }
 .sectorCard::before {
     content: '';
@@ -515,17 +526,26 @@ body.dark .scSectorName { background: rgba(99,102,241,0.15); }
 .scTrendBox {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
     background: var(--bg-page);
     border: 1px solid var(--border);
     border-radius: 14px;
     padding: 12px 14px;
+}
+.scTrendBox.is-collapsed {
+    gap: 0;
 }
 .scTrendTop {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
+}
+.scTrendTools {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
 }
 .scTrendTitle {
     font-size: 11px;
@@ -534,10 +554,61 @@ body.dark .scSectorName { background: rgba(99,102,241,0.15); }
     text-transform: uppercase;
     letter-spacing: 0.4px;
 }
-.scTrendHint {
-    font-size: 10px;
-    font-weight: 700;
-    color: var(--text-muted);
+.scTrendPreviewScore {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--primary) 10%, transparent);
+    color: var(--primary);
+    font-size: 12px;
+    font-weight: 900;
+    line-height: 1;
+}
+.scTrendBox:not(.is-collapsed) .scTrendPreviewScore {
+    display: none;
+}
+.scTrendToggle {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-sub);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+.scTrendToggle:hover {
+    border-color: var(--primary);
+}
+.scTrendToggleIcon {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+.scTrendBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.22s ease, opacity 0.18s ease;
+}
+.scTrendBox.is-collapsed .scTrendBody {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+.scTrendBox.is-collapsed .scTrendToggleIcon {
+    transform: rotate(-90deg);
 }
 .scTrendScoreRow {
     display: flex;
@@ -579,8 +650,18 @@ body.dark .scSectorName { background: rgba(99,102,241,0.15); }
 .scTrendMeta {
     display: flex;
     justify-content: space-between;
+    align-items: center;
     gap: 10px;
     font-size: 11px;
+    color: var(--text-muted);
+}
+.scTrendConfidence {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.scTrendNoise {
+    text-align: right;
+    font-weight: 500;
     color: var(--text-muted);
 }
 .scTrendBox .scStats {
@@ -642,6 +723,9 @@ body.dark .sectorCard::before { background: linear-gradient(90deg, #6366f1, #818
 body.dark .trend-up       { background: rgba(16,185,129,0.15); color: #34d399; }
 body.dark .trend-down     { background: rgba(59,130,246,0.15); color: #93c5fd; }
 body.dark .trend-neutral  { background: rgba(100,116,139,0.15); color: #94a3b8; }
+body.dark .scTrendToggle  { background: #141720; border-color: #2d3142; color: #cbd5e1; }
+body.dark .scTrendPreviewScore { background: rgba(99,102,241,0.16); color: #c7d2fe; }
+body.dark .scTrendConfidence { color: #cbd5e1; }
 
 /* ══════════════════════════════════════
    반응형
@@ -653,4 +737,7 @@ body.dark .trend-neutral  { background: rgba(100,116,139,0.15); color: #94a3b8; 
     .stockTop       { flex-direction: column; }
     .sectorCardGrid { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 480px)  { .sectorCardGrid { grid-template-columns: 1fr; } }
+@media (max-width: 480px)  {
+    .sectorCardGrid { grid-template-columns: 1fr; }
+    .chartContainer { height: 280px; }
+}

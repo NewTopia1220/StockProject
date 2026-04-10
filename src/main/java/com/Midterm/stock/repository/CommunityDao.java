@@ -5,9 +5,24 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Repository
 public class CommunityDao {
+    private static final List<String> THEME_CATEGORIES = List.of(
+            "반도체·AI",
+            "2차전지",
+            "제약·바이오",
+            "금융·밸류업",
+            "방산·우주항공",
+            "IT·플랫폼",
+            "엔터·미디어",
+            "자동차·모빌리티"
+    );
+
     // 1. 오라클 클라우드 접속 정보 (경로는 반드시 슬래시 / 사용)
     private String driver = "oracle.jdbc.OracleDriver";
     private String url = "jdbc:oracle:thin:@stoxle_high?TNS_ADMIN=C:/oraclepw";
@@ -48,21 +63,49 @@ public class CommunityDao {
 
     // 게시글의 목록 (기존 로직 유지)
     public ArrayList<CommunityDto> getArticles(int start, int end) {
+        return getArticles(start, end, null, null);
+    }
+
+    public ArrayList<CommunityDto> getArticles(int start, int end, String category, String keyword) {
         connect();
         ArrayList<CommunityDto> lists = new ArrayList<>();
-        String sql = "select * "
-                + "from ( "
-                + "    select row_number() over(order by board_id desc) as rnum, "
-                + "           board_id, user_num, category, title, content, "
-                + "           view_count, like_count, created_at, updated_at "
-                + "    from community_board "
-                + ") "
-                + "where rnum between ? and ?";
+        StringBuilder sql = new StringBuilder();
+        sql.append("select * ")
+                .append("from ( ")
+                .append("    select row_number() over(order by board_id desc) as rnum, ")
+                .append("           board_id, user_num, category, title, content, ")
+                .append("           view_count, like_count, created_at, updated_at ")
+                .append("    from community_board ")
+                .append("    where 1 = 1 ");
+
+        boolean hasCategory = category != null && !category.isBlank();
+        boolean hasKeyword = keyword != null && !keyword.isBlank();
+
+        if (hasCategory) {
+            sql.append(" and category = ? ");
+        }
+        if (hasKeyword) {
+            sql.append(" and (title like ? or content like ?) ");
+        }
+
+        sql.append(") ")
+                .append("where rnum between ? and ?");
 
         try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, start);
-            pstmt.setInt(2, end);
+            pstmt = conn.prepareStatement(sql.toString());
+
+            int parameterIndex = 1;
+            if (hasCategory) {
+                pstmt.setString(parameterIndex++, category.trim());
+            }
+            if (hasKeyword) {
+                String keywordPattern = "%" + keyword.trim() + "%";
+                pstmt.setString(parameterIndex++, keywordPattern);
+                pstmt.setString(parameterIndex++, keywordPattern);
+            }
+
+            pstmt.setInt(parameterIndex++, start);
+            pstmt.setInt(parameterIndex, end);
             rs = pstmt.executeQuery();
 
             while (rs.next()){
@@ -84,6 +127,38 @@ public class CommunityDao {
             closeAll();
         }
         return lists;
+    }
+
+    public ArrayList<Map<String, Object>> getPopularThemeCategories() {
+        connect();
+        ArrayList<Map<String, Object>> categories = new ArrayList<>();
+        String placeholders = String.join(", ", Collections.nCopies(THEME_CATEGORIES.size(), "?"));
+        String sql = "select category, count(*) as post_count "
+                + "from community_board "
+                + "where category in (" + placeholders + ") "
+                + "group by category "
+                + "order by count(*) desc, max(created_at) desc, category asc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            for (int i = 0; i < THEME_CATEGORIES.size(); i++) {
+                pstmt.setString(i + 1, THEME_CATEGORIES.get(i));
+            }
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                Map<String, Object> item = new LinkedHashMap<>();
+                item.put("category", rs.getString("category"));
+                item.put("postCount", rs.getInt("post_count"));
+                categories.add(item);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return categories;
     }
 
     // 글 작성
