@@ -260,6 +260,20 @@ select.cwInput{
     padding: 0;
 }
 
+.cwInput,
+.cwTextarea,
+#newsKeyword {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.cwField,
+.newsDataLink {
+    width: 100%;
+    box-sizing: border-box;
+}
+
 /* 파일 */
 /*.cwFileReal{
     display:none;
@@ -366,10 +380,11 @@ select.cwInput{
     }
 
     .cwInput,
-    .cwFileFake{
-        height:46px;
-        font-size:14px;
-        text-align: center;
+    .cwTextarea,
+    #newsKeyword {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .cwTextarea{
