@@ -34,3 +34,5 @@ build/
 
 ### 보안: DB 접속 정보 (절대 GitHub에 올리지 말 것) ###
 src/main/resources/application.properties
+
+.venv/
