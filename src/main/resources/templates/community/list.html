@@ -390,7 +390,17 @@
                     <h4>실시간 시세</h4>
                 </div>
 
-                <ul class="priceList">
+                <ul class="priceList" th:if="${popularPriceItems != null and not #lists.isEmpty(popularPriceItems)}">
+                    <li th:each="item : ${popularPriceItems}">
+                        <div class="priceInfo">
+                            <strong th:text="${item.stockName}">삼성전자</strong>
+                            <span th:text="${item.category + ' · ' + item.currentPriceText}">반도체·AI · 72,500원</span>
+                        </div>
+                        <em th:class="${item.changeClass}" th:text="${item.changeRateText}">+2.30%</em>
+                    </li>
+                </ul>
+
+                <ul class="priceList" th:if="${popularPriceItems == null or #lists.isEmpty(popularPriceItems)}">
                     <li>
                         <div class="priceInfo">
                             <strong>삼성전자</strong>
