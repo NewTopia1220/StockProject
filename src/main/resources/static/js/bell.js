@@ -1,4 +1,6 @@
 
+
+
 function initAlertPanel() {
     const bellBtn    = document.getElementById('bellBtn');
     const alertPanel = document.getElementById('alertPanel');

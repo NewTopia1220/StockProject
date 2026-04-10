@@ -2,31 +2,48 @@ package com.Midterm.stock.controller;
 
 import com.Midterm.stock.dto.CommunityCommentDto;
 import com.Midterm.stock.dto.CommunityDto;
-
-// 헤더 알림이 STOCK_ALERT 테이블을 사용하므로, 알림 한 건을 만들기 위해
+import com.Midterm.stock.dto.StockResponseDto;
 import com.Midterm.stock.entity.StockAlert;
-// 알림을 DB에 저장하려면 Repository가 필요
 import com.Midterm.stock.repository.StockAlertRepository;
 import com.Midterm.stock.repository.community.CommunityBoardDao;
 import com.Midterm.stock.repository.community.CommunityCommentDao;
-import com.Midterm.stock.repository.community.CommunityLikeDao;
-import com.Midterm.stock.repository.community.CommunityTagDao;
 import com.Midterm.stock.repository.community.CommunityExtraDao;
-
 import com.Midterm.stock.service.WatchListService;
+import com.Midterm.stock.repository.community.CommunityLikeDao;
+import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 @Controller
 @RequestMapping("/community")
 public class CommunityController {
+
+    private static final Map<String, ThemeStockSeed> THEME_STOCKS = new LinkedHashMap<>();
+
+    static {
+        THEME_STOCKS.put("반도체·AI", new ThemeStockSeed("005930", "삼성전자"));
+        THEME_STOCKS.put("2차전지", new ThemeStockSeed("373220", "LG에너지솔루션"));
+        THEME_STOCKS.put("제약·바이오", new ThemeStockSeed("207940", "삼성바이오로직스"));
+        THEME_STOCKS.put("금융·밸류업", new ThemeStockSeed("105560", "KB금융"));
+        THEME_STOCKS.put("방산·우주항공", new ThemeStockSeed("012450", "한화에어로스페이스"));
+        THEME_STOCKS.put("IT·플랫폼", new ThemeStockSeed("035420", "NAVER"));
+        THEME_STOCKS.put("엔터·미디어", new ThemeStockSeed("352820", "하이브"));
+        THEME_STOCKS.put("자동차·모빌리티", new ThemeStockSeed("005380", "현대차"));
+    }
 
     @Autowired
     private CommunityBoardDao communityBoardDao;
@@ -41,16 +58,15 @@ public class CommunityController {
     private CommunityExtraDao communityExtraDao;
 
     @Autowired
-    private CommunityTagDao communityTagDao;
-
-    @Autowired
     private StockAlertRepository stockAlertRepository;
 
     @Autowired
     private WatchListService watchListService;
 
+    @Autowired
+    private StockPriceService stockPriceService;
 
-    // 게시글 목록
+
     @GetMapping({"", "/"})
     public String communityList(@RequestParam(value = "page", defaultValue = "1") int page,
                                 @RequestParam(value = "category", required = false) String category,
@@ -59,7 +75,6 @@ public class CommunityController {
                                 Model model,
                                 HttpSession session) {
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null) {
             return "redirect:/login";
         }
@@ -68,98 +83,90 @@ public class CommunityController {
         int start = (page - 1) * pageSize + 1;
         int end = page * pageSize;
 
+        String categoryParam = normalize(category);
+        String themeParam = normalize(theme);
+        String searchKeyword = normalize(keyword);
+        if (searchKeyword != null && searchKeyword.startsWith("#")) {
+            searchKeyword = normalize(searchKeyword.substring(1));
+        }
+
+        boolean isPopularView = "popular".equals(categoryParam);
+        String categoryName = convertCategoryParamToName(categoryParam);
+        String themeName = convertCategoryParamToName(themeParam);
+        boolean hasCategory = categoryName != null && !categoryName.isBlank() && !"전체".equals(categoryName) && !isPopularView;
+        boolean hasKeyword = searchKeyword != null;
+
         ArrayList<CommunityDto> lists;
         int totalCount;
 
-        String categoryParam = category;
-        String themeParam = theme;
-
-        boolean isPopularView = "popular".equals(categoryParam);
-
-        String categoryName = convertCategoryParamToName(categoryParam);
-        String themeName = convertCategoryParamToName(themeParam);
-
-        String searchKeyword = keyword;
-        if (searchKeyword != null) {
-            searchKeyword = searchKeyword.trim();
-            if (searchKeyword.startsWith("#")) {
-                searchKeyword = searchKeyword.substring(1).trim();
-            }
-        }
-
-        boolean hasCategory = categoryName != null && !categoryName.isBlank() && !categoryName.equals("전체") && !isPopularView;
-        boolean hasKeyword = keyword != null && !keyword.isBlank();
-
         if (isPopularView) {
-            lists = communityBoardDao.getPopularArticles(themeName, keyword, start, end);
-            totalCount = communityBoardDao.getPopularArticleCount(themeName, keyword);
+            lists = communityBoardDao.getPopularArticles(themeName, searchKeyword, start, end);
+            totalCount = communityBoardDao.getPopularArticleCount(themeName, searchKeyword);
         } else if (hasCategory && hasKeyword) {
-            lists = communityBoardDao.getArticlesByCategoryAndKeyword(categoryName, keyword, start, end);
-            totalCount = communityBoardDao.getArticleCountByCategoryAndKeyword(categoryName, keyword);
+            lists = communityBoardDao.getArticlesByCategoryAndKeyword(categoryName, searchKeyword, start, end);
+            totalCount = communityBoardDao.getArticleCountByCategoryAndKeyword(categoryName, searchKeyword);
         } else if (hasCategory) {
             lists = communityBoardDao.getArticlesByCategory(categoryName, start, end);
             totalCount = communityBoardDao.getArticleCountByCategory(categoryName);
         } else if (hasKeyword) {
-            lists = communityBoardDao.searchArticles(keyword, start, end);
-            totalCount = communityBoardDao.getArticleCountByKeyword(keyword);
+            lists = communityBoardDao.searchArticles(searchKeyword, start, end);
+            totalCount = communityBoardDao.getArticleCountByKeyword(searchKeyword);
         } else {
             lists = communityBoardDao.getArticles(start, end);
             totalCount = communityBoardDao.getArticleCount();
         }
 
-        int totalPages = (int) Math.ceil((double) totalCount / pageSize);
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
 
         ArrayList<Map<String, Object>> popularCategories = communityExtraDao.getPopularThemeCategories();
         for (Map<String, Object> item : popularCategories) {
-            String categoryNameFromDb = (String) item.get("category");
+            String categoryNameFromDb = stringValue(item.get("category"));
             item.put("categoryKey", convertCategoryNameToParam(categoryNameFromDb));
         }
 
+        List<Map<String, Object>> popularPriceItems = buildPopularPriceItems(popularCategories);
         ArrayList<CommunityDto> featuredPosts = (!isPopularView && !hasCategory && !hasKeyword)
                 ? communityBoardDao.getFeaturedArticles(2)
                 : new ArrayList<>();
 
         model.addAttribute("lists", lists);
         model.addAttribute("selectedCategory", categoryParam);
+        model.addAttribute("pageTitle", resolvePageTitle(categoryName, isPopularView, themeName, searchKeyword));
         model.addAttribute("currentPage", "community");
-        model.addAttribute("keyword", keyword);
+        model.addAttribute("keyword", searchKeyword);
         model.addAttribute("theme", themeParam);
         model.addAttribute("page", page);
         model.addAttribute("currentPageNum", page);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("popularCategories", popularCategories);
+        model.addAttribute("popularPriceItems", popularPriceItems);
         model.addAttribute("featuredPosts", featuredPosts);
         model.addAttribute("isPopularView", isPopularView);
 
         return "community/list";
     }
 
-    // 글쓰기 화면
     @GetMapping("/insert")
     public String insertForm(HttpSession session, Model model) {
         CommunityDto dto = new CommunityDto();
 
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
         dto.setUser_num(loginNum);
-
         model.addAttribute("currentPage", "community");
         model.addAttribute("dto", dto);
         return "community/insert";
     }
 
-    // 관련 뉴스 검색
     @GetMapping("/news/search")
     @ResponseBody
     public ArrayList<Map<String, String>> searchRelatedNews(@RequestParam("keyword") String keyword,
                                                             HttpSession session) {
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null) {
             return new ArrayList<>();
         }
@@ -172,54 +179,44 @@ public class CommunityController {
         return communityExtraDao.searchRelatedNews(trimmedKeyword);
     }
 
-    // 글 작성 처리
     @PostMapping("/insert")
     public String insertProc(CommunityDto dto, HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
         dto.setUser_num(loginNum);
-
         if (dto.getTagNames() != null) {
             dto.setTagNames(dto.getTagNames().trim());
         }
 
         int result = communityBoardDao.insertArticle(dto);
-
         if (result > 0) {
             return "redirect:/community";
-        } else {
-            return "community/insert";
         }
+        return "community/insert";
     }
 
-    // 글 상세보기
     @GetMapping("/detail")
-    public String detailProc(@RequestParam("board_id") int board_id,
+    public String detailProc(@RequestParam("board_id") int boardId,
                              HttpSession session,
                              Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
-        communityBoardDao.updateViewcount(board_id);
-
-        CommunityDto dto = communityBoardDao.getArticle(board_id);
-
+        communityBoardDao.updateViewcount(boardId);
+        CommunityDto dto = communityBoardDao.getArticle(boardId);
         if (dto == null) {
             return "redirect:/community";
         }
 
         int userArticleCount = communityBoardDao.getArticleCountByUserNum(dto.getUser_num());
         int userCommentCount = communityCommentDao.getCommentCountByUserNum(dto.getUser_num());
-
         boolean isOwner = dto.getUser_num() == loginNum;
 
         String relatedNewsTitle = null;
@@ -227,12 +224,10 @@ public class CommunityController {
             relatedNewsTitle = communityExtraDao.getNewsTitleByLink(dto.getNews_link());
         }
 
-        boolean likedByMe = communityLikeDao.existsLike(board_id, loginNum);
-        ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByBoardId(board_id);
+        ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByBoardId(boardId);
 
         model.addAttribute("dto", dto);
-        model.addAttribute("like" +
-                "dByMe", likedByMe);
+        model.addAttribute("likedByMe", communityLikeDao.existsLike(boardId, loginNum));
         model.addAttribute("comments", comments);
         model.addAttribute("commentCount", comments.size());
         model.addAttribute("isOwner", isOwner);
@@ -244,37 +239,26 @@ public class CommunityController {
         return "community/detail";
     }
 
-    // 댓글 등록
     @PostMapping("/comment/insert")
-    public String insertComment(@RequestParam("board_id") int board_id,
+    public String insertComment(@RequestParam("board_id") int boardId,
                                 @RequestParam("content") String content,
                                 HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
-        // 댓글 달린 게시글 정보 조회
-        // 누구 글인지, 제목이 뭔지 알아야 알림 수신자와 문구 생성 가능
-        CommunityDto article = communityBoardDao.getArticle(board_id);
-
-        // 없으면 목록으로
+        CommunityDto article = communityBoardDao.getArticle(boardId);
         if (article == null) {
             return "redirect:/community";
         }
 
-        // 공백만 있는 댓글 방지
         String trimmedContent = content == null ? "" : content.trim();
         if (!trimmedContent.isEmpty()) {
-            // 댓글 먼저 저장
-            int result = communityCommentDao.insertComment(board_id, loginNum, trimmedContent);
-
-            // 댓글 저장 성공   // 내가 내 글에 단 댓글이 아닐 때만 알림 생성
+            int result = communityCommentDao.insertComment(boardId, loginNum, trimmedContent);
             if (result > 0 && article.getUser_num() != loginNum) {
 
-                // ---------- 민경 추가: 게시글 작성자가 댓글 알림을 켜놨는지 확인 --------------------
                 boolean isCommentAlertEnabled = watchListService.isCommentNotifyEnabled(article.getUser_num());
                 System.out.println("댓글 알림 체크 - 작성자: " + article.getUser_num() + " | 상태: " + isCommentAlertEnabled);
 
@@ -287,7 +271,7 @@ public class CommunityController {
                     // 알림을 받을 사람 = 게시글 작성자
                     alert.setUserNum(article.getUser_num());
                     // 게시글 번호
-                    alert.setStockCode(String.valueOf(board_id));
+                    alert.setStockCode(String.valueOf(boardId));
                     // 게시글 제목을 stockName에 저장
                     alert.setStockName(article.getTitle());
                     alert.setChangeRate(commenterName);
@@ -303,92 +287,90 @@ public class CommunityController {
                 } else {
                     System.out.println(">>> 작성자가 댓글 알림을 꺼두어 알림을 생성하지 않습니다.");
                 }
+
+//                StockAlert alert = new StockAlert();
+//                alert.setUserNum(article.getUser_num());
+//                alert.setStockCode(String.valueOf(boardId));
+//                alert.setStockName(article.getTitle());
+//                alert.setChangeRate(commenterName);
+//                alert.setAlertType("댓글");
+//                alert.setPrice("0");
+//                alert.setAlertRead(false);
+//                stockAlertRepository.save(alert);
+
             }
         }
 
-        return "redirect:/community/detail?board_id=" + board_id;
+        return "redirect:/community/detail?board_id=" + boardId;
     }
 
-    // 좋아요 처리
     @PostMapping("/like")
     @ResponseBody
-    public Map<String, Object> likeArticle(@RequestParam("board_id") int board_id,
+    public Map<String, Object> likeArticle(@RequestParam("board_id") int boardId,
                                            HttpSession session) {
         Map<String, Object> result = new HashMap<>();
 
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             result.put("success", false);
             result.put("message", "로그인이 필요합니다.");
             return result;
         }
 
-        boolean liked = communityLikeDao.existsLike(board_id, loginNum);
-
+        boolean liked = communityLikeDao.existsLike(boardId, loginNum);
         if (liked) {
-            communityLikeDao.deleteLike(board_id, loginNum);
-            communityLikeDao.decreaseLikeCount(board_id);
+            communityLikeDao.deleteLike(boardId, loginNum);
+            communityLikeDao.decreaseLikeCount(boardId);
             result.put("liked", false);
         } else {
-            communityLikeDao.insertLike(board_id, loginNum);
-            communityLikeDao.increaseLikeCount(board_id);
+            communityLikeDao.insertLike(boardId, loginNum);
+            communityLikeDao.increaseLikeCount(boardId);
             result.put("liked", true);
         }
 
-        int likeCount = communityLikeDao.getLikeCount(board_id);
-
         result.put("success", true);
-        result.put("likeCount", likeCount);
+        result.put("likeCount", communityLikeDao.getLikeCount(boardId));
         return result;
     }
 
-    // 글 삭제
     @PostMapping("/delete")
-    public String deleteProc(@RequestParam("board_id") int board_id,
+    public String deleteProc(@RequestParam("board_id") int boardId,
                              HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
-        CommunityDto dto = communityBoardDao.getArticle(board_id);
-
+        CommunityDto dto = communityBoardDao.getArticle(boardId);
         if (dto == null) {
             return "redirect:/community";
         }
-
         if (dto.getUser_num() != loginNum) {
-            return "redirect:/community/detail?board_id=" + board_id;
+            return "redirect:/community/detail?board_id=" + boardId;
         }
 
-        communityBoardDao.deleteArticle(board_id);
+        communityBoardDao.deleteArticle(boardId);
         return "redirect:/community";
     }
 
-    // 수정 화면
     @GetMapping("/update")
-    public String updateForm(@RequestParam("board_id") int board_id,
+    public String updateForm(@RequestParam("board_id") int boardId,
                              HttpSession session,
                              Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
-        CommunityDto dto = communityBoardDao.getArticle(board_id);
-
+        CommunityDto dto = communityBoardDao.getArticle(boardId);
         if (dto == null) {
             return "redirect:/community";
         }
-
         if (dto.getUser_num() != loginNum) {
-            return "redirect:/community/detail?board_id=" + board_id;
+            return "redirect:/community/detail?board_id=" + boardId;
         }
 
         model.addAttribute("dto", dto);
@@ -396,22 +378,18 @@ public class CommunityController {
         return "community/update";
     }
 
-    // 수정 처리
     @PostMapping("/update")
     public String updateProc(CommunityDto dto, HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
-
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
 
         CommunityDto origin = communityBoardDao.getArticle(dto.getBoard_id());
-
         if (origin == null) {
             return "redirect:/community";
         }
-
         if (origin.getUser_num() != loginNum) {
             return "redirect:/community/detail?board_id=" + dto.getBoard_id();
         }
@@ -424,7 +402,117 @@ public class CommunityController {
         return "redirect:/community/detail?board_id=" + dto.getBoard_id();
     }
 
-    // 카테고리 파라미터를 한글명으로 변환
+    private List<Map<String, Object>> buildPopularPriceItems(List<Map<String, Object>> popularCategories) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        if (popularCategories == null || popularCategories.isEmpty()) {
+            return items;
+        }
+
+        for (Map<String, Object> categoryRow : popularCategories) {
+            String category = stringValue(categoryRow.get("category"));
+            ThemeStockSeed seed = THEME_STOCKS.get(category);
+            if (seed == null) {
+                continue;
+            }
+
+            StockResponseDto quote = stockPriceService.getCurrentPrice(seed.stockCode);
+            String currentPrice = quote != null ? quote.getCurrentPrice() : null;
+            String changeRate = quote != null ? quote.getChangeRate() : null;
+
+            Map<String, Object> item = new LinkedHashMap<>();
+            item.put("category", category);
+            item.put("stockName", resolveStockName(seed, quote));
+            item.put("stockCode", seed.stockCode);
+            item.put("currentPriceText", formatPriceText(currentPrice));
+            item.put("changeRateText", formatRateText(changeRate));
+            item.put("changeClass", resolveChangeClass(changeRate));
+            item.put("postCount", categoryRow.get("postCount"));
+            items.add(item);
+
+            if (items.size() >= 4) {
+                break;
+            }
+        }
+
+        return items;
+    }
+
+    private String resolveStockName(ThemeStockSeed seed, StockResponseDto quote) {
+        String quoteName = quote == null ? null : normalize(quote.getStockName());
+        if (quoteName != null && !quoteName.equals(seed.stockCode)) {
+            return quoteName;
+        }
+        return seed.stockName;
+    }
+
+    private String resolvePageTitle(String categoryName,
+                                    boolean isPopularView,
+                                    String themeName,
+                                    String searchKeyword) {
+        if (isPopularView) {
+            if (themeName != null && !themeName.isBlank()) {
+                return themeName + " 인기글";
+            }
+            return "인기글";
+        }
+        if (categoryName != null && !categoryName.isBlank() && !"전체".equals(categoryName)) {
+            return categoryName;
+        }
+        if (searchKeyword != null && !searchKeyword.isBlank()) {
+            return searchKeyword + " 검색 결과";
+        }
+        return "전체 게시글";
+    }
+
+    private String formatPriceText(String rawPrice) {
+        double price = parseNumber(rawPrice);
+        if (price <= 0) {
+            return "-";
+        }
+        return String.format(Locale.KOREA, "%,.0f원", price);
+    }
+
+    private String formatRateText(String rawRate) {
+        double rate = parseNumber(rawRate);
+        if (!Double.isFinite(rate)) {
+            return "-";
+        }
+        String prefix = rate > 0 ? "+" : "";
+        return prefix + String.format(Locale.US, "%.2f%%", rate);
+    }
+
+    private String resolveChangeClass(String rawRate) {
+        double rate = parseNumber(rawRate);
+        if (!Double.isFinite(rate) || rate == 0) {
+            return "priceNeutral";
+        }
+        return rate > 0 ? "priceUp" : "priceDown";
+    }
+
+    private double parseNumber(String value) {
+        if (value == null || value.isBlank()) {
+            return Double.NaN;
+        }
+
+        try {
+            return Double.parseDouble(value.replace(",", "").trim());
+        } catch (NumberFormatException e) {
+            return Double.NaN;
+        }
+    }
+
+    private String normalize(String value) {
+        if (value == null) {
+            return null;
+        }
+        String trimmed = value.trim();
+        return trimmed.isBlank() ? null : trimmed;
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? "" : String.valueOf(value).trim();
+    }
+
     private String convertCategoryParamToName(String category) {
         if ("free".equals(category)) {
             return "자유게시판";
@@ -452,7 +540,6 @@ public class CommunityController {
         return category;
     }
 
-    // 카테고리 한글명을 파라미터 값으로 변환
     private String convertCategoryNameToParam(String categoryName) {
         if ("자유게시판".equals(categoryName)) {
             return "free";
@@ -478,5 +565,15 @@ public class CommunityController {
             return "mobility";
         }
         return "";
+    }
+
+    private static final class ThemeStockSeed {
+        private final String stockCode;
+        private final String stockName;
+
+        private ThemeStockSeed(String stockCode, String stockName) {
+            this.stockCode = stockCode;
+            this.stockName = stockName;
+        }
     }
 }
