@@ -100,7 +100,9 @@ public class NewsController {
     @ResponseBody
     public ResponseEntity<List<Map<String, Object>>> getComments(
             @RequestParam("link") String link, HttpSession session) {
-        if (session.getAttribute("loginUser") == null) return ResponseEntity.status(401).build();
+        if (session.getAttribute("loginUser") == null)
+            return ResponseEntity.status(401).build();
+
         return ResponseEntity.ok(newsDao.getComments(link));
     }
 

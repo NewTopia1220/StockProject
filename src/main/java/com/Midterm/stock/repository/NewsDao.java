@@ -258,15 +258,18 @@ public class NewsDao {
         LinkedHashMap<String, List<String>> sectorMap = new LinkedHashMap<>();
         String sql = "SELECT DISTINCT category FROM " +
             "(SELECT category FROM NEWS_DATA UNION ALL SELECT category FROM NEWS_DATA_SEC) ORDER BY category";
-        Connection conn = connect(); if (conn == null) return sectorMap;
-        try (PreparedStatement ps = conn.prepareStatement(sql); ResultSet rs = ps.executeQuery()) {
+        Connection conn = connect();
+        if (conn == null) return sectorMap;
+        try (PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
                 String raw = rs.getString("category");
-                String company = raw, sector = null;
+                String company = raw;
+                String sector = null;
                 int oi = raw.lastIndexOf('('), ci = raw.lastIndexOf(')');
                 if (oi > 0 && ci > oi) {
-                    company = raw.substring(0, oi).trim();
-                    sector  = raw.substring(oi + 1, ci).trim();
+                    company = raw.substring(0, oi).trim(); //news_data --> 회사  --> news_data_sec --> null
+                    sector  = raw.substring(oi + 1, ci).trim();//news_date--> 진짜 색터 -- news_data_Sec -->진짜 있음
                 }
                 if (sector == null || sector.equals("기타")) continue; // 기타 제외
                 sectorMap.computeIfAbsent(sector, k -> new ArrayList<>()).add(company);
@@ -352,13 +355,15 @@ public class NewsDao {
     }
 
     public Map<String, Object> getLikeInfo(String newsLink, int userNum) {
-        Map<String, Object> r = new HashMap<>(); r.put("count", 0); r.put("liked", false);
+        Map<String, Object> r = new HashMap<>();
+        r.put("count", 0); r.put("liked", false);
         Connection conn = connect(); if (conn == null) return r;
         try (PreparedStatement ps = conn.prepareStatement(
                 "SELECT COUNT(*) as total, SUM(CASE WHEN user_num=? THEN 1 ELSE 0 END) as mine FROM NEWS_LIKES WHERE news_link=?")) {
             ps.setInt(1, userNum); ps.setString(2, newsLink);
             try (ResultSet rs = ps.executeQuery()) {
-                if (rs.next()) { r.put("count", rs.getInt("total")); r.put("liked", rs.getInt("mine")>0); }
+                if (rs.next()) { r.put("count", rs.getInt("total"));
+                    r.put("liked", rs.getInt("mine")>0); }
             }
         } catch (SQLException e) { System.err.println("getLikeInfo: " + e.getMessage()); }
         finally { try { conn.close(); } catch (Exception ignore) {} }
