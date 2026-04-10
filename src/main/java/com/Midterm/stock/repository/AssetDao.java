@@ -61,7 +61,7 @@ public class AssetDao {
             String sql = "SELECT month, transaction_date, amount, vendor, category " +
                     "FROM spending_data " +
                     "where month = ? and user_id = ? and year = ? " +
-                    "ORDER BY transaction_date DESC FETCH FIRST 10 ROWS ONLY";
+                    "ORDER BY spend_id DESC FETCH FIRST 10 ROWS ONLY";
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);

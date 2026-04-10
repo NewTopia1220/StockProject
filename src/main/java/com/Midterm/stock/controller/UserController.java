@@ -181,6 +181,21 @@ public class UserController {
         return "fail";
     }
 
+    // 알림 동의
+    @GetMapping("/mypage_settings") // 혹은 설정 페이지 경로
+    public String myPage(HttpSession session, Model model) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        if (loginNum == null) return "redirect:/login";
+
+        // [핵심] DB에서 최신 유저 정보를 가져와야 합니다.
+        // 기존에 세션에 담긴 정보만 쓰면, DB에서 바꾼 notify_stock 값이 반영 안 될 수 있어요.
+        UserDto user = userDao.getUserInfo(loginNum);
+
+        // 모델에 유저 정보를 담아서 보냅니다.
+        model.addAttribute("user", user);
+        return "mypage";
+    }
+
 
 
     // 마이페이지 - 회원탈퇴

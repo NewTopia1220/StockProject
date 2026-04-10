@@ -224,4 +224,10 @@ def classify(transaction: Transaction):
 # 최종 결과 JSON으로 반환
 # 디비 저장
 
+# 코드 맨 마지막 줄에 추가
+if __name__ == "__main__":
+    import uvicorn
+    # port는 9000번으로 설정 (자바 설정과 맞춤)
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
 

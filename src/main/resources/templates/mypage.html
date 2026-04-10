@@ -10,7 +10,7 @@
 
 
 <body class="withMainHeader">
-<div th:replace="~{fragments/header :: header('mypage')}"></div>
+<div th:replace="~{fragments/header :: header('mypage_settings')}"></div>
 
 <div class="pageContainer">
     <div class="app-container">
@@ -85,36 +85,29 @@
                     <div class="settings-list">
                         <div class="settings-item">
                             <div class="settings-info">
-                                <p class="settings-label">지출 알림</p>
-                                <p class="settings-value">지출이 발생할 때 알림을 받습니다</p>
+                                <p class="settings-label">주가 등락 알림</p>
+                                <p class="settings-value">주가가 3%이상 등락할 때 알림을 받습니다</p>
                             </div>
                             <label class="toggle-switch">
-                                <input type="checkbox" checked>
+                                <input type="checkbox"
+                                       class="toggle-input"
+                                       data-type="stock"
+                                       th:checked="${user.notifyStock == 1}">
                                 <span class="toggle-slider"></span>
                             </label>
                         </div>
 
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <p class="settings-label">예산 초과 알림</p>
-                                <p class="settings-value">예산을 초과할 때 알림을 받습니다</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
+<!--                        <div class="settings-item">-->
+<!--                            <div class="settings-info">-->
+<!--                                <p class="settings-label">예산 초과 알림</p>-->
+<!--                                <p class="settings-value">예산을 초과할 때 알림을 받습니다</p>-->
+<!--                            </div>-->
+<!--                            <label class="toggle-switch">-->
+<!--                                <input type="checkbox" checked>-->
+<!--                                <span class="toggle-slider"></span>-->
+<!--                            </label>-->
+<!--                        </div>-->
 
-                        <div class="settings-item">
-                            <div class="settings-info">
-                                <p class="settings-label">마일스톤 달성 알림</p>
-                                <p class="settings-value">저축 목표를 달성할 때 알림을 받습니다</p>
-                            </div>
-                            <label class="toggle-switch">
-                                <input type="checkbox" checked>
-                                <span class="toggle-slider"></span>
-                            </label>
-                        </div>
                     </div>
                 </div>
 

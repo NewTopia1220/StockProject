@@ -3,6 +3,7 @@ package com.Midterm.stock.service;
 import com.Midterm.stock.entity.StockAlert;
 import com.Midterm.stock.entity.WatchList;
 import com.Midterm.stock.repository.StockAlertRepository;
+import com.Midterm.stock.repository.UserDao;
 import com.Midterm.stock.repository.WatchListRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class WatchListService {
 
     private final WatchListRepository watchListRepository;
     private final StockAlertRepository stockAlertRepository;
+    private final UserDao userDao;
 
     // ── 관심종목 ─────────────────────────────────────────────
 
@@ -95,4 +97,23 @@ public class WatchListService {
         result.put("alerts", items);
         return result;
     }
+
+
+    // -------------------민경----------------------------
+
+    /** 알림 설정 여부 확인 (스케줄러에서 사용) */
+    public boolean isNotifyEnabled(Integer userNum) {
+        // 유저 리포지토리에서 해당 유저의 notifyStock 값을 가져옴
+        // 여기서는 예시로 간단히 구현 (실제로는 userRepository 사용 권장)
+        Integer status = userDao.findNotifyStockStatusByNum(userNum);
+        return status != null && status == 1;
+    }
+
+    /** 알림 설정 변경 (토글 클릭 시 사용) */
+    @Transactional
+    public void updateNotifySetting(Integer userNum, int status) {
+        userDao.updateNotifySetting(userNum, status);
+    }
+
+
 }

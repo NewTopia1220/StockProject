@@ -83,4 +83,19 @@ public class WatchListController {
         watchListService.markAllRead(userNum);
         return Map.of("ok", true);
     }
+
+
+
+    // --------------------민경----------------
+    @PostMapping("/user/settings/notification")
+    public Map<String, Object> updateNotifySetting(@RequestBody Map<String, Object> body,
+                                                   HttpSession session) {
+        Integer userNum = (Integer) session.getAttribute("loginNum");
+        if (userNum == null) return Map.of("ok", false);
+
+        int status = (int) body.get("status"); // 0 또는 1
+        watchListService.updateNotifySetting(userNum, status);
+
+        return Map.of("ok", true);
+    }
 }

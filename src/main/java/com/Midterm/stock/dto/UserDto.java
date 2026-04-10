@@ -9,12 +9,13 @@ public class UserDto {
     private String password;
     private String role;
     private String phone;
+    private Integer notifyStock = 1; // 기본값은 1(알림 켬)로 설정
 
     public UserDto() {
 
     }
 
-    public UserDto(int num, String name, String email, String password, String role, String phone) {
+    public UserDto(int num, String name, String email, String password, String role, String phone, int notifyStock) {
 
         super();
         this.num = num;
@@ -23,6 +24,8 @@ public class UserDto {
         this.password = password;
         this.role = role;
         this.phone = phone;
+        this.notifyStock = notifyStock;
+
     }
 
     public int getNum() {
@@ -65,4 +68,11 @@ public class UserDto {
         this.phone = phone;
     }
 
+    public Integer getNotifyStock() {
+        return notifyStock;
+    }
+
+    public void setNotifyStock(Integer notifyStock) {
+        this.notifyStock = notifyStock;
+    }
 }
