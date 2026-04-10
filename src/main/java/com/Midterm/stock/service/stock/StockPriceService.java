@@ -10,7 +10,10 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 주식 시세/지수/순위 서비스
@@ -24,10 +27,28 @@ public class StockPriceService {
 
     private final KisApiService kisApi;
 
+    // ── TTL 캐시 ─────────────────────────────────────────────
+    // 현재가: 5초, 순위/지수: 30초 캐싱 → KIS API 호출 횟수 대폭 감소
+    private static final long PRICE_TTL_MS  = 5_000L;   // 5초
+    private static final long RANK_TTL_MS   = 30_000L;  // 30초
+    private static final long INDEX_TTL_MS  = 30_000L;  // 30초
+
+    private record CacheEntry<T>(T data, long expireMs) {
+        boolean isExpired() { return System.currentTimeMillis() > expireMs; }
+    }
+
+    private final Map<String, CacheEntry<StockResponseDto>>       priceCache       = new ConcurrentHashMap<>();
+    private final Map<String, CacheEntry<List<StockResponseDto>>> rankCache        = new ConcurrentHashMap<>();
+    private volatile CacheEntry<StockResponseDto>                 kospiCache       = null;
+    private volatile CacheEntry<StockResponseDto>                 kosdaqCache      = null;
+
     // ── 종목 시세 ────────────────────────────────────────────
 
-    /** 현재가 조회 (현재가, 시가, 고가, 저가, 거래량) */
+    /** 현재가 조회 (5초 캐싱) */
     public StockResponseDto getCurrentPrice(String stockCode) {
+        CacheEntry<StockResponseDto> cached = priceCache.get(stockCode);
+        if (cached != null && !cached.isExpired()) return cached.data();
+
         kisApi.issueToken();
         StockResponseDto dto = new StockResponseDto();
         dto.setStockName(stockCode);
@@ -46,9 +67,31 @@ public class StockPriceService {
             dto.setHighPrice(o.get("stck_hgpr").asText());
             dto.setLowPrice(o.get("stck_lwpr").asText());
             dto.setVolume(o.get("acml_vol").asText());
+            String changeRateStr = o.path("prdy_ctrt").asText("0");
+            dto.setChangeRate(changeRateStr);
+            String vrssSign = o.path("prdy_vrss_sign").asText("3");
+            String vrss     = o.path("prdy_vrss").asText("0");
+            if (vrss.isBlank()) vrss = "0";
+            boolean negative = vrssSign.equals("4") || vrssSign.equals("5");
+            // prdy_vrss가 0(또는 0.00 등)이고 등락률이 있으면 현재가×등락률로 역산
+            double vrssNum;
+            try { vrssNum = Double.parseDouble(vrss); } catch (Exception e) { vrssNum = 0.0; }
+            if (vrssNum == 0.0) {
+                try {
+                    double cp = Double.parseDouble(o.get("stck_prpr").asText("0"));
+                    double cr = Double.parseDouble(changeRateStr) / 100.0;
+                    if (cr != 0) {
+                        long calc = Math.round(cp * cr / (1.0 + cr));
+                        negative = calc < 0;
+                        vrss = String.valueOf(Math.abs(calc));
+                    }
+                } catch (Exception ignored) {}
+            }
+            dto.setPriceChange(negative ? "-" + vrss : vrss);
         } catch (Exception e) {
             System.out.println("현재가 조회 실패 [" + stockCode + "]: " + e.getMessage());
         }
+        priceCache.put(stockCode, new CacheEntry<>(dto, System.currentTimeMillis() + PRICE_TTL_MS));
         return dto;
     }
 
@@ -71,25 +114,50 @@ public class StockPriceService {
         }
     }
 
-    /** 시간별 차트 (장중 전용) */
+    /** 시간별 차트 - 09:00~현재시간 데이터 수집 (최대 15회 호출) */
     public StockChartDto getTimePrice(String stockCode) {
         kisApi.issueToken();
+        List<JsonNode> allItems = new ArrayList<>();
+        // 현재 시간 사용 (장마감 이후면 15:30 고정)
+        String nowTime = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String hourParam = nowTime.compareTo("153000") > 0 ? "153000" : nowTime;
+
         try {
-            String now = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
-            JsonNode response = kisApi.get(uriBuilder -> uriBuilder
-                    .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
-                    .queryParam("FID_ETC_CLS_CODE", "")
-                    .queryParam("FID_COND_MRKT_DIV_CODE", "J")
-                    .queryParam("FID_INPUT_ISCD", stockCode)
-                    .queryParam("FID_INPUT_HOUR_1", now)
-                    .queryParam("FID_PW_DATA_INCU_YN", "Y")
-                    .build(), "FHKST03010200");
-            if (response == null || response.get("output2") == null) return emptyChart();
-            return parseTimeChart(response.get("output2"));
+            for (int call = 0; call < 15; call++) {
+                final String hp = hourParam;
+                JsonNode response = kisApi.get(uriBuilder -> uriBuilder
+                        .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
+                        .queryParam("FID_ETC_CLS_CODE", "")
+                        .queryParam("FID_COND_MRKT_DIV_CODE", "J")
+                        .queryParam("FID_INPUT_ISCD", stockCode)
+                        .queryParam("FID_INPUT_HOUR_1", hp)
+                        .queryParam("FID_PW_DATA_INCU_YN", "Y")
+                        .build(), "FHKST03010200");
+
+                if (response == null || response.get("output2") == null) break;
+                JsonNode output2 = response.get("output2");
+                if (!output2.isArray() || output2.size() == 0) break;
+
+                List<JsonNode> batch = new ArrayList<>();
+                output2.forEach(batch::add);
+                allItems.addAll(batch);
+
+                // 배치 맨 마지막(가장 오래된) 시간 확인
+                String oldestTime = batch.get(batch.size() - 1)
+                        .path("stck_cntg_hour").asText("090000");
+                if (oldestTime.compareTo("090000") <= 0) break;
+                hourParam = oldestTime;
+                Thread.sleep(100);
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             System.out.println("시간별 차트 실패 [" + stockCode + "]: " + e.getMessage());
-            return emptyChart();
         }
+
+        if (allItems.isEmpty()) return emptyChart();
+        Collections.reverse(allItems); // 오래된 것부터 순서로
+        return parseHourlyChart(allItems);
     }
 
     /** 분별 차트 (장중 전용) */
@@ -106,7 +174,7 @@ public class StockPriceService {
                     .queryParam("FID_PW_DATA_INCU_YN", "N")
                     .build(), "FHKST03010200");
             if (response == null || response.get("output2") == null) return emptyChart();
-            return parseTimeChart(response.get("output2"));
+            return parseMinuteChart(response.get("output2"));  // 분 단위 OHLCV 집계
         } catch (Exception e) {
             System.out.println("분별 차트 실패 [" + stockCode + "]: " + e.getMessage());
             return emptyChart();
@@ -115,8 +183,10 @@ public class StockPriceService {
 
     // ── 지수 ─────────────────────────────────────────────────
 
-    /** 코스피 현재 지수 */
+    /** 코스피 현재 지수 (30초 캐싱) */
     public StockResponseDto getKospiIndex() {
+        if (kospiCache != null && !kospiCache.isExpired()) return kospiCache.data();
+
         kisApi.issueToken();
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0"); dto.setChangeRate("0");
@@ -136,6 +206,7 @@ public class StockPriceService {
         } catch (Exception e) {
             System.out.println("코스피 조회 실패: " + e.getMessage());
         }
+        kospiCache = new CacheEntry<>(dto, System.currentTimeMillis() + INDEX_TTL_MS);
         return dto;
     }
 
@@ -161,8 +232,10 @@ public class StockPriceService {
         }
     }
 
-    /** 코스닥 현재 지수 */
+    /** 코스닥 현재 지수 (30초 캐싱) */
     public StockResponseDto getKosdaqIndex() {
+        if (kosdaqCache != null && !kosdaqCache.isExpired()) return kosdaqCache.data();
+
         kisApi.issueToken();
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0"); dto.setPriceChange("0"); dto.setChangeRate("0");
@@ -180,13 +253,17 @@ public class StockPriceService {
         } catch (Exception e) {
             System.out.println("코스닥 조회 실패: " + e.getMessage());
         }
+        kosdaqCache = new CacheEntry<>(dto, System.currentTimeMillis() + INDEX_TTL_MS);
         return dto;
     }
 
     // ── 순위 ─────────────────────────────────────────────────
 
-    /** 등락률 상위 10개 종목 (거래량 10만 이상) */
+    /** 등락률 상위 20개 종목 (30초 캐싱) */
     public List<StockResponseDto> getTopFluctuation() {
+        CacheEntry<List<StockResponseDto>> cached = rankCache.get("fluctuation");
+        if (cached != null && !cached.isExpired()) return cached.data();
+
         kisApi.issueToken();
         List<StockResponseDto> result = new ArrayList<>();
         try {
@@ -197,7 +274,7 @@ public class StockPriceService {
                     .queryParam("fid_cond_scr_div_code", "20170")
                     .queryParam("fid_input_iscd", "0000")
                     .queryParam("fid_rank_sort_cls_code", "0")
-                    .queryParam("fid_input_cnt_1", "10")
+                    .queryParam("fid_input_cnt_1", "20")
                     .queryParam("fid_prc_cls_code", "0")
                     .queryParam("fid_input_price_1", "0")
                     .queryParam("fid_input_price_2", "1000000")
@@ -210,61 +287,219 @@ public class StockPriceService {
             if (response == null || response.get("output") == null) return result;
             for (JsonNode item : response.get("output")) {
                 StockResponseDto dto = new StockResponseDto();
+                dto.setStockCode(item.get("stck_shrn_iscd").asText());
                 dto.setStockName(item.get("hts_kor_isnm").asText());
                 dto.setCurrentPrice(item.get("stck_prpr").asText());
                 dto.setChangeRate(item.get("prdy_ctrt").asText());
                 dto.setPriceChange(item.get("prdy_vrss").asText());
+                dto.setVolume(item.get("acml_vol").asText());
+                // 거래대금 (만원 단위)
+                if (item.has("acml_tr_pbmn")) dto.setTradeAmount(item.get("acml_tr_pbmn").asText());
                 result.add(dto);
             }
         } catch (Exception e) {
             System.out.println("등락률 순위 조회 실패: " + e.getMessage());
         }
+        if (!result.isEmpty()) rankCache.put("fluctuation", new CacheEntry<>(result, System.currentTimeMillis() + RANK_TTL_MS));
         return result;
+    }
+
+    // ── 거래대금 순위 ─────────────────────────────────────────
+
+    /**
+     * 거래대금 상위 20개 종목 (30초 캐싱)
+     * - fid_trgt_exls_cls_code: 우선주(index 3)·ETF(index 9) API 레벨 제외
+     * - 서버 레벨: 이름/코드 패턴으로 우선주 추가 필터
+     */
+    public List<StockResponseDto> getTopByTradeAmount() {
+        CacheEntry<List<StockResponseDto>> cached = rankCache.get("trade");
+        if (cached != null && !cached.isExpired()) return cached.data();
+
+        kisApi.issueToken();
+        List<StockResponseDto> result = new ArrayList<>();
+        try {
+            JsonNode response = kisApi.get(uriBuilder -> uriBuilder
+                    .path("/uapi/domestic-stock/v1/quotations/volume-rank")
+                    .queryParam("fid_cond_mrkt_div_code", "J")
+                    .queryParam("fid_cond_scr_div_code", "20171")
+                    .queryParam("fid_input_iscd", "0000")
+                    .queryParam("fid_div_cls_code", "2")           // 거래대금 기준
+                    .queryParam("fid_blng_cls_code", "0")
+                    .queryParam("fid_trgt_cls_code", "111111111")
+                    .queryParam("fid_trgt_exls_cls_code", "0001000001") // 우선주(3)·ETF(9) 제외
+                    .queryParam("fid_input_price_1", "")
+                    .queryParam("fid_input_price_2", "")
+                    .queryParam("fid_vol_cnt", "0")
+                    .queryParam("fid_input_date_1", "")
+                    .build(), "FHPST01710000");
+
+            if (response == null || response.get("output") == null) {
+                System.out.println("거래대금 API 응답 없음");
+                return result;
+            }
+            for (JsonNode item : response.get("output")) {
+                StockResponseDto dto = new StockResponseDto();
+                String code = item.has("mksc_shrn_iscd")
+                        ? item.get("mksc_shrn_iscd").asText()
+                        : item.get("stck_shrn_iscd").asText();
+                dto.setStockCode(code);
+                dto.setStockName(item.get("hts_kor_isnm").asText());
+                dto.setCurrentPrice(item.get("stck_prpr").asText());
+                dto.setChangeRate(item.get("prdy_ctrt").asText());
+                dto.setPriceChange(item.get("prdy_vrss").asText());
+                dto.setVolume(item.get("acml_vol").asText());
+                if (item.has("acml_tr_pbmn")) dto.setTradeAmount(item.get("acml_tr_pbmn").asText());
+                result.add(dto);
+            }
+            System.out.println("거래대금 순위 원본: " + result.size() + "개");
+        } catch (Exception e) {
+            System.out.println("거래대금 순위 조회 실패: " + e.getMessage());
+        }
+
+        // 서버 레벨 우선주 추가 필터
+        // - 이름이 "우", "우B", "우C"로 끝나는 종목
+        // - 코드 마지막 자리가 5 (한국 우선주 코드 패턴: 005935, 005385 등)
+        // - 코드에 알파벳 포함 (ETF/특수 종목: 00680K 등)
+        List<StockResponseDto> filtered = result.stream()
+                .filter(dto -> {
+                    String name = dto.getStockName() != null ? dto.getStockName() : "";
+                    String code = dto.getStockCode() != null ? dto.getStockCode() : "";
+                    boolean prefByName = name.endsWith("우") || name.endsWith("우B") || name.endsWith("우C");
+                    boolean prefByCode = code.length() == 6 && code.charAt(5) == '5';
+                    boolean isSpecial  = !code.matches("\\d{6}");
+                    return !prefByName && !prefByCode && !isSpecial;
+                })
+                .collect(java.util.stream.Collectors.toList());
+
+        System.out.println("거래대금 순위 (우선주 제외 후): " + filtered.size() + "개");
+
+        // 필터 결과가 비어도 캐시에 저장 (반복 API 호출 방지)
+        List<StockResponseDto> finalResult = filtered.isEmpty() ? result : filtered;
+        if (!finalResult.isEmpty()) rankCache.put("trade", new CacheEntry<>(finalResult, System.currentTimeMillis() + RANK_TTL_MS));
+        return finalResult;
     }
 
     // ── 차트 파싱 헬퍼 ───────────────────────────────────────
 
-    /** 일별/지수 차트 파싱 (최신→과거 순서를 과거→최신으로 reverse) */
+    /** 일별/지수 차트 파싱 (OHLCV, 최신→과거를 과거→최신으로 reverse) */
     private StockChartDto parseChartFromArray(JsonNode array, String dateField, String priceField, String volField) {
         List<String> labels = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
+        List<String> opens  = new ArrayList<>();
+        List<String> highs  = new ArrayList<>();
+        List<String> lows   = new ArrayList<>();
+        List<String> closes = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
         for (JsonNode item : array) {
             labels.add(item.get(dateField).asText());
-            prices.add(item.get(priceField).asText());
+            closes.add(item.get(priceField).asText());
             volumes.add(item.get(volField).asText());
+            // OHLCV (일별 주가 API에만 존재, 지수 등은 "0" 처리)
+            opens.add(item.path("stck_oprc").asText("0"));
+            highs.add(item.path("stck_hgpr").asText("0"));
+            lows.add(item.path("stck_lwpr").asText("0"));
         }
         Collections.reverse(labels);
-        Collections.reverse(prices);
+        Collections.reverse(opens);
+        Collections.reverse(highs);
+        Collections.reverse(lows);
+        Collections.reverse(closes);
         Collections.reverse(volumes);
         StockChartDto dto = new StockChartDto();
-        dto.setLabels(labels); dto.setClosePrices(prices); dto.setVolumes(volumes);
+        dto.setLabels(labels);
+        dto.setOpenPrices(opens);
+        dto.setHighPrices(highs);
+        dto.setLowPrices(lows);
+        dto.setClosePrices(closes);
+        dto.setVolumes(volumes);
         return dto;
     }
 
-    /** 시간별/분별 차트 파싱 (HHmmss → HH:mm 변환) */
-    private StockChartDto parseTimeChart(JsonNode array) {
-        List<String> labels = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
-        List<String> volumes = new ArrayList<>();
-        for (JsonNode item : array) {
-            String raw = item.get("stck_cntg_hour").asText();
-            labels.add(raw.substring(0, 2) + ":" + raw.substring(2, 4));
-            prices.add(item.get("stck_prpr").asText());
-            volumes.add(item.get("cntg_vol").asText());
+    /**
+     * 시간별 차트: tick 데이터를 5분 단위로 OHLCV 집계
+     * (KIS API가 장중 전체가 아닌 제한된 구간만 반환하므로
+     *  1시간 버킷 대신 5분 버킷으로 더 많은 캔들 생성)
+     */
+    private StockChartDto parseHourlyChart(List<JsonNode> items) {
+        Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
+        Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
+
+        for (JsonNode item : items) {
+            String raw = item.path("stck_cntg_hour").asText();
+            if (raw.length() < 2) continue;
+            int hh  = parseIntSafe(raw.substring(0, 2));
+            String key = String.format("%02d:00", hh); // 1시간 단위 버킷
+            int price = parseIntSafe(item.path("stck_prpr").asText("0"));
+            int vol   = parseIntSafe(item.path("cntg_vol").asText("0"));
+            priceGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(price);
+            volGroups.computeIfAbsent(key,   k -> new ArrayList<>()).add(vol);
         }
-        Collections.reverse(labels);
-        Collections.reverse(prices);
-        Collections.reverse(volumes);
+        return buildOhlcvDto(priceGroups, volGroups);
+    }
+
+    /**
+     * 분별 차트: tick 데이터를 분(HH:mm) 단위로 OHLCV 집계
+     */
+    private StockChartDto parseMinuteChart(JsonNode array) {
+        List<JsonNode> items = new ArrayList<>();
+        array.forEach(items::add);
+        Collections.reverse(items);
+
+        Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
+        Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
+
+        for (JsonNode item : items) {
+            String raw   = item.get("stck_cntg_hour").asText();
+            String minKey = raw.substring(0, 2) + ":" + raw.substring(2, 4);
+            int price = parseIntSafe(item.get("stck_prpr").asText("0"));
+            int vol   = parseIntSafe(item.get("cntg_vol").asText("0"));
+            priceGroups.computeIfAbsent(minKey, k -> new ArrayList<>()).add(price);
+            volGroups.computeIfAbsent(minKey,   k -> new ArrayList<>()).add(vol);
+        }
+        return buildOhlcvDto(priceGroups, volGroups);
+    }
+
+    /** 그룹별 가격/거래량 → OHLCV DTO 빌드 */
+    private StockChartDto buildOhlcvDto(Map<String, List<Integer>> priceGroups,
+                                        Map<String, List<Integer>> volGroups) {
+        List<String> labels  = new ArrayList<>();
+        List<String> opens   = new ArrayList<>();
+        List<String> highs   = new ArrayList<>();
+        List<String> lows    = new ArrayList<>();
+        List<String> closes  = new ArrayList<>();
+        List<String> volumes = new ArrayList<>();
+
+        for (Map.Entry<String, List<Integer>> entry : priceGroups.entrySet()) {
+            List<Integer> prices = entry.getValue();
+            List<Integer> vols   = volGroups.get(entry.getKey());
+            labels.add(entry.getKey());
+            opens.add(String.valueOf(prices.get(0)));
+            closes.add(String.valueOf(prices.get(prices.size() - 1)));
+            highs.add(String.valueOf(prices.stream().mapToInt(Integer::intValue).max().orElse(0)));
+            lows.add(String.valueOf(prices.stream().mapToInt(Integer::intValue).min().orElse(0)));
+            volumes.add(String.valueOf(vols.stream().mapToInt(Integer::intValue).sum()));
+        }
+
         StockChartDto dto = new StockChartDto();
-        dto.setLabels(labels); dto.setClosePrices(prices); dto.setVolumes(volumes);
+        dto.setLabels(labels);
+        dto.setOpenPrices(opens);
+        dto.setHighPrices(highs);
+        dto.setLowPrices(lows);
+        dto.setClosePrices(closes);
+        dto.setVolumes(volumes);
         return dto;
+    }
+
+    private int parseIntSafe(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
     }
 
     /** 빈 차트 DTO (API 실패 시 Fallback) */
     private StockChartDto emptyChart() {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(new ArrayList<>());
+        dto.setOpenPrices(new ArrayList<>());
+        dto.setHighPrices(new ArrayList<>());
+        dto.setLowPrices(new ArrayList<>());
         dto.setClosePrices(new ArrayList<>());
         dto.setVolumes(new ArrayList<>());
         return dto;

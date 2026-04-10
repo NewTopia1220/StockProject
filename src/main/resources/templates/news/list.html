@@ -11,8 +11,6 @@
 <body class="withMainHeader">
 <div th:replace="~{fragments/header :: header('news')}"></div>
 
-<!-- 다크모드 버튼 -->
-<button class="darkModeBtn" id="darkModeBtn" title="다크모드 전환">🌙</button>
 
 <div class="pageContainer communityPage newsPage">
 
@@ -101,30 +99,17 @@
                     <h3>섹터 필터</h3>
                 </div>
                 <nav class="categoryNav categoryAccordion">
-                    <div class="accordionItem open">
-                        <button type="button" class="accordionButton">
-                            <span>전체</span><span class="accordionArrow">⌄</span>
-                        </button>
-                        <div class="accordionContent">
-                            <a th:href="@{/news}" class="navItem"
-                               th:classappend="${sector == null and keyword == null} ? ' active' : ''">
-                                <span class="navLabel">전체 뉴스</span>
-                            </a>
-                        </div>
+                    <div class="accordionContent">
+                        <a th:href="@{/news}" class="navItem"
+                           th:classappend="${#strings.isEmpty(sector)} ? ' active' : ''">
+                            <span class="navLabel">전체 뉴스</span>
+                        </a>
                     </div>
-                    <div class="accordionItem"
-                         th:each="entry : ${sectorMap}"
-                         th:classappend="${sector == entry.key} ? ' open' : ''">
-                        <button type="button" class="accordionButton">
-                            <span th:text="${entry.key}">섹터</span>
-                            <span class="accordionArrow">⌄</span>
-                        </button>
-                        <div class="accordionContent">
-                            <a th:href="@{/news(sector=${entry.key})}" class="navItem sectorLink"
-                               th:classappend="${sector == entry.key} ? ' active' : ''">
-                                <span class="navLabel" th:text="${entry.key} + ' 전체'">섹터 전체</span>
-                            </a>
-                        </div>
+                    <div class="accordionContent" th:each="entry : ${sectorMap}">
+                        <a th:href="@{/news(sector=${entry.key})}" class="navItem sectorLink"
+                           th:classappend="${sector == entry.key} ? ' active' : ''">
+                            <span class="navLabel" th:text="${entry.key}">섹터 전체</span>
+                        </a>
                     </div>
                 </nav>
             </div>
@@ -146,7 +131,7 @@
 
                     <!-- 태그 행 -->
                     <div class="newsTopRow">
-                        <span class="boardCategory" th:text="${dto.sectorName}">섹터</span>
+                        <span class="boardCategory" th:if="${not #strings.isEmpty(dto.sectorName)}" th:text="${dto.sectorName}">섹터</span>
                         <span class="companyTag" th:text="${dto.companyName}">종목</span>
                         <span class="sentimentTag"
                               th:class="${dto.sentiment == '호재' ? 'sentimentTag sent-positive' : (dto.sentiment == '악재' ? 'sentimentTag sent-negative' : 'sentimentTag sent-neutral')}"
@@ -174,7 +159,6 @@
                                 </div>
                                 <span class="metricVal" th:text="${dto.typeProbStr} + '%'">0%</span>
                             </div>
-                            <span class="metricType" th:text="${dto.articleType}">사실형</span>
                         </div>
                         <div class="metricItem">
                             <span class="metricLabel">낚시 확률</span>
@@ -186,40 +170,42 @@
                                 <span class="metricVal" th:text="${dto.clickbaitProbStr} + '%'">0%</span>
                             </div>
                         </div>
+                        <span class="metricType" th:text="${dto.articleType}">사실형</span>
                     </div>
 
                     <!-- 하단: 원문 + 좋아요 + 댓글 토글 -->
-                    <div class="newsActionRow">
-                        <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer"
-                           class="newsOrigLink">원문 보기 →</a>
-                        <div class="newsActions">
-                            <button class="likeBtn"
-                                    th:attr="data-link=${dto.link}"
-                                    th:class="${dto.liked ? 'likeBtn liked' : 'likeBtn'}"
-                                    onclick="toggleLike(this)">
-                                <span class="likeIcon" th:text="${dto.liked ? '❤️' : '🤍'}">🤍</span>
-                                <span class="likeCount" th:text="${dto.likeCount}">0</span>
-                            </button>
-                            <button class="commentToggleBtn"
-                                    th:attr="data-link=${dto.link}"
-                                    onclick="toggleComment(this)">
-                                💬 <span class="commentCountBadge" th:text="${dto.commentCount}">0</span>
-                            </button>
+                    <div class="commentWrapper">
+                        <div class="newsActionRow">
+                            <a th:href="${dto.link}" target="_blank" rel="noopener noreferrer"
+                               class="newsOrigLink">원문 보기 →</a>
+                            <div class="newsActions">
+                                <button class="likeBtn"
+                                        th:attr="data-link=${dto.link}"
+                                        th:class="${dto.liked ? 'likeBtn liked' : 'likeBtn'}"
+                                        onclick="toggleLike(this)">
+                                    <span class="likeIcon" th:text="${dto.liked ? '❤️' : '🤍'}">🤍</span>
+                                    <span class="likeCount" th:text="${dto.likeCount}">0</span>
+                                </button>
+                                <button class="commentToggleBtn"
+                                        th:attr="data-link=${dto.link}"
+                                        onclick="toggleComment(this)">
+                                    💬 <span class="commentCountBadge" th:text="${dto.commentCount}">0</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 댓글 섹션 (기본 숨김) -->
+                        <div class="commentSection" style="display:none;"
+                             th:attr="data-link=${dto.link}">
+                            <div class="commentList"></div>
+                            <div class="commentForm">
+                                <textarea class="commentInput" placeholder="댓글을 입력하세요..." rows="2"></textarea>
+                                <button class="commentSubmitBtn"
+                                        th:attr="data-link=${dto.link}"
+                                        onclick="submitComment(this)">등록</button>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- 댓글 섹션 (기본 숨김) -->
-                    <div class="commentSection" style="display:none;"
-                         th:attr="data-link=${dto.link}">
-                        <div class="commentList"></div>
-                        <div class="commentForm">
-                            <textarea class="commentInput" placeholder="댓글을 입력하세요..." rows="2"></textarea>
-                            <button class="commentSubmitBtn"
-                                    th:attr="data-link=${dto.link}"
-                                    onclick="submitComment(this)">등록</button>
-                        </div>
-                    </div>
-
                 </article>
             </div>
 
@@ -251,16 +237,6 @@
             </div>
         </section>
 
-        <!-- 오른쪽 패널 -->
-        <aside class="communityRight">
-            <div class="sideCard">
-                <div class="sideCardHeader"><h4>바로가기</h4></div>
-                <ul class="sideRankList">
-                    <li><span>→</span><a th:href="@{/stock}">메인 페이지</a></li>
-                    <li><span>→</span><a th:href="@{/community}">커뮤니티</a></li>
-                </ul>
-            </div>
-        </aside>
 
     </div>
 </div>
@@ -269,20 +245,6 @@
     var CTX_USER_NUM = /*[[${session.loginNum}]]*/ 0;
 </script>
 <script>
-/* ── 다크모드 ── */
-(function () {
-    var btn = document.getElementById('darkModeBtn');
-    if (localStorage.getItem('darkMode') === 'on') {
-        document.body.classList.add('dark');
-        btn.textContent = '☀️';
-    }
-    btn.addEventListener('click', function () {
-        document.body.classList.toggle('dark');
-        var isDark = document.body.classList.contains('dark');
-        btn.textContent = isDark ? '☀️' : '🌙';
-        localStorage.setItem('darkMode', isDark ? 'on' : 'off');
-    });
-})();
 
 /* ── 원형 차트 애니메이션 ── */
 (function () {
@@ -297,12 +259,6 @@
     });
 })();
 
-/* ── 사이드바 아코디언 ── */
-document.querySelectorAll('.accordionButton').forEach(function (btn) {
-    btn.addEventListener('click', function () {
-        this.closest('.accordionItem').classList.toggle('open');
-    });
-});
 
 /* ── 좋아요 토글 ── */
 function toggleLike(btn) {
@@ -324,23 +280,34 @@ function toggleLike(btn) {
 /* ── 댓글 토글 (열기/닫기 + 즉시 로드) ── */
 function toggleComment(btn) {
     var link    = btn.getAttribute('data-link');
-    var section = btn.closest('.newsItem').querySelector('.commentSection');
+    var article = btn.closest('.newsItem'); // 부모 newsItem 찾기
+    var section = article.querySelector('.commentSection');
     var isOpen  = section.style.display !== 'none';
 
     if (isOpen) {
         section.style.display = 'none';
+        loadComments(link, section, article);
     } else {
         section.style.display = 'block';
-        loadComments(link, section);
+        // 열 때마다 최신 데이터를 가져옵니다. (부분 새로고침)
+        loadComments(link, section, article);
     }
 }
 
-function loadComments(link, section) {
+/* ── 댓글 로드 및 배지 업데이트 ── */
+function loadComments(link, section, article) {
     fetch('/news/comments?link=' + encodeURIComponent(link))
-    .then(function (r) { return r.json(); })
-    .then(function (data) {
-        renderComments(data, section.querySelector('.commentList'), link);
-    });
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            // 1. 댓글 리스트 갱신
+            renderComments(data, section.querySelector('.commentList'), link);
+            if (article) {
+                var badge = article.querySelector('.commentCountBadge');
+                if (badge) {
+                    badge.textContent = data.length;
+                }
+            }
+        });
 }
 
 function renderComments(comments, container, link) {
@@ -394,12 +361,27 @@ function deleteComment(commentId, link, btn) {
     if (!confirm('댓글을 삭제할까요?')) return;
     fetch('/news/comments/' + commentId, { method: 'DELETE' })
     .then(function (r) { return r.json(); })
-    .then(function (data) {
-        if (data.success) {
-            var section = btn.closest('.commentSection');
-            loadComments(link, section);
-        }
-    });
+        .then(function (data) {
+            if (data.success) {
+                // 1. 현재 뉴스 아이템 영역을 찾습니다.
+                var article = btn.closest('.newsItem');
+                var section = article.querySelector('.commentSection');
+
+                // 2. 서버에서 최신 댓글 목록을 다시 가져와서 화면에 그립니다.
+                fetch('/news/comments?link=' + encodeURIComponent(link))
+                    .then(function (r) { return r.json(); })
+                    .then(function (comments) {
+                        // 댓글 리스트 새로고침
+                        renderComments(comments, section.querySelector('.commentList'), link);
+
+                        // 3. [핵심] 서버에서 가져온 최신 댓글 배열의 길이로 배지 숫자를 갱신합니다.
+                        var badge = article.querySelector('.commentCountBadge');
+                        if (badge) {
+                            badge.textContent = comments.length;
+                        }
+                    });
+            }
+        });
 }
 
 /* ── XSS 방지 ── */

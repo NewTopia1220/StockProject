@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.regex.Pattern;
 
 
 // 로그인/회원가입 처리
@@ -29,6 +30,10 @@ public class UserController {
     // 프로그램 공통 상수
     private static final String REMEMBER_EMAIL_COOKIE = "REMEMBER_EMAIL_TOKEN";
     private static final int REMEMBER_EMAIL_COOKIE_AGE = 60 * 60 * 24 * 7; // 7일
+    private static final Pattern EMAIL_PATTERN =
+            Pattern.compile("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    private static final Pattern PHONE_PATTERN =
+            Pattern.compile("^\\d{10,11}$");
 
     // 로그인 처리
     @PostMapping("/login")
@@ -45,10 +50,14 @@ public class UserController {
 //            session.setAttribute("loginNum", loginUserDto.getNum()); //  이 번호가 마이페이지의 열쇠입니다.
         }
 
-        email = email.trim().toLowerCase();   // 대소문자 무시
+        email = normalizeEmailDomain(email);
         pw = pw.trim();
 
         if (email.equals("") || pw.equals("")) {
+            return "redirect:/login?error=1";
+        }
+
+        if (!isValidEmail(email)) {
             return "redirect:/login?error=1";
         }
 
@@ -90,6 +99,9 @@ public class UserController {
 
 
         } else {
+            if (userDao.existsWithDifferentEmailCase(email, pw)) {
+                return "redirect:/login?caseError=1";
+            }
             return "redirect:/login?error=1";
         }
     }
@@ -103,17 +115,21 @@ public class UserController {
             @RequestParam(value = "reUserPassword", required = false) String repw,
             @RequestParam(value = "userPhone", required = false) String phone
     ) {
-        if (name == null || email == null || pw == null || repw == null) {
+        if (name == null || email == null || pw == null || repw == null || phone == null) {
             return "redirect:/register?error=1";
         }
 
         name = name.trim();
-        email = email.trim().toLowerCase();  // 대소문자 무시
+        email = normalizeEmailDomain(email);
         pw = pw.trim();
         repw = repw.trim();
         phone = phone.trim().replaceAll("[^0-9]", "");
 
         if (name.equals("") || email.equals("") || pw.equals("") || repw.equals("") || phone.equals("")) {
+            return "redirect:/register?error=1";
+        }
+
+        if (!isValidEmail(email) || !isValidPhone(phone)) {
             return "redirect:/register?error=1";
         }
 
@@ -165,8 +181,8 @@ public class UserController {
             return "success";
 
         } else if ("phone".equals(type)) {
-            // 간단 검증 (숫자만)
-            if (!value.matches("\\d{10,11}")) {
+            value = value.trim().replaceAll("[^0-9]", "");
+            if (!isValidPhone(value)) {
                 return "invalid";
             }
             userDao.updatePhone(num, value);
@@ -182,6 +198,20 @@ public class UserController {
     }
 
 
+    // 알림 동의
+    @GetMapping("/mypage_settings") // 혹은 설정 페이지 경로
+    public String myPage(HttpSession session, Model model) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        if (loginNum == null) return "redirect:/login";
+
+        // [핵심] DB에서 최신 유저 정보를 가져와야 합니다.
+        // 기존에 세션에 담긴 정보만 쓰면, DB에서 바꾼 notify_stock 값이 반영 안 될 수 있어요.
+        UserDto user = userDao.getUserInfo(loginNum);
+
+        // 모델에 유저 정보를 담아서 보냅니다.
+        model.addAttribute("user", user);
+        return "mypage";
+    }
 
     // 마이페이지 - 회원탈퇴
     // UserController.java
@@ -288,13 +318,23 @@ public class UserController {
         }
 
         name = name.trim();
-        email = email.trim().toLowerCase();  // 대소문자 무시
+        email = normalizeEmailDomain(email);
         phone = phone.trim().replaceAll("[^0-9]", "");
         newPassword = newPassword.trim();
         reNewPassword = reNewPassword.trim();
 
         if (name.equals("") || email.equals("") || phone.equals("") || newPassword.equals("") || reNewPassword.equals("")) {
             model.addAttribute("errorMessage", "모든 값을 입력해주세요");
+            return "findPassword";
+        }
+
+        if (!isValidEmail(email)) {
+            model.addAttribute("errorMessage", "이메일 형식이 올바르지 않습니다.");
+            return "findPassword";
+        }
+
+        if (!isValidPhone(phone)) {
+            model.addAttribute("errorMessage", "전화번호는 숫자 10~11자리로 입력해주세요.");
             return "findPassword";
         }
 
@@ -332,6 +372,25 @@ public class UserController {
         }
     }
 
+    // 이메일의 도메인 소문자
+    private String normalizeEmailDomain(String email) {
+        if (email == null) {
+            return null;
+        }
+
+        String trimmedEmail = email.trim();
+        int atIndex = trimmedEmail.indexOf("@");
+
+        if (atIndex < 0 || atIndex == trimmedEmail.length() - 1) {
+            return trimmedEmail;
+        }
+
+        String localPart = trimmedEmail.substring(0, atIndex);
+        String domainPart = trimmedEmail.substring(atIndex + 1).toLowerCase();
+
+        return localPart + "@" + domainPart;
+    }
+
     private String maskEmail(String email) {
         if (email == null || email.trim().equals("") || !email.contains("@")) {
             return "";
@@ -350,6 +409,14 @@ public class UserController {
         }
 
         return local.substring(0, 3) + "***@" + domain;
+    }
+
+    private boolean isValidEmail(String email) {
+        return email != null && EMAIL_PATTERN.matcher(email.trim()).matches();
+    }
+
+    private boolean isValidPhone(String phone) {
+        return phone != null && PHONE_PATTERN.matcher(phone).matches();
     }
 
 

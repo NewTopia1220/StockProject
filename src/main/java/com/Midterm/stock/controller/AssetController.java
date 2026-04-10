@@ -6,6 +6,8 @@ import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.AssetDao;
 import com.Midterm.stock.repository.UserDao;
 import com.Midterm.stock.service.AssetPlannerAnalysisService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -14,7 +16,10 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
+import java.time.YearMonth;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -34,13 +39,21 @@ public class AssetController {
     @Autowired
     private AssetPlannerAnalysisService assetPlannerAnalysisService;
 
-
+    /**
+     * 현재 월을 가져오는 메서드
+     */
+    private int getCurrentMonth() {
+        return LocalDate.now().getMonthValue();
+    }
+    private int getCurrentYear() {
+        return LocalDate.now().getYear();
+    }
 
     /**
      * 대시보드 (홈) 페이지
      */
     @GetMapping({"/asset/dashboard"})
-    public String dashboard(@RequestParam(value = "month", required = false) Integer month, Model model, HttpSession session) {
+    public String dashboard(@RequestParam(value = "month", required = false) Integer month, @RequestParam(value = "year", required = false) Integer year, Model model, HttpSession session) throws JsonProcessingException {
         // 각 페이지 컨트롤러 메서드 시작 부분 예시
         Integer loginNum = (Integer) session.getAttribute("loginNum");
 
@@ -51,26 +64,55 @@ public class AssetController {
         UserDto user = userDao.getUserInfo(loginNum);
         model.addAttribute("userName", user.getName());
         model.addAttribute("userEmail", user.getEmail());
+        model.addAttribute("user_id", user.getNum());
 
         // 현재 실제 날짜 기준 (2026년 4월)
-        int currentRealMonth = 3;
+         int currentRealMonth = getCurrentMonth();
+//        int currentRealMonth = 3;
+         int currentRealYear = getCurrentYear();
 
         // 파라미터가 없으면 현재 달(4월)로 설정
         if (month == null) {
             month = currentRealMonth;
         }
+        if (year == null) {
+            year = currentRealYear;
+        }
 
         // 달 지정해서 데이터 불러오기
-        List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month); // 메서드 추가 필요
+        List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month, year, loginNum); // 메서드 추가 필요
         model.addAttribute("selectedMonth", month);
+        model.addAttribute("selectedYear", year);
         model.addAttribute("currentRealMonth", currentRealMonth);
+        model.addAttribute("currentRealYear", currentRealYear);
         model.addAttribute("recentTransactions", transactions);
 
         // 이번 달 지출 / 전 달 지출
-        int currentMonthSpending = assetDao.getMonthSpending(month);  // 일단 넣어준거 수정해야됨
-        int previousMonthSpending = assetDao.getMonthSpending(month - 1);  // 일단 넣어준거 수정해야됨
+            // 이전 달 계산 (1월일 경우 12월로 가야 하는 로직은 필요에 따라 Dao에서 처리하거나 여기서 보정)
+        int currentMonthSpending = assetDao.getMonthSpending(month, year, loginNum);  // 일단 넣어준거 수정해야됨
+        int prevMonth = (month == 1) ? 12 : month - 1;
+        int prevYear = (month == 1) ? year - 1 : year;  // 1월이면 전년도 12월
+        int previousMonthSpending = assetDao.getMonthSpending(prevMonth, prevYear, loginNum);  // 일단 넣어준거 수정해야됨
+
         model.addAttribute("currentMonthSpending", currentMonthSpending);
         model.addAttribute("previousMonthSpending", previousMonthSpending);
+        model.addAttribute("prevMonth", prevMonth);
+        model.addAttribute("prevYear", prevYear);
+
+        // 이전 달과 다음 달의 데이터 존재 여부 확인
+        List<AssetDto> prevTransactions = assetDao.getRecentTransactionsByMonth(prevMonth, prevYear, loginNum);
+        boolean hasPrevData = !prevTransactions.isEmpty();
+
+        int nextMonth = (month == 12) ? 1 : month + 1;
+        int nextYear = (month == 12) ? year + 1 : year; // 12월이면 다음년도 1월
+        List<AssetDto> nextTransactions = assetDao.getRecentTransactionsByMonth(nextMonth, nextYear, loginNum);
+        boolean hasNextData = !nextTransactions.isEmpty();
+
+        model.addAttribute("hasPrevData", hasPrevData);
+        model.addAttribute("hasNextData", hasNextData);
+        model.addAttribute("nextMonth", nextMonth);
+        model.addAttribute("nextYear", nextYear);
+
 
         //이번 달 지출과 지난달 지출을 비교해서 증감률을 계산 -> 색상(빨강/파랑)과 화살표 방향까지 바꿈
         double diffRate = 0;
@@ -84,7 +126,7 @@ public class AssetController {
         int currentMonthIncome = 0; // 초기값
 
         // 1. 저축 플래너 최신 이력 가져오기
-        List<AssetPlannerAnalysisDto> history = assetDao.getAnalysisHistory();
+        List<AssetPlannerAnalysisDto> history = assetDao.getAnalysisHistory(loginNum);
         AssetPlannerAnalysisDto latestAnalysis = new AssetPlannerAnalysisDto();
 
         if (history != null && !history.isEmpty()) {
@@ -114,57 +156,69 @@ public class AssetController {
         }
         model.addAttribute("goalAchievementRate", Math.round(goalAchievementRate * 10) / 10.0);
 
-        // 전체 월별 자산 추이 (2월, 3월, 4월 등)
-        // 선택된 월 기준 최근 3개월 데이터 가져오기
-        Map<String, Long> assetTrend = assetDao.getAssetTrendData(currentRealMonth);
 
-        model.addAttribute("trendLabels", new ArrayList<>(assetTrend.keySet()));
-        model.addAttribute("trendValues", new ArrayList<>(assetTrend.values()));
+        // 월별 지출 가져오기 5개월
+        List<Map<String, Object>> trendData = assetDao.getLast5MonthsSpending(loginNum);
+
+        // 평균 계산
+        int sum = trendData.stream().mapToInt(m -> (int) m.get("total")).sum();
+        int avg = trendData.size() > 0 ? sum / trendData.size() : 0;
+
+        // 최근 2달 증감
+        int last = (int) trendData.get(trendData.size() - 1).get("total");
+        int prev = (int) trendData.get(trendData.size() - 2).get("total");
+        int diff = last - prev;
+        boolean isUp = diff >= 0;
+
+        ObjectMapper mapper = new ObjectMapper();
+        String trendJson = mapper.writeValueAsString(trendData);
+        model.addAttribute("trendJson", trendJson);
+
+        model.addAttribute("trendData", trendData);
+        model.addAttribute("avgSpending", avg);
+        model.addAttribute("diffAmount", Math.abs(diff));
+        model.addAttribute("isUp", isUp);
 
         return "asset/dashboard";
+
     }
 
     /**
      * 소비 분석 페이지
      */
     @GetMapping("/asset/analytics")
-    public String analytics(@RequestParam(value = "month", required = false) Integer month, Model model, HttpSession session) {
+    public String analytics(@RequestParam(value = "month", required = false) Integer month, @RequestParam(value = "year", required = false) Integer year, Model model, HttpSession session) {
         // 각 페이지 컨트롤러 메서드 시작 부분 예시
         Integer loginNum = (Integer) session.getAttribute("loginNum");
-
         if (loginNum == null) {
             return "redirect:/login";
         }
 
-        // ----------------------------------------------
-        // 1. assetDto가 없으면 에러가 나므로 빈 객체라도 생성해서 담아줍니다.
-//        AssetPlannerAnalysisDto assetDto = new AssetPlannerAnalysisDto();
-//        // 2. 화면에 나타날 기본값 설정 (0이나 빈 문자열로 인한 에러 방지)
-//        assetDto.setToneTitle("데이터를 분석 중입니다");
-//        assetDto.setPredictionLabel("분석 대기");
-//        assetDto.setMonthlySaving(0L);
-//        assetDto.setModelProbability(0.0);
-//        assetDto.setRequiredMonthlySaving(0L);
-//        assetDto.setGoalGap(0L);
-//
-//        model.addAttribute("assetDto", assetDto);
-        // ----------------------------------------------
 
-        int currentRealMonth = 3;
+//        int currentRealMonth = 3;
+        int currentRealMonth = getCurrentMonth();
+        int currentRealYear = getCurrentYear();
         if (month == null)
             month = currentRealMonth;
+        if (year == null) {
+            year = currentRealYear;
+        }
 
         System.out.println("현재 선택된 월: " + month);
         System.out.println("기준이 되는 현재 리얼 월: " + currentRealMonth);
         model.addAttribute("currentRealMonth", currentRealMonth);
+        model.addAttribute("currentRealYear", currentRealYear);
+
+
 
         // DB에서 유저 정보 가져오기
         UserDto user = userDao.getUserInfo(loginNum);
         model.addAttribute("userName", user.getName());
         model.addAttribute("userEmail", user.getEmail());
+        model.addAttribute("user_id", user.getNum());
 
         // 1. 필수 vs 비필수 데이터 연동
-        Map<String, Integer> needWant = assetDao.getNeedWantSpending(month);
+        Map<String, Integer> needWant = assetDao.getNeedWantSpending(month, year, loginNum);
         int need = needWant.getOrDefault("need", 0);
         int want = needWant.getOrDefault("want", 0);
         int total = need + want;
@@ -181,9 +235,9 @@ public class AssetController {
         model.addAttribute("wantPercentage", total > 0 ? (want * 100 / total) : 0);
 
         // 2. 카테고리 데이터 연동
-        List<Map<String, Object>> categories = assetDao.getCategorySpending(month);
+        List<Map<String, Object>> categories = assetDao.getCategorySpending(month, year, loginNum);
         // 색상 배열 (차트와 리스트에 순서대로 적용)
-        String[] colors = {"#0066FF", "#00C6B8", "#FFA726", "#AB47BC", "#FF4B4B", "#66BB6A", "#8D6E63"};
+        String[] colors = {"#15164D", "#00C6B8", "#FFA726", "#AB47BC", "#FF4B4B", "#66BB6A", "#8D6E63"};
         for (int i = 0; i < categories.size(); i++) {
             categories.get(i).put("color", colors[i % colors.length]);
             // 퍼센트 계산 추가
@@ -193,12 +247,32 @@ public class AssetController {
 
         model.addAttribute("categories", categories);
         model.addAttribute("selectedMonth", month);
+        model.addAttribute("selectedYear", year);
 
         // 3. 인사이트 데이터 생성 (선택된 달 vs 이전 달)
-        Map<String, Integer> currentMap = assetDao.getCategoryMapByMonth(month);
-        Map<String, Integer> previousMap = assetDao.getCategoryMapByMonth(month - 1);
+        int prevMonth = (month == 1) ? 12 : month - 1;
+        int prevYear = (month == 1) ? year - 1 : year;
+        Map<String, Integer> currentMap = assetDao.getCategoryMapByMonth(month, year, loginNum);
+        Map<String, Integer> previousMap = assetDao.getCategoryMapByMonth(prevMonth, prevYear, loginNum);
+        model.addAttribute("prevMonth", prevMonth);
+        model.addAttribute("prevYear", prevYear);
 
         List<Map<String, Object>> insights = new ArrayList<>();
+
+        // 이전 달 데이터 존재 여부 확인
+        boolean hasPrevData = assetDao.getRecentTransactionsByMonth(prevMonth, prevYear, loginNum) != null
+                && !assetDao.getRecentTransactionsByMonth(prevMonth, prevYear, loginNum).isEmpty();
+        model.addAttribute("hasPrevData", hasPrevData);
+
+        // 다음 달 데이터 존재 여부 확인
+        int nextMonth = (month == 12) ? 1 : month + 1;
+        int nextYear = (month == 12) ? year + 1 : year; // 12월이면 다음년도 1월
+        boolean hasNextData = assetDao.getRecentTransactionsByMonth(nextMonth, nextYear, loginNum) != null
+                && !assetDao.getRecentTransactionsByMonth(nextMonth, nextYear, loginNum).isEmpty();
+        model.addAttribute("hasNextData", hasNextData);
+        model.addAttribute("nextMonth", nextMonth);
+        model.addAttribute("nextYear", nextYear);
+
 
         // 이번 달에 소비가 있는 카테고리들을 순회하며 비교
         for (String category : currentMap.keySet()) {
@@ -226,9 +300,10 @@ public class AssetController {
 
 
         // 가장 최근의 지출 10개 가져오기
-        List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month); // 메서드 추가 필요
-//        model.addAttribute("selectedMonth", month);
-//        model.addAttribute("currentRealMonth", currentRealMonth);
+        List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month, year, loginNum); // 메서드 추가 필요
+        model.addAttribute("selectedMonth", month);
+        model.addAttribute("currentRealMonth", currentRealMonth);
+        model.addAttribute("currentRealYear", currentRealYear);
         model.addAttribute("recentTransactions", transactions);
 
         return "asset/analytics";
@@ -238,19 +313,35 @@ public class AssetController {
      * 저축 플래너 페이지 걍 초기버전 합쳐야됨
      */
     @GetMapping("/asset/savings-planner")
-    public String showPlanner(Model model, HttpSession session) {
+    public String showPlanner(@RequestParam(value="month", required=false) Integer month,
+                              @RequestParam(value="year", required=false) Integer year,
+                              Model model, HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         if (loginNum == null) {
             return "redirect:/login";
+        }
+
+        // 현재 실제 날짜 기준 (2026년 4월)
+        int currentRealMonth = getCurrentMonth();
+        int currentRealYear = getCurrentYear();
+
+        // 파라미터가 없으면 현재 달(4월)로 설정
+        if (month == null) {
+            month = currentRealMonth;
+        }
+        if (year == null) {
+            year = currentRealYear;
         }
 
         // DB에서 유저 정보 가져오기
         UserDto user = userDao.getUserInfo(loginNum);
         model.addAttribute("userName", user.getName());
         model.addAttribute("userEmail", user.getEmail());
+        model.addAttribute("user_id", user.getNum());
+
 
         // 1. DB에서 전체 히스토리 가져오기
-        List<AssetPlannerAnalysisDto> history = assetPlannerAnalysisService.getHistory();
+        List<AssetPlannerAnalysisDto> history = assetPlannerAnalysisService.getHistory(loginNum);
         AssetPlannerAnalysisDto lastData;
 
         if (history != null && !history.isEmpty()) {
@@ -268,13 +359,18 @@ public class AssetController {
         model.addAttribute("historyList", history);
 
         // 이번 달 실제 지출액도 함께 넘겨줍니다 (화면 출력용)
-        model.addAttribute("currentMonthSpending", assetDao.getMonthSpending(2));
+        model.addAttribute("currentMonthSpending", assetDao.getMonthSpending(month, year, loginNum));
+        model.addAttribute("selectedMonth", month); // 뷰에서 쓰기 위해 추가
+        model.addAttribute("selectedYear", year);   // 뷰에서 쓰기 위해 추가
+        // model.addAttribute("currentMonthSpending", assetDao.getMonthSpending(getCurrentMonth()));   // 대신 실제 현재 월 지출액을 가져오도록 변경
 
         return "asset/savings-planner";
     }
 
     @PostMapping("/asset/savings-planner/analyze")
-    public String assetAnalyze(@ModelAttribute("assetDto") AssetPlannerAnalysisDto assetDto,
+    public String assetAnalyze(@RequestParam(value="month", required=false) Integer month,
+                               @RequestParam(value="year", required=false) Integer year,
+                               @ModelAttribute("assetDto") AssetPlannerAnalysisDto assetDto,
                                HttpSession session,
                                Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
@@ -282,30 +378,48 @@ public class AssetController {
             return "redirect:/login";
         }
 
+        // 현재 실제 날짜 기준 (2026년 4월)
+        int currentRealMonth = getCurrentMonth();
+//        int currentRealMonth = 3;
+        int currentRealYear = getCurrentYear();
+
+        // 파라미터가 없으면 현재 달(4월)로 설정
+        if (month == null) {
+            month = currentRealMonth;
+        }
+        if (year == null) {
+            year = currentRealYear;
+        }
+
         // DB에서 유저 정보 가져오기
         UserDto user = userDao.getUserInfo(loginNum);
         model.addAttribute("userName", user.getName());
         model.addAttribute("userEmail", user.getEmail());
+        model.addAttribute("user_id", user.getNum());
 
         try {
             // 이번 달 지출 DB에서 가져오기
-            int currentMonthSpending = assetDao.getMonthSpending(2);
+            int currentMonthValue = getCurrentMonth();
+            int currentMonthSpending = assetDao.getMonthSpending(month, year, loginNum);
             assetDto.setMonthlyExpense((long) currentMonthSpending);
 
             // 서비스에서 FastAPI 호출 + DB 저장 + 결과 반환
-            AssetPlannerAnalysisDto resultDto = assetPlannerAnalysisService.analyzeAndSave(assetDto);
+            AssetPlannerAnalysisDto resultDto = assetPlannerAnalysisService.analyzeAndSave(assetDto, loginNum);
 
+            model.addAttribute("selectedMonth", month); // 결과 페이지에서도 연/월 유지 위해 추가
+            model.addAttribute("selectedYear", year);
             model.addAttribute("assetDto", resultDto);
             model.addAttribute("currentMonthSpending", currentMonthSpending);
-            model.addAttribute("historyList", assetPlannerAnalysisService.getHistory());
+            model.addAttribute("historyList", assetPlannerAnalysisService.getHistory(loginNum));
 
             return "asset/savings-planner";
 
         } catch (Exception e) {
             e.printStackTrace();
             model.addAttribute("assetDto", assetDto);
-            model.addAttribute("currentMonthSpending", assetDao.getMonthSpending(2));
-            model.addAttribute("historyList", assetPlannerAnalysisService.getHistory());
+//            model.addAttribute("currentMonthSpending", assetDao.getMonthSpending(getCurrentMonth()));
+            model.addAttribute("currentMonthSpending", assetDao.getMonthSpending(month, year, loginNum));
+            model.addAttribute("historyList", assetPlannerAnalysisService.getHistory(loginNum));
             model.addAttribute("errorMessage", "자산 분석 중 오류가 발생했습니다. " + e.getMessage());
             return "asset/savings-planner";
         }

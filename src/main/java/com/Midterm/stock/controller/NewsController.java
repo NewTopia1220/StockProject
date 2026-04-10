@@ -37,6 +37,21 @@ public class NewsController {
         int totalCount         = newsDao.getNewsCount(sector, keyword);
         int totalPages         = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
 
+        // --- 여기부터 출력 코드 추가 ---
+        System.out.println("=========================================");
+        System.out.println("[DEBUG] 가져온 뉴스 개수: " + (newsList != null ? newsList.size() : 0));
+
+        if (newsList != null && !newsList.isEmpty()) {
+            for (NewsDto dto : newsList) {
+                // DTO의 getPubDate() 메서드를 통해 날짜만 출력
+                System.out.println("기사 날짜: " + dto.getPubDate() + " | 제목: " + dto.getTitle());
+            }
+        } else {
+            System.out.println("[경고] 검색된 뉴스 데이터가 없습니다.");
+        }
+        System.out.println("=========================================");
+        // --- 여기까지 ---
+
         LinkedHashMap<String, List<String>> sectorMap = newsDao.getSidebarSectorMap();
 
         // 사이드바 AI 분석 (현재 필터 기준)
@@ -45,7 +60,6 @@ public class NewsController {
         double saType = (double) sidebarAnalysis.getOrDefault("avgTypeProb",    0.0);
         double saNoise= (double) sidebarAnalysis.getOrDefault("avgClickbaitProb",0.0);
         int saPos    = (int)    sidebarAnalysis.getOrDefault("positiveCount",   0);
-        int saNeg    = (int)    sidebarAnalysis.getOrDefault("negativeCount",   0);
         int saPosRatio = saTotal > 0 ? (int)Math.round((double)saPos/saTotal*100) : 50;
 
         model.addAttribute("newsList",     newsList);
@@ -61,7 +75,6 @@ public class NewsController {
         model.addAttribute("saType",     String.format("%.1f", saType));
         model.addAttribute("saNoise",    String.format("%.1f", saNoise));
         model.addAttribute("saPosRatio", saPosRatio);
-        model.addAttribute("saNegRatio", saTotal>0 ? (int)Math.round((double)saNeg/saTotal*100) : 50);
         model.addAttribute("currentMenu","news");
 
         return "news/list";
@@ -85,7 +98,9 @@ public class NewsController {
     @ResponseBody
     public ResponseEntity<List<Map<String, Object>>> getComments(
             @RequestParam("link") String link, HttpSession session) {
-        if (session.getAttribute("loginUser") == null) return ResponseEntity.status(401).build();
+        if (session.getAttribute("loginUser") == null)
+            return ResponseEntity.status(401).build();
+
         return ResponseEntity.ok(newsDao.getComments(link));
     }
 

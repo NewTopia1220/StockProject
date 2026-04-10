@@ -105,6 +105,40 @@ public class UserDao {
         return result;
     }
 
+    // 이메일 대소문자만 다른 계정이 있는지 확인
+    public boolean existsWithDifferentEmailCase(String email, String password) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        boolean result = false;
+
+        String sql = "select email from users where lower(email) = lower(?) and password = ?";
+
+        try {
+            conn = connect();
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, email);
+            pstmt.setString(2, password);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String dbEmail = rs.getString("email");
+
+                if (dbEmail != null && !dbEmail.equals(email)) {
+                    result = true;
+                    break;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+
+        return result;
+    }
+
     // 이름 + 번호로 이메일 찾기
     public String findEmailByNameAndPhone(String name, String phone) {
         Connection conn = null;
@@ -293,6 +327,7 @@ public class UserDao {
                     dto.setEmail(rs.getString("email"));
                     dto.setRole(rs.getString("role"));
                     dto.setPhone(rs.getString("phone"));
+                    dto.setNotifyStock(rs.getInt("notify_stock"));
                     // 비밀번호는 보안상 보통 마이페이지 조회시엔 잘 안 담지만 필요시 추가
                 }
             }
@@ -374,5 +409,30 @@ public class UserDao {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+
+    // ---------------------------------- 민경추가-----------------
+    public int findNotifyStockStatusByNum(int userNum) {
+        String sql = "SELECT notify_stock FROM users WHERE num = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt("notify_stock");
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 1; // 에러 나거나 데이터 없으면 기본값으로 알림 켬(1) 반환
+    }
+
+    public void updateNotifySetting(int userNum, int status) {
+        String sql = "UPDATE users SET notify_stock = ? WHERE num = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, status);
+            pstmt.setInt(2, userNum);
+            pstmt.executeUpdate();
+            System.out.println("유저 " + userNum + " 알림 설정 변경 -> " + status);
+        } catch (SQLException e) { e.printStackTrace(); }
     }
 }

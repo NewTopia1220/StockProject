@@ -5,29 +5,17 @@ import java.sql.Timestamp;
 public class CommunityDto {
     private int board_id;
     private int user_num;
+    private String userName;
+    private String userEmail;
     private String category;
     private String title;
+    private String news_link;
     private String content;
     private int view_count;
     private int like_count;
     private Timestamp created_at;
     private Timestamp updated_at;
-
-    public CommunityDto() {
-
-    }
-
-    public CommunityDto(int board_id, int user_num, String category, String title, String content, int view_count, int like_count, Timestamp created_at, Timestamp updated_at) {
-        this.board_id = board_id;
-        this.user_num = user_num;
-        this.category = category;
-        this.title = title;
-        this.content = content;
-        this.view_count = view_count;
-        this.like_count = like_count;
-        this.created_at = created_at;
-        this.updated_at = updated_at;
-    }
+    private String tagNames;
 
     public int getBoard_id() {
         return board_id;
@@ -45,6 +33,32 @@ public class CommunityDto {
         this.user_num = user_num;
     }
 
+    public String getUserName() {
+        return userName;
+    }
+
+    public void setUserName(String userName) {
+        this.userName = userName;
+    }
+
+    public String getUserEmail() {
+        return userEmail;
+    }
+
+    public void setUserEmail(String userEmail) {
+        this.userEmail = userEmail;
+    }
+
+    public String getDisplayName() {
+        if (userEmail != null && userEmail.contains("@")) {
+            return userEmail.substring(0, userEmail.indexOf('@'));
+        }
+        if (userName != null && !userName.isBlank()) {
+            return userName;
+        }
+        return "";
+    }
+
     public String getCategory() {
         return category;
     }
@@ -59,6 +73,14 @@ public class CommunityDto {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getNews_link() {
+        return news_link;
+    }
+
+    public void setNews_link(String news_link) {
+        this.news_link = news_link;
     }
 
     public String getContent() {
@@ -99,5 +121,13 @@ public class CommunityDto {
 
     public void setUpdated_at(Timestamp updated_at) {
         this.updated_at = updated_at;
+    }
+
+    public String getTagNames() {
+        return tagNames;
+    }
+
+    public void setTagNames(String tagNames) {
+        this.tagNames = tagNames;
     }
 }

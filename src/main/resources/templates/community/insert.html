@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <title>게시글 작성</title>
 
-    <link rel="stylesheet" th:href="@{/css/header.css}">
-    <link rel="stylesheet" th:href="@{/css/community/insert.css}">
     <link rel="stylesheet" th:href="@{/css/bootstrap.min.css}">
     <link rel="stylesheet" th:href="@{/css/kfonts2.css}">
+    <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/community/insert.css}">
 
     <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
     <script type="text/javascript" th:src="@{/js/community/insert.js}" defer></script>
@@ -75,7 +75,7 @@
                               placeholder="내용을 입력해주세요"></textarea>
                 </div>
 
-                <div class="cwField">
+                <!--<div class="cwField">
                     <label for="attachFile">첨부파일</label>
 
                     <input type="file"
@@ -86,6 +86,22 @@
                     <label for="attachFile" class="cwFileFake">
                         <span id="fileNameText">파일을 선택해주세요</span>
                     </label>
+                </div> -->
+
+                <div class="cwField">
+                    <label for="tagNames">태그</label>
+                    <input type="text" id="tagNames" th:field="*{tagNames}" class="cwInput" placeholder="예: #네이버 #AI #반도체">
+                    <small class="cwHint">샵(#)을 붙여 입력하세요. 예: #네이버 #AI</small>
+                </div>
+
+                <div class="newsDataLink">
+                    <label for="newsKeyword">관련 뉴스</label>
+                    <input type="text" id="newsKeyword" placeholder="관련 뉴스를 검색하세요">
+
+                    <div id="newsSearchResult"></div>
+
+                    <div id="selectedNewsBox"></div>
+                    <input type="hidden" name="news_link" id="newsLink">
                 </div>
 
                 <div class="cwButtonRow">
