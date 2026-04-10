@@ -67,19 +67,44 @@ async function refreshBadge() {
 }
 
 async function loadAlertPanel() {
+    // 알림 목록을 뿌릴 컨테이너
     const list = document.getElementById('alertList');
     if (!list) return;
+
     try {
-        const res    = await fetch('/api/alerts');
-        const data   = await res.json();
+        // 서버에서 알림 목록 데이터
+        const res = await fetch('/api/alerts');
+        // 응답 json으로 변환
+        const data = await res.json();
+        // 배열 없으면 빈 배열
         const alerts = data.alerts || [];
+
         if (alerts.length === 0) {
             list.innerHTML = '<div class="alertEmpty">알림이 없습니다</div>';
             return;
         }
+
         list.innerHTML = alerts.map(a => {
-            const cls  = a.alertType === '상승' ? 'up' : 'down';
+            // 커뮤니티 댓글 알림일 경우
+            if (a.alertType === '댓글') {
+                return `
+                <div class="alertItem ${!a.read ? 'unread' : ''}"
+                     onclick="location.href='${a.link || `/community/detail?board_id=${a.stockCode}`}'">
+                    <div class="alertDot up"></div>
+                    <div class="alertItemText">
+                        <div class="alertItemName">${a.title || '새 댓글 알림'}</div>
+                        <div class="alertItemDesc">
+                            ${a.message || `${a.changeRate}님이 댓글을 남겼습니다.`}
+                        </div>
+                        <div class="alertItemTime">${formatAlertTime(a.createdAt)}</div>
+                    </div>
+                </div>`;
+            }
+
+            // 주식 알림 표시 로직
+            const cls = a.alertType === '상승' ? 'up' : 'down';
             const sign = a.alertType === '상승' ? '▲' : '▼';
+
             return `
             <div class="alertItem ${!a.read ? 'unread' : ''}"
                  onclick="location.href='/market/${a.stockCode}'">
@@ -94,6 +119,7 @@ async function loadAlertPanel() {
             </div>`;
         }).join('');
     } catch (e) {
+        // 알림을 불러오다 실패하면 오류 문구를 보여줍니다.
         list.innerHTML = '<div class="alertEmpty">불러오기 실패</div>';
     }
 }

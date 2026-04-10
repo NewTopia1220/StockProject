@@ -150,7 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const user_id = document.getElementById('userId').value;
             console.log("전송할 유저 아이디:", user_id); // 👈 값이 잘 나오는지 콘솔에서 확인!
 
-            const FASTAPI_URL = "http://127.0.0.1:8000/classify_transaction";
+            const FASTAPI_URL = "http://127.0.0.1:8001/classify_transaction";
 
             const payload = {
                 vendor: vendor,

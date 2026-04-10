@@ -76,11 +76,15 @@ public class WatchListService {
 
     /** 알림 패널용 응답 DTO 빌드 */
     public Map<String, Object> buildAlertPanel(Integer userNum) {
+        // 최근 알림 목록
         List<StockAlert> alerts = getAlerts(userNum);
+        // 읽지 않은 알림 개수
         long unread = getUnreadCount(userNum);
 
         List<Map<String, Object>> items = alerts.stream().map(a -> {
             Map<String, Object> m = new HashMap<>();
+
+            // 현재 알림이 커뮤니티 댓글 알림인지
             boolean isCommunityComment = "댓글".equals(a.getAlertType());
 
             m.put("id", a.getId());
@@ -92,18 +96,24 @@ public class WatchListService {
             m.put("read", a.isAlertRead());
             m.put("createdAt", a.getCreatedAt().toString());
 
+            // 댓글 알림이면 커뮤니티 상세 페이지로
             if (isCommunityComment) {
                 m.put("link", "/community/detail?board_id=" + a.getStockCode());
+                // 알림 제목 -> 댓글 알림용으로 따로
                 m.put("title", "내 게시글에 새 댓글");
+                // 벨 UI에 보여줄 설명 문구
                 m.put("message", a.getChangeRate() + "님이 '" + a.getStockName() + "' 게시글에 댓글을 남겼습니다.");
             } else {
+                // 기존 주식 알림 -> 종목 상세 페이지로
                 m.put("link", "/market/" + a.getStockCode());
+                // 주식 알림 제목은 종목명으로
                 m.put("title", a.getStockName());
                 m.put("message", (("상승".equals(a.getAlertType()) ? "▲ " : "▼ ")
                         + a.getChangeRate() + "% " + a.getAlertType() + " · "
                         + NumberFormatHelper.formatPrice(a.getPrice()) + "원"));
             }
 
+            // 가공된 알림 한 건 반환 
             return m;
         }).collect(Collectors.toList());
 

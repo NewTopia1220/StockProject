@@ -228,6 +228,6 @@ def classify(transaction: Transaction):
 if __name__ == "__main__":
     import uvicorn
     # port는 9000번으로 설정 (자바 설정과 맞춤)
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+    uvicorn.run(app, host="127.0.0.1", port=8001)
 
 
