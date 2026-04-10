@@ -199,6 +199,7 @@ function closeModal() {
 document.addEventListener("DOMContentLoaded", function () {
     const canvas = document.getElementById("monthlyChart");
 
+
     const trendData = JSON.parse(canvas.dataset.trend);
     const selectedMonth = Number(canvas.dataset.selectedMonth);  // 여기서 숫자형으로 받음
 
@@ -246,6 +247,8 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 });
+
+
 
 
 

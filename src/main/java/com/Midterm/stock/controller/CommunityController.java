@@ -13,6 +13,7 @@ import com.Midterm.stock.repository.community.CommunityLikeDao;
 import com.Midterm.stock.repository.community.CommunityTagDao;
 import com.Midterm.stock.repository.community.CommunityExtraDao;
 
+import com.Midterm.stock.service.WatchListService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -44,6 +45,9 @@ public class CommunityController {
 
     @Autowired
     private StockAlertRepository stockAlertRepository;
+
+    @Autowired
+    private WatchListService watchListService;
 
 
     // 게시글 목록
@@ -269,26 +273,36 @@ public class CommunityController {
 
             // 댓글 저장 성공   // 내가 내 글에 단 댓글이 아닐 때만 알림 생성
             if (result > 0 && article.getUser_num() != loginNum) {
-                String commenterName = loginUser.contains("@")
-                        ? loginUser.substring(0, loginUser.indexOf('@'))
-                        : loginUser;
 
-                StockAlert alert = new StockAlert();
-                // 알림을 받을 사람 = 게시글 작성자
-                alert.setUserNum(article.getUser_num());
-                // 게시글 번호
-                alert.setStockCode(String.valueOf(board_id));
-                // 게시글 제목을 stockName에 저장
-                alert.setStockName(article.getTitle());
-                alert.setChangeRate(commenterName);
-                // 주식 알림과 구분하기 위한 타입값
-                alert.setAlertType("댓글");
-                // 기존 테이블 구조상 값이 필요해서 기본값 0 저장
-                alert.setPrice("0");
-                // 새 알림이므로 읽지 않음 상태로 저장
-                alert.setAlertRead(false);
-                // 실제 알림 DB 저장
-                stockAlertRepository.save(alert);
+                // ---------- 민경 추가: 게시글 작성자가 댓글 알림을 켜놨는지 확인 --------------------
+                boolean isCommentAlertEnabled = watchListService.isCommentNotifyEnabled(article.getUser_num());
+                System.out.println("댓글 알림 체크 - 작성자: " + article.getUser_num() + " | 상태: " + isCommentAlertEnabled);
+
+                if (isCommentAlertEnabled) { // <- 설정이 켜져 있을 때만 알림 저장!  // 여기까지 추가-------------------
+                    String commenterName = loginUser.contains("@")
+                            ? loginUser.substring(0, loginUser.indexOf('@'))
+                            : loginUser;
+
+                    StockAlert alert = new StockAlert();
+                    // 알림을 받을 사람 = 게시글 작성자
+                    alert.setUserNum(article.getUser_num());
+                    // 게시글 번호
+                    alert.setStockCode(String.valueOf(board_id));
+                    // 게시글 제목을 stockName에 저장
+                    alert.setStockName(article.getTitle());
+                    alert.setChangeRate(commenterName);
+                    // 주식 알림과 구분하기 위한 타입값
+                    alert.setAlertType("댓글");
+                    // 기존 테이블 구조상 값이 필요해서 기본값 0 저장
+                    alert.setPrice("0");
+                    // 새 알림이므로 읽지 않음 상태로 저장
+                    alert.setAlertRead(false);
+                    // 실제 알림 DB 저장
+                    stockAlertRepository.save(alert);
+                    System.out.println(">>> 댓글 알림이 성공적으로 생성되었습니다.");
+                } else {
+                    System.out.println(">>> 작성자가 댓글 알림을 꺼두어 알림을 생성하지 않습니다.");
+                }
             }
         }
 

@@ -80,31 +80,29 @@
                 <div class="page-header">
                     <div class="month-selector" style="display: flex; align-items: center; gap: 15px;">
 
-                        <!-- 이전 버튼 비활성화 -->
-                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed;">
+                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed; opacity: 0.5;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </div>
 
-                        <a th:if="${hasPrevData}" th:href="@{/asset/analytics(month=${prevMonth}, year=${prevYear})}" class="btn-month"> <!--이전달-->
+                        <a th:if="${hasPrevData}" th:href="@{/asset/analytics(month=${prevMonth}, year=${prevYear})}" class="btn-month" th:title="|${prevYear}년 ${prevMonth}월로 점프|">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </a>
 
-                        <h1 style="margin: 0;">
-                            <span th:text="|${selectedYear}년 ${selectedMonth}월|">2025년 4월 소비분석</span>   <!--현재달-->
+                        <h1 style="margin: 0; min-width: 150px; text-align: center;">
+                            <span th:text="|${selectedYear}년 ${selectedMonth}월|">2026년 4월</span>
                         </h1>
 
-                            <a th:if="${hasNextData}" th:href="@{/asset/analytics(month=${nextMonth}, year=${nextYear})}" class="btn-month">  <!--다음달-->
+                        <a th:if="${hasNextData}" th:href="@{/asset/analytics(month=${nextMonth}, year=${nextYear})}" class="btn-month" th:title="|${nextYear}년 ${nextMonth}월로 점프|">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </a>
 
-                        <!--다음버튼 비활성화-->
-                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed;">
+                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed; opacity: 0.5;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
@@ -154,21 +152,31 @@
                         <h3 class="card-title-section">카테고리별 소비</h3>
 
                         <div class="category-chart">
-                            <div class="donut-chart">
-                                <canvas id="categoryDonut" width="300" height="300"></canvas>
-                            </div>
+                            <th:block th:if="${not #lists.isEmpty(categories)}">
+                                <div class="donut-chart">
+                                    <canvas id="categoryDonut" width="300" height="300"></canvas>
+                                </div>
 
-                            <div class="category-list">
-                                <div class="category-item" th:each="cat : ${categories}">
-                                    <div class="category-info">
-                                        <div class="category-color" th:style="'background-color: ' + ${cat.color}"></div>
-                                        <span th:text="${cat.name}"></span>
-                                    </div>
-                                    <div class="category-amount-wrapper">
-                                        <span class="category-amount" th:text="${#numbers.formatInteger(cat.value, 0, 'COMMA')} + '원'"></span>
-                                        <span class="category-percentage" th:text="'(' + ${cat.percentage} + '%)'"></span>
+                                <div class="category-list">
+                                    <div class="category-item" th:each="cat : ${categories}">
+                                        <div class="category-info">
+                                            <div class="category-color" th:style="'background-color: ' + ${cat.color}"></div>
+                                            <span th:text="${cat.name}"></span>
+                                        </div>
+                                        <div class="category-amount-wrapper">
+                                            <span class="category-amount" th:text="${#numbers.formatInteger(cat.value, 0, 'COMMA')} + '원'"></span>
+                                            <span class="category-percentage" th:text="'(' + ${cat.percentage} + '%)'"></span>
+                                        </div>
                                     </div>
                                 </div>
+                            </th:block>
+
+                            <div th:if="${#lists.isEmpty(categories)}" style="width: 100%; height: 200px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #9ca3af; gap: 12px;">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="opacity: 0.5;">
+                                    <path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path>
+                                    <path d="M22 12A10 10 0 0 0 12 2v10z"></path>
+                                </svg>
+                                <p>이번 달 소비 내역이 없습니다.</p>
                             </div>
                         </div>
                     </div>
@@ -208,10 +216,12 @@
                 <div class="card">
                     <div class="card-title-section">
                         <h3>최근 소비 내역</h3>
-<!--                        <a href="#" class="link-primary">전체보기</a>-->
                     </div>
 
                     <div class="transaction-list">
+                        <div th:if="${#lists.isEmpty(recentTransactions)}" style="text-align: center; padding: 40px 0; color: #9ca3af;">
+                            <p>기록된 소비 내역이 없습니다.</p>
+                        </div>
                         <div class="transaction-item" th:each="transaction : ${recentTransactions}">
                             <div class="transaction-info">
                                 <div class="transaction-icon">
