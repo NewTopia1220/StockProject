@@ -303,24 +303,44 @@ async function initMainChart() {
         }],
         series: [
             hasOhlc ? {
-                type: 'candlestick', name: currentCode,
+                type: 'candlestick',
+                name: currentCode,
                 data: ohlc,
-                color: '#3b82f6', upColor: '#ef4444',
-                lineColor: '#3b82f6', upLineColor: '#ef4444',
-                lineWidth: currentTab === 'minute' ? 2 : 1,
-                pointWidth: currentTab === 'time' ? 8 : currentTab === 'minute' ? 4 : undefined,
+                // 1. 색상 강조 (한국 주식 시장 표준: 상승-빨강, 하락-파랑)
+                color: '#0051ff',       // 하락(음봉) 색상 (더 진한 파랑)
+                upColor: '#f22e2e',     // 상승(양봉) 색상 (더 진한 빨강)
+                lineColor: '#0051ff',   // 하락 테두리/심지
+                upLineColor: '#f22e2e', // 상승 테두리/심지
+
+                // 2. 두께 설정
+                // intraday일 때 기존 6에서 10~12 정도로 키우면 훨씬 묵직하게 보입니다.
+                pointWidth: isIntraday ? 10 : undefined,
+
+                // 3. 테두리 두께 (캔들이 너무 얇을 때 효과적)
+                lineWidth: 2,
+
                 dataGrouping: { enabled: false }
             } : {
-                type: 'line', name: currentCode,
-                data: ohlc, color: minuteLineColor,
-                lineWidth: currentTab === 'minute' ? 3 : 2,
-                marker: { enabled: false },
+                type: 'line',
+                name: currentCode,
+                data: ohlc,
+                color: '#0E0F37',
+                // 4. 선 차트일 경우 두께를 2에서 3~4로 변경
+                lineWidth: 3,
+                marker: {
+                    enabled: isIntraday, // 분별 차트에서 점(marker)을 표시하면 흐름이 더 잘 보입니다.
+                    radius: 3
+                },
                 dataGrouping: { enabled: false }
             },
             {
-                type: 'column', name: '거래량',
-                data: vol, yAxis: 1,
+                type: 'column',
+                name: '거래량',
+                data: vol,
+                yAxis: 1,
                 color: '#e5e7eb',
+                // 5. 거래량 막대도 캔들과 너비를 맞춤
+                pointWidth: isIntraday ? 8 : undefined,
                 dataGrouping: { enabled: false }
             }
         ]
