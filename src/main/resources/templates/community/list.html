@@ -18,9 +18,7 @@
         <div class="heroTop">
             <div class="heroText">
                 <h1>투자 정보와 시장 이슈를 함께 나누는 공간</h1>
-                <p>
-                    실시간으로 흐름을 확인하고 의견을 공유할 수 있습니다.
-                </p>
+                <p>실시간으로 흐름을 확인하고 의견을 공유할 수 있습니다.</p>
             </div>
         </div>
 
@@ -32,7 +30,6 @@
 
     <div class="communityMain">
 
-        <!-- 왼쪽 사이드바 -->
         <aside class="communitySidebar">
             <div class="sidebarCard">
                 <div class="sidebarHeader">
@@ -60,10 +57,10 @@
                                 <span class="navLabel">자유게시판</span>
                             </a>
 
-                            <a th:href="@{/community(category='topic')}"
+                            <a th:href="@{/community(category='popular')}"
                                class="navItem"
-                               th:classappend="${param.category != null and param.category[0] == 'topic'} ? ' active' : ''">
-                                <span class="navLabel">종목토론</span>
+                               th:classappend="${param.category != null and param.category[0] == 'popular'} ? ' active' : ''">
+                                <span class="navLabel">인기글</span>
                             </a>
 
                             <a th:href="@{/community(category='beginner')}"
@@ -142,33 +139,33 @@
                         <label class="sidebarPanelToggleItem">
                             <span class="toggleItemText">인기 카테고리</span>
                             <span class="toggleSwitch">
-                        <input type="checkbox" id="togglePopular" checked>
-                        <span class="toggleSlider"></span>
-                    </span>
+                                <input type="checkbox" id="togglePopular" checked>
+                                <span class="toggleSlider"></span>
+                            </span>
                         </label>
 
                         <label class="sidebarPanelToggleItem">
                             <span class="toggleItemText">커뮤니티 가이드</span>
                             <span class="toggleSwitch">
-                        <input type="checkbox" id="toggleGuide" checked>
-                        <span class="toggleSlider"></span>
-                    </span>
+                                <input type="checkbox" id="toggleGuide" checked>
+                                <span class="toggleSlider"></span>
+                            </span>
                         </label>
 
                         <label class="sidebarPanelToggleItem">
                             <span class="toggleItemText">실시간 투자 분석</span>
                             <span class="toggleSwitch">
-                        <input type="checkbox" id="toggleAnalysis" checked>
-                        <span class="toggleSlider"></span>
-                    </span>
+                                <input type="checkbox" id="toggleAnalysis" checked>
+                                <span class="toggleSlider"></span>
+                            </span>
                         </label>
 
                         <label class="sidebarPanelToggleItem">
                             <span class="toggleItemText">실시간 시세</span>
                             <span class="toggleSwitch">
-                        <input type="checkbox" id="togglePrice" checked>
-                        <span class="toggleSlider"></span>
-                    </span>
+                                <input type="checkbox" id="togglePrice" checked>
+                                <span class="toggleSlider"></span>
+                            </span>
                         </label>
                     </div>
                 </section>
@@ -179,8 +176,51 @@
             </div>
         </aside>
 
-        <!-- 중앙 콘텐츠 -->
         <section class="communityContent">
+
+            <section class="featuredSection" th:if="${featuredPosts != null and not #lists.isEmpty(featuredPosts)}">
+                <div class="featuredHeader">
+                    <div class="featuredTitleWrap">
+                        <h2>지금 인기 글</h2>
+                        <p>좋아요가 가장 많은 게시글 두 개를 먼저 보여드려요.</p>
+                    </div>
+                    <span class="featuredBadge">TOP 2</span>
+                </div>
+
+                <div class="featuredBoardList">
+                    <article class="featuredBoardItem" th:each="featured : ${featuredPosts}">
+                        <a class="featuredBoardLink" th:href="@{/community/detail(board_id=${featured.board_id})}">
+                            <div class="boardTopRow">
+                                <span class="boardCategory" th:text="${featured.category}">카테고리</span>
+
+                                <div class="boardRightStat">
+                                    <span class="featuredLike" th:text="'좋아요 ' + ${featured.like_count}">좋아요 0</span>
+                                </div>
+                            </div>
+
+                            <h3 class="featuredBoardTitle" th:text="${featured.title}">추천 게시글 제목</h3>
+
+                            <p class="featuredBoardPreview"
+                               th:text="${#strings.length(featured.content) > 120 ? #strings.substring(featured.content, 0, 120) + '...' : featured.content}">
+                                추천 게시글 내용 미리보기
+                            </p>
+
+                            <div class="boardBottom">
+                                <div class="boardMeta">
+                                    <span th:text="'작성자 ' + ${featured.displayName}">작성자</span>
+                                    <span th:text="${#dates.format(featured.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-09 12:00</span>
+                                </div>
+
+                                <div class="boardStats">
+                                    <span th:text="'조회 ' + ${featured.view_count}">조회 0</span>
+                                    <span th:text="'좋아요 ' + ${featured.like_count}">좋아요 0</span>
+                                </div>
+                            </div>
+                        </a>
+                    </article>
+                </div>
+            </section>
+
             <div class="contentTop">
                 <div class="contentWrap">
                     <h2 th:text="${param.category == null ? '전체 게시글' :
@@ -193,19 +233,37 @@
                                   param.category[0] == 'entertainment' ? '엔터·미디어' :
                                   param.category[0] == 'mobility' ? '자동차·모빌리티' :
                                   param.category[0] == 'free' ? '자유게시판' :
+                                  param.category[0] == 'popular' ? '인기글' :
                                   param.category[0] == 'beginner' ? '초보질문' :
-                                  param.category[0] == 'topic' ? '종목토론' :
                                   param.category[0] == 'market' ? '시장이슈' : '전체 게시글'}">
                         전체 게시글
                     </h2>
-                    <p class="contentDesc">카테고리별로 투자 의견과 시장 이슈를 나눌 수 있습니다.</p>
+
+                    <p class="contentDesc"
+                       th:text="${isPopularView} ? '좋아요가 많은 순서대로 인기 게시글을 모아볼 수 있습니다.' : '카테고리별로 투자 의견과 시장 이슈를 나눌 수 있습니다.'">
+                        카테고리별로 투자 의견과 시장 이슈를 나눌 수 있습니다.
+                    </p>
                 </div>
+
+                <form class="popularThemeFilter" th:if="${isPopularView}" th:action="@{/community}" method="get">
+                    <input type="hidden" name="category" value="popular">
+
+                    <select name="theme" onchange="this.form.submit()">
+                        <option value="">전체 테마</option>
+                        <option value="semiconductor" th:selected="${param.theme != null and param.theme[0] == 'semiconductor'}">반도체·AI</option>
+                        <option value="battery" th:selected="${param.theme != null and param.theme[0] == 'battery'}">2차전지</option>
+                        <option value="bio" th:selected="${param.theme != null and param.theme[0] == 'bio'}">제약·바이오</option>
+                        <option value="finance" th:selected="${param.theme != null and param.theme[0] == 'finance'}">금융·밸류업</option>
+                        <option value="defense" th:selected="${param.theme != null and param.theme[0] == 'defense'}">방산·우주항공</option>
+                        <option value="platform" th:selected="${param.theme != null and param.theme[0] == 'platform'}">IT·플랫폼</option>
+                        <option value="entertainment" th:selected="${param.theme != null and param.theme[0] == 'entertainment'}">엔터·미디어</option>
+                        <option value="mobility" th:selected="${param.theme != null and param.theme[0] == 'mobility'}">자동차·모빌리티</option>
+                    </select>
+                </form>
             </div>
 
-            <!-- 게시글 있음 -->
             <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
                 <article class="boardItem" th:each="dto : ${lists}">
-                    <!-- 게시글 클릭 시 상세 페이지로 이동 -->
                     <a class="boardLink" th:href="@{/community/detail(board_id=${dto.board_id})}">
                         <div class="boardTopRow">
                             <span class="boardCategory" th:text="${dto.category}">카테고리</span>
@@ -224,7 +282,7 @@
 
                         <div class="boardBottom">
                             <div class="boardMeta">
-                                <span th:text="'작성자 번호 ' + ${dto.user_num}">작성자 번호</span>
+                                <span th:text="'작성자 ' + ${dto.displayName}">작성자</span>
                                 <span th:text="${#dates.format(dto.created_at, 'yyyy-MM-dd HH:mm')}">2026-03-30 12:00</span>
                             </div>
 
@@ -237,31 +295,39 @@
                 </article>
             </div>
 
-            <!-- 게시글 없음 -->
             <div class="emptySection" th:if="${lists == null or #lists.isEmpty(lists)}">
                 <div class="emptyMainCard">
-                    <div class="emptyIcon">📝</div>
-                    <h3>아직 등록된 게시글이 없습니다</h3>
-                    <p>첫 번째 글을 작성해서 커뮤니티를 시작해보세요.</p>
+                    <div class="emptyIcon" th:text="${isPopularView} ? '🔥' : '📝'">📝</div>
 
-                    <div class="emptyBtnArea">
+                    <h3 th:text="${isPopularView ? '아직 인기글이 없습니다' : '아직 등록된 글이 없습니다'}">
+                        아직 등록된 게시글이 없습니다
+                    </h3>
+                    <p th:text="${isPopularView ? '좋아요를 받은 게시글이 생기면 여기에 표시됩니다.' : '첫 번째 글을 작성해서 커뮤니티를 시작해보세요.'}">
+                        첫 번째 글을 작성해서 커뮤니티를 시작해보세요.
+                    </p>
+
+                    <div class="emptyBtnArea" th:if="${!isPopularView}">
                         <a th:href="@{/community/insert}" class="writeBtn">첫 글 작성하기</a>
                         <a th:href="@{/community(category='beginner')}" class="ghostBtn">초보질문 보러가기</a>
+                    </div>
+
+                    <div class="emptyArea" th:if="${isPopularView}">
+                        <a th:href="@{/community}" class="writeBtn">전체 게시글 보기</a>
+                        <a th:href="@{/community/insert}" class="ghostBtn">글 작성하러 가기</a>
                     </div>
                 </div>
             </div>
 
-            <!-- 페이지 번호 -->
             <div class="pagination" th:if="${totalPages != null and totalPages > 1}">
                 <a class="pageBtn"
                    th:if="${currentPageNum > 1}"
                    th:href="@{/community(page=${currentPageNum - 1}, category=${param.category}, keyword=${param.keyword})}">
-                    이전
+                    <
                 </a>
 
                 <a class="pageBtn"
                    th:each="i : ${#numbers.sequence(1, totalPages)}"
-                   th:href="@{/community(page=${i}, category=${param.category}, keyword=${param.keyword})}"
+                   th:href="@{/community(page=${i}, category=${param.category}, theme=${param.theme}, keyword=${param.keyword})}"
                    th:text="${i}"
                    th:classappend="${i == currentPageNum} ? ' active' : ''">
                     1
@@ -270,24 +336,35 @@
                 <a class="pageBtn"
                    th:if="${currentPageNum < totalPages}"
                    th:href="@{/community(page=${currentPageNum + 1}, category=${param.category}, keyword=${param.keyword})}">
-                    다음
+                    >
                 </a>
             </div>
+
         </section>
 
-        <!-- 오른쪽 패널 -->
         <aside class="communityRight" id="communityRight">
-            <div class="sideCard" id="popularPanel">
+            <section class="sideCard" id="popularPanel">
                 <div class="sideCardHeader">
-                    <h4>인기 카테고리</h4>
-                    <span class="sideBadge">HOT</span>
+                    <h3>인기 카테고리</h3>
+                    <span class="hotBadge">HOT</span>
                 </div>
-                <ul class="sideRankList">
-                    <li><span>1</span><a th:href="@{/community(category='semiconductor')}">반도체·AI</a></li>
-                    <li><span>2</span><a th:href="@{/community(category='battery')}">2차전지</a></li>
-                    <li><span>3</span><a th:href="@{/community(category='bio')}">제약·바이오</a></li>
-                </ul>
-            </div>
+
+                <div class="popularCategoryList">
+                    <div th:if="${#lists.isEmpty(popularCategories)}" class="popularCategoryEmpty">
+                        아직 집계된 카테고리가 없습니다.
+                    </div>
+
+                    <a th:each="item, stat : ${popularCategories}"
+                       th:href="@{/community(category=${item['categoryKey']})}"
+                       class="popularCategoryItem">
+                        <div class="popularCategoryLeft">
+                            <span class="popularRank" th:text="${stat.count}">1</span>
+                            <span class="popularName" th:text="${item['category']}">반도체·AI</span>
+                        </div>
+                        <span class="popularCount" th:text="${item['postCount']} + '건'">10건</span>
+                    </a>
+                </div>
+            </section>
 
             <div class="sideCard" id="guidePanel">
                 <div class="sideCardHeader">
@@ -304,8 +381,8 @@
                 <div class="sideCardHeader">
                     <h4>실시간 투자 분석</h4>
                 </div>
-                <p class="analysisText">AI가 분석한 종목 정보를 확인하세요.</p>
-                <a th:href="@{/recommend}" class="analysisBtn">AI 추천 보기</a>
+                <p class="analysisText">AI가 분석한 뉴스 정보를 확인하세요.</p>
+                <a th:href="@{/news}" class="analysisBtn">AI 종합 분석 보기</a>
             </div>
 
             <div class="sideCard" id="pricePanel">

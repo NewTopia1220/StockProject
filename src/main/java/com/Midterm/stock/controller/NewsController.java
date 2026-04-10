@@ -60,7 +60,6 @@ public class NewsController {
         double saType = (double) sidebarAnalysis.getOrDefault("avgTypeProb",    0.0);
         double saNoise= (double) sidebarAnalysis.getOrDefault("avgClickbaitProb",0.0);
         int saPos    = (int)    sidebarAnalysis.getOrDefault("positiveCount",   0);
-        int saNeg    = (int)    sidebarAnalysis.getOrDefault("negativeCount",   0);
         int saPosRatio = saTotal > 0 ? (int)Math.round((double)saPos/saTotal*100) : 50;
 
         model.addAttribute("newsList",     newsList);
@@ -76,7 +75,6 @@ public class NewsController {
         model.addAttribute("saType",     String.format("%.1f", saType));
         model.addAttribute("saNoise",    String.format("%.1f", saNoise));
         model.addAttribute("saPosRatio", saPosRatio);
-        model.addAttribute("saNegRatio", saTotal>0 ? (int)Math.round((double)saNeg/saTotal*100) : 50);
         model.addAttribute("currentMenu","news");
 
         return "news/list";
@@ -100,7 +98,9 @@ public class NewsController {
     @ResponseBody
     public ResponseEntity<List<Map<String, Object>>> getComments(
             @RequestParam("link") String link, HttpSession session) {
-        if (session.getAttribute("loginUser") == null) return ResponseEntity.status(401).build();
+        if (session.getAttribute("loginUser") == null)
+            return ResponseEntity.status(401).build();
+
         return ResponseEntity.ok(newsDao.getComments(link));
     }
 

@@ -2,6 +2,13 @@
 window.addEventListener("DOMContentLoaded", function () {
     loadSavedEmail();
     bindSaveIdChangeEvent();
+
+    // 이메일 등록 후 로그인 시 local 부분 검사
+    const params = new URLSearchParams(window.location.search);
+
+    if (params.get("caseError") === "1") {
+        alert("이메일의 @ 앞부분 대소문자가 가입 정보와 다릅니다.");
+    }
 });
 
 // 체크박스 상태 변경
@@ -73,6 +80,24 @@ async function removeSavedEmail() {
     }
 }
 
+// 이메일
+function isValidEmail(email) {
+    const emailPattern = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
+    return emailPattern.test(email);
+}
+
+// 이메일 소문자만
+function normalizeEmailDomain(email) {
+    const parts = email.split("@");
+
+    if (parts.length !== 2) {
+        return email;
+    }
+
+    // 이메일의 도메인 부분이 대문자 => 소문자로 변환하여
+    return parts[0] + "@" + parts[1].toLowerCase();
+}
+
 // 유효성
 function checkLogin() {
     const loginForm = document.forms["loginForm"];
@@ -81,17 +106,28 @@ function checkLogin() {
         return false;
     }
 
-    if (loginForm.userEmail.value.trim() === "") {
-        alert("이메일을 입력해주세요.");
-        loginForm.userEmail.focus();
-        return false;
-    }
+    const rawEmail = loginForm.userEmail.value.trim();
+    const password = loginForm.userPassword.value.trim();
 
-    if (loginForm.userPassword.value.trim() === "") {
-        alert("비밀번호를 입력해주세요.");
-        loginForm.userPassword.focus();
-        return false;
-    }
+    if (rawEmail === "") {
+            alert("이메일을 입력해주세요.");
+            loginForm.userEmail.focus();
+            return false;
+        }
 
-    return true;
+        if (!isValidEmail(rawEmail)) {
+            alert("올바른 이메일 형식으로 입력해주세요.");
+            loginForm.userEmail.focus();
+            return false;
+        }
+
+        loginForm.userEmail.value = normalizeEmailDomain(rawEmail);
+
+        if (password === "") {
+            alert("비밀번호를 입력해주세요.");
+            loginForm.userPassword.focus();
+            return false;
+        }
+
+        return true;
 }

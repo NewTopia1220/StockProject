@@ -105,6 +105,40 @@ public class UserDao {
         return result;
     }
 
+    // 이메일 대소문자만 다른 계정이 있는지 확인
+    public boolean existsWithDifferentEmailCase(String email, String password) {
+        Connection conn = null;
+        PreparedStatement pstmt = null;
+        ResultSet rs = null;
+        boolean result = false;
+
+        String sql = "select email from users where lower(email) = lower(?) and password = ?";
+
+        try {
+            conn = connect();
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, email);
+            pstmt.setString(2, password);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                String dbEmail = rs.getString("email");
+
+                if (dbEmail != null && !dbEmail.equals(email)) {
+                    result = true;
+                    break;
+                }
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            closeResources(rs, pstmt, conn);
+        }
+
+        return result;
+    }
+
     // 이름 + 번호로 이메일 찾기
     public String findEmailByNameAndPhone(String name, String phone) {
         Connection conn = null;
