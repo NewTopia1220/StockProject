@@ -2,6 +2,11 @@
 //  market.js — 종목 리스트 + 차트 패널 + 알림 공통
 // ════════════════════════════════════════════════════════
 
+// Highcharts 전역 로컬 시간 설정 (툴팁/축 모두 KST로 표시)
+if (typeof Highcharts !== 'undefined') {
+    Highcharts.setOptions({ time: { useUTC: false } });
+}
+
 // ── 전역 상태 ────────────────────────────────────────────
 
 let currentType       = 'trade';  // 현재 필터 (trade | fluctuation)
@@ -311,14 +316,19 @@ async function updatePanelPrice() {
         const res  = await fetch(`/api/stock/${selectedCode}`);
         const data = await res.json();
 
-        const price  = Number(data.currentPrice || 0);
-        const change = parseFloat(data.priceChange) || 0;
-        const rate   = parseFloat(data.changeRate)  || 0;
-        // rate 기준으로 방향 결정 (priceChange가 0으로 오는 경우 대비)
-        const dir    = rate !== 0 ? rate : change;
-        const sign   = dir >= 0 ? '+' : '';
-        const arrow  = dir >= 0 ? '▲' : '▼';
-        const cls    = dir >= 0 ? 'up' : 'down';
+        const price = Number(data.currentPrice || 0);
+        const rate  = parseFloat(data.changeRate) || 0;
+        // priceChange가 0이거나 없으면 rate로 역산
+        let change  = parseFloat(data.priceChange);
+        if (!change || isNaN(change)) {
+            change = (price > 0 && rate !== 0)
+                ? Math.round(price * (rate / 100) / (1 + rate / 100))
+                : 0;
+        }
+        const dir  = rate !== 0 ? rate : change;
+        const sign = dir >= 0 ? '+' : '';
+        const arrow = dir >= 0 ? '▲' : '▼';
+        const cls   = dir >= 0 ? 'up' : 'down';
 
         setEl('panelCurrentPrice', `${price.toLocaleString()}원`);
         const rateEl = document.getElementById('panelChangeRate');
@@ -376,49 +386,41 @@ function buildOhlcv(data) {
 }
 
 /** Highcharts 공통 옵션
- * @param tab 'daily' | 'time' | 'minute'  → tooltip/rangeSelector 포맷 결정
- */
-/** Highcharts 공통 옵션
  * @param tab 'daily' | 'time' | 'minute'
  */
 function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
     const isIntraday = (tab === 'time' || tab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
-    // ── 장중(time, minute)인 경우 Area 차트 스타일 정의 ──
-    // 요청하신 USD/EUR 스타일 그라데이션 적용
-    const areaStyle = {
-        type: 'area',
-        name: name,
-        data: ohlc, // 분별/시간별은 [ts, price] 형태의 데이터 사용
-        color: {
-            linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
-            stops: [
-                [0, 'rgb(199, 113, 243)'], // 상단 보라
-                [0.7, 'rgb(76, 175, 254)'] // 하단 파랑
-            ]
-        },
-        lineWidth: 2,
-        fillOpacity: 0.3,
-        threshold: null,
-        marker: { enabled: false, radius: 2, states: { hover: { enabled: true } } }
-    };
+    // 시가 plotLine 값
+    const openPriceVal = hasOhlc && ohlc.length > 0
+        ? (isIntraday ? ohlc[0][1] : ohlc[ohlc.length - 1][1])
+        : null;
 
-    // ── 일별(daily)인 경우 기존 캔들스틱 스타일 정의 ──
-    const candleStyle = hasOhlc ? {
-        type: 'candlestick',
-        name: name,
+    // 분별 라인 방향 색상
+    const minuteLineColor = (() => {
+        if (tab !== 'minute' || ohlc.length < 2) return '#0E0F37';
+        const first = hasOhlc ? ohlc[0][4] : ohlc[0][1];
+        const last  = hasOhlc ? ohlc[ohlc.length - 1][4] : ohlc[ohlc.length - 1][1];
+        return last >= first ? '#ef4444' : '#3b82f6';
+    })();
+
+    // 모든 탭 캔들스틱 (OHLCV 있을 때) / 라인 (없을 때)
+    const mainSeries = hasOhlc ? {
+        type: 'candlestick', name,
         data: ohlc,
-        color: '#3b82f6',    upColor: '#ef4444',
+        color: '#3b82f6', upColor: '#ef4444',
         lineColor: '#3b82f6', upLineColor: '#ef4444',
+        lineWidth: tab === 'minute' ? 2 : 1,
+        pointWidth: tab === 'time' ? 8 : tab === 'minute' ? 4 : undefined,
         dataGrouping: { enabled: false }
     } : {
-        type: 'line',
-        name: name,
+        type: 'line', name,
         data: ohlc,
-        color: '#0E0F37',
-        lineWidth: 2,
-        marker: { enabled: false }
+        color: minuteLineColor,
+        lineWidth: tab === 'minute' ? 3 : 2,
+        marker: { enabled: false },
+        dataGrouping: { enabled: false }
     };
 
     return {
@@ -427,8 +429,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             backgroundColor: '#fff',
             style: { fontFamily: 'inherit' },
             animation: false,
-            height: compact ? 220 : 340,
-            zooming: { type: 'x' } // 요청하신 줌 기능 추가
+            height: compact ? 220 : 340
         },
         credits: { enabled: false },
         rangeSelector: (compact || isIntraday) ? { enabled: false } : {
@@ -437,15 +438,18 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             buttons: [
                 { type: 'month', count: 1, text: '1개월' },
                 { type: 'month', count: 3, text: '3개월' },
-                { type: 'all', text: '전체' }
-            ]
+                { type: 'all',              text: '전체'   }
+            ],
+            buttonTheme: {
+                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
+                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
+                states: { select: { fill: '#0E0F37', style: { color: '#fff' } } }
+            }
         },
         navigator: { enabled: !compact && !isIntraday },
         scrollbar: { enabled: false },
         tooltip: {
-            split: false,
-            shared: true,
-            valueDecimals: 0,
+            split: false, shared: true, valueDecimals: 0,
             formatter: function () {
                 const pts = this.points || [];
                 let s = `<b>${Highcharts.dateFormat(timeFmt, this.x)}</b><br/>`;
@@ -455,41 +459,59 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                     } else if (p.series.type === 'column') {
                         s += `거래량 ${p.y?.toLocaleString()}<br/>`;
                     } else {
-                        s += `현재가 <b>${p.y?.toLocaleString()}</b>원<br/>`;
+                        s += `${p.y?.toLocaleString()}원<br/>`;
                     }
                 });
                 return s;
             }
         },
-        xAxis: {
-            type: 'datetime',
-            lineColor: '#e5e7eb',
-            tickColor: '#e5e7eb',
-            dateTimeLabelFormats: isIntraday
-                ? { minute: '%H:%M', hour: '%H:%M' }
-                : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
-        },
+        xAxis: (() => {
+            const base = { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' };
+            if (tab === 'daily') {
+                return { ...base, ordinal: true,
+                    dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
+            }
+            if (tab === 'time') {
+                // 09:00 KST ~ 현재시간 (장마감 후에는 15:30) 표시
+                const _n = new Date();
+                const _at9    = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0) - 9 * 3600000;
+                const _at1530 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30) - 9 * 3600000;
+                const _nowTs  = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _xMax   = _nowTs < _at1530 ? _nowTs : _at1530;
+                return { ...base, ordinal: false,
+                    tickInterval: 3600000,
+                    min: _at9,
+                    max: _xMax,
+                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+            }
+            // minute: 자동 스케일
+            return { ...base, ordinal: false,
+                dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+        })(),
         yAxis: [{
-            labels: { align: 'left', style: { fontSize: '10px' }, formatter: function() { return this.value.toLocaleString(); } },
-            height: '72%',
-            gridLineColor: '#f3f4f6'
+            labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
+                      formatter: function() { return this.value.toLocaleString(); } },
+            height: '72%', gridLineColor: '#f3f4f6',
+            resize: { enabled: !compact },
+            plotLines: []
         }, {
-            labels: { enabled: false }, // 거래량 라벨 숨김 (깔끔하게)
+            labels: { align: 'left', style: { color: '#9ca3af', fontSize: '10px' } },
             top: '72%', height: '28%', offset: 0,
             gridLineColor: '#f9fafb'
         }],
-        // [핵심] 장중이면 areaStyle, 일별이면 candleStyle 적용
         series: [
-            (isIntraday ? areaStyle : candleStyle),
+            mainSeries,
             {
-                type: 'column',
-                name: '거래량',
-                data: vol,
-                yAxis: 1,
+                type: 'column', name: '거래량',
+                data: vol, yAxis: 1,
                 color: '#e5e7eb',
                 dataGrouping: { enabled: false }
             }
-        ]
+        ],
+        responsive: {
+            rules: [{ condition: { maxWidth: 500 },
+                chartOptions: { rangeSelector: { inputEnabled: false } } }]
+        }
     };
 }
 // ── 패널 차트 (market 페이지 오른쪽 패널) ────────────────
@@ -676,12 +698,17 @@ async function updateDetailPrice(code) {
     try {
         const res  = await fetch(`/api/stock/${code}`);
         const data = await res.json();
-        const price  = Number(data.currentPrice || 0);
-        const change = Number(data.priceChange  || 0);
-        const rate   = parseFloat(data.changeRate || '0');
-        const dir    = rate !== 0 ? rate : change;
-        const sign   = dir >= 0 ? '+' : '';
-        const arrow  = dir >= 0 ? '▲' : '▼';
+        const price = Number(data.currentPrice || 0);
+        const rate  = parseFloat(data.changeRate || '0');
+        let change  = parseFloat(data.priceChange);
+        if (!change || isNaN(change)) {
+            change = (price > 0 && rate !== 0)
+                ? Math.round(price * (rate / 100) / (1 + rate / 100))
+                : 0;
+        }
+        const dir   = rate !== 0 ? rate : change;
+        const sign  = dir >= 0 ? '+' : '';
+        const arrow = dir >= 0 ? '▲' : '▼';
         setEl('detailCurrentPrice', `${price.toLocaleString()} KRW`);
         const cel = document.getElementById('detailPriceChange');
         if (cel) {

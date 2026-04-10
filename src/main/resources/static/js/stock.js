@@ -1,3 +1,7 @@
+// Highcharts 전역 로컬 시간 설정
+if (typeof Highcharts !== 'undefined') {
+    Highcharts.setOptions({ time: { useUTC: false } });
+}
 
 // 지수/종목 폴링 : 5초
 // 등락률 순위 : 30초
@@ -202,6 +206,19 @@ async function initMainChart() {
     const isIntraday = (currentTab === 'time' || currentTab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
+    // 시가 plotLine 값
+    const openPriceVal = hasOhlc && ohlc.length > 0
+        ? (isIntraday ? ohlc[0][1] : ohlc[ohlc.length - 1][1])
+        : null;
+
+    // 분별 라인 방향 색상
+    const minuteLineColor = (() => {
+        if (currentTab !== 'minute' || ohlc.length < 2) return '#0E0F37';
+        const first = hasOhlc ? ohlc[0][4] : ohlc[0][1];
+        const last  = hasOhlc ? ohlc[ohlc.length - 1][4] : ohlc[ohlc.length - 1][1];
+        return last >= first ? '#ef4444' : '#3b82f6';
+    })();
+
     try {
     mainChart = Highcharts.stockChart('mainChart', {
         time: {
@@ -248,15 +265,27 @@ async function initMainChart() {
                 return s;
             }
         },
-        xAxis: {
-            type: 'datetime',
-            ordinal: false, // 데이터 사이의 시간 간격을 실제 시간대로 표시
-            lineColor: '#e5e7eb',
-            tickColor: '#e5e7eb',
-            dateTimeLabelFormats: isIntraday
-                ? { minute: '%H:%M', hour: '%H:%M' }
-                : { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
-        },
+        xAxis: (() => {
+            const base = { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' };
+            if (currentTab === 'daily') {
+                return { ...base, ordinal: true,
+                    dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
+            }
+            if (currentTab === 'time') {
+                const _n = new Date();
+                const _at9    = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0) - 9 * 3600000;
+                const _at1530 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30) - 9 * 3600000;
+                const _nowTs  = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _xMax   = _nowTs < _at1530 ? _nowTs : _at1530;
+                return { ...base, ordinal: false,
+                    tickInterval: 3600000,
+                    min: _at9,
+                    max: _xMax,
+                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+            }
+            return { ...base, ordinal: false,
+                dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+        })(),
         yAxis: [{
             labels: {
                 align: 'left',
@@ -265,7 +294,8 @@ async function initMainChart() {
             },
             height: '72%',
             gridLineColor: '#f3f4f6',
-            resize: { enabled: true }
+            resize: { enabled: true },
+            plotLines: []
         }, {
             labels: { align: 'left', style: { color: '#9ca3af', fontSize: '11px' } },
             top: '72%', height: '28%', offset: 0,
@@ -273,21 +303,44 @@ async function initMainChart() {
         }],
         series: [
             hasOhlc ? {
-                type: 'candlestick', name: currentCode,
+                type: 'candlestick',
+                name: currentCode,
                 data: ohlc,
-                color: '#3b82f6', upColor: '#ef4444',
-                lineColor: '#3b82f6', upLineColor: '#ef4444',
+                // 1. 색상 강조 (한국 주식 시장 표준: 상승-빨강, 하락-파랑)
+                color: '#0051ff',       // 하락(음봉) 색상 (더 진한 파랑)
+                upColor: '#f22e2e',     // 상승(양봉) 색상 (더 진한 빨강)
+                lineColor: '#0051ff',   // 하락 테두리/심지
+                upLineColor: '#f22e2e', // 상승 테두리/심지
+
+                // 2. 두께 설정
+                // intraday일 때 기존 6에서 10~12 정도로 키우면 훨씬 묵직하게 보입니다.
+                pointWidth: isIntraday ? 10 : undefined,
+
+                // 3. 테두리 두께 (캔들이 너무 얇을 때 효과적)
+                lineWidth: 2,
+
                 dataGrouping: { enabled: false }
             } : {
-                type: 'line', name: currentCode,
-                data: ohlc, color: '#0E0F37', lineWidth: 2,
-                marker: { enabled: false },
+                type: 'line',
+                name: currentCode,
+                data: ohlc,
+                color: '#0E0F37',
+                // 4. 선 차트일 경우 두께를 2에서 3~4로 변경
+                lineWidth: 3,
+                marker: {
+                    enabled: isIntraday, // 분별 차트에서 점(marker)을 표시하면 흐름이 더 잘 보입니다.
+                    radius: 3
+                },
                 dataGrouping: { enabled: false }
             },
             {
-                type: 'column', name: '거래량',
-                data: vol, yAxis: 1,
+                type: 'column',
+                name: '거래량',
+                data: vol,
+                yAxis: 1,
                 color: '#e5e7eb',
+                // 5. 거래량 막대도 캔들과 너비를 맞춤
+                pointWidth: isIntraday ? 8 : undefined,
                 dataGrouping: { enabled: false }
             }
         ]
@@ -399,8 +452,13 @@ async function updateStockInfo(stockName = '') {
         document.getElementById('chartCurrentPrice').textContent = `${price.toLocaleString()} KRW`;
 
         // 등락 = API priceChange / changeRate 기준 (전일 대비)
-        const change     = parseFloat(data.priceChange) || 0;
-        const changeRate = parseFloat(data.changeRate)  || 0;
+        const changeRate = parseFloat(data.changeRate) || 0;
+        let   change     = parseFloat(data.priceChange);
+        if (!change || isNaN(change)) {
+            change = (price > 0 && changeRate !== 0)
+                ? Math.round(price * (changeRate / 100) / (1 + changeRate / 100))
+                : 0;
+        }
         const dir        = changeRate !== 0 ? changeRate : change;
         const sign       = dir >= 0 ? '+' : '';
         const arrow      = dir >= 0 ? '▲' : '▼';
