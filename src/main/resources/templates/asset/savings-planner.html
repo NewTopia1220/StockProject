@@ -7,7 +7,6 @@
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
 
-<!--    <script th:src="@{/js/asset/savings-planner.js}" defer></script>-->
 </head>
 
 
@@ -79,7 +78,6 @@
                 </div>
 
                 <!-- 경고 배너 -->
-    <!--            <div th:if="${assetDto.goalAmount > 0}" class="alert-banner warning"  id="alertBanner">-->
                 <div class="alert-banner warning" id="alertBanner">
                     <div class="alert-icon warning">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -112,8 +110,6 @@
                                 <label class="input-label">목표 금액</label>
                                 <div class="input-wrapper">
                                     <input type="text" id="goalAmount" th:field="*{goalAmount}" class="input-field money" placeholder="0" required>
-<!--                                    <input type="number" id="goalAmount" th:field="*{goalAmount}" class="input-field" min="0" placeholder="0" required>-->
-    <!--                                <input type="number" th:field="*{goalAmount}" id="targetAmount" class="input-field" step="1000000">-->
                                     <span class="input-unit">원</span>
                                 </div>
                             </div>
@@ -122,7 +118,6 @@
                                 <label class="input-label">목표 기간</label>
                                 <div class="input-wrapper">
                                     <input type="number" id="goalMonths" th:field="*{goalMonths}" class="input-field" min="1" placeholder="1" required>
-                                    <!--                                <input type="number" th:field="*{goalMonths}" id="targetPeriod" class="input-field" step="1">-->
                                     <span class="input-unit">개월</span>
                                 </div>
                             </div>
@@ -133,8 +128,6 @@
                                 <label class="input-label">현재 자산</label>
                                 <div class="input-wrapper">
                                     <input type="text" id="currentAsset" th:field="*{currentAsset}" class="input-field money" placeholder="0" required>
-<!--                                    <input type="number" id="currentAsset" th:field="*{currentAsset}" class="input-field" min="0" placeholder="0" required>-->
-    <!--                                <input type="number" th:field="*{currentAsset}" id="currentAsset" class="input-field">-->
                                     <span class="input-unit">원</span>
                                 </div>
                             </div>
@@ -293,7 +286,7 @@
                 <div class="card">
                     <div class="card-title-section">
                         <h3>최근 자산 분석 이력</h3>
-                        <a href="/asset/history" class="link-primary">전체보기</a>
+<!--                        <a href="/asset/history" class="link-primary">전체보기</a>-->
                     </div>
 
                     <div class="transaction-list">
