@@ -64,47 +64,57 @@
 
             <div class="sidebar-user">
                 <div class="user-info">
-                    <div class="user-avatar">김</div>
+                    <div class="user-avatar" id="userAvatar">김</div>
                     <div class="user-details">
                         <p class="user-name" th:text="${userName} ?: '김철수'">김철수</p>
                         <p class="user-email" th:text="${userEmail} ?: 'chulsoo@email.com'">chulsoo@email.com</p>
                     </div>
                 </div>
             </div>
+
         </aside>
 
         <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <div class="content-wrapper">
-
                 <div class="page-header">
                     <div class="month-selector" style="display: flex; align-items: center; gap: 15px;">
-                        <a th:href="@{/asset/analytics(month=${selectedMonth - 1})}" class="btn-month">
+
+                        <!-- 이전 버튼 비활성화 -->
+                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed;">
+                            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="15 18 9 12 15 6"></polyline>
+                            </svg>
+                        </div>
+
+                        <a th:if="${hasPrevData}" th:href="@{/asset/dashboard(month=${prevMonth}, year=${prevYear})}" class="btn-month"> <!--이전달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </a>
 
                         <h1 style="margin: 0;">
-                            <span th:text="${selectedMonth}">4</span>월 소비분석
+                            <span th:text="|${selectedYear}년 ${selectedMonth}월|">2025년 4월 소비분석</span>   <!--현재달-->
                         </h1>
 
-                        <a th:if="${selectedMonth < currentRealMonth}"
-                           th:href="@{/asset/analytics(month=${selectedMonth + 1})}" class="btn-month">
+                            <a th:if="${hasNextData}" th:href="@{/asset/dashboard(month=${nextMonth}, year=${nextYear})}" class="btn-month">  <!--다음달-->
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </a>
 
-                        <div th:unless="${selectedMonth < currentRealMonth}" style="color: #ccc; cursor: not-allowed;">
+                        <!--다음버튼 비활성화-->
+                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </div>
                     </div>
 
-                    <p class="page-subtitle" th:text="${selectedMonth} + '월의 소비 상태를 확인하세요'"></p>
+                    <p class="page-subtitle" th:text="|${selectedYear}년 ${selectedMonth}월의 소비 상태를 확인하세요|"></p>
                 </div>
+
+
 
                 <!-- 필수 vs 비필수 수평 바 차트 -->
                 <div class="card need-want-chart">
@@ -198,7 +208,7 @@
                 <div class="card">
                     <div class="card-title-section">
                         <h3>최근 소비 내역</h3>
-                        <a href="#" class="link-primary">전체보기</a>
+<!--                        <a href="#" class="link-primary">전체보기</a>-->
                     </div>
 
                     <div class="transaction-list">

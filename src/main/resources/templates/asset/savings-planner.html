@@ -6,6 +6,7 @@
     <title>Stoxle - 저축 플래너</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
+
 </head>
 
 
@@ -58,7 +59,7 @@
             </nav>
             <div class="sidebar-user">
                 <div class="user-info">
-                    <div class="user-avatar">김</div>
+                    <div class="user-avatar" id="userAvatar">김</div>
                     <div class="user-details">
                         <p class="user-name" th:text="${userName} ?: '김철수'">김철수</p>
                         <p class="user-email" th:text="${userEmail} ?: 'chulsoo@email.com'">chulsoo@email.com</p>
@@ -77,7 +78,6 @@
                 </div>
 
                 <!-- 경고 배너 -->
-    <!--            <div th:if="${assetDto.goalAmount > 0}" class="alert-banner warning"  id="alertBanner">-->
                 <div class="alert-banner warning" id="alertBanner">
                     <div class="alert-icon warning">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -109,8 +109,7 @@
                             <div class="input-group">
                                 <label class="input-label">목표 금액</label>
                                 <div class="input-wrapper">
-                                    <input type="number" id="goalAmount" th:field="*{goalAmount}" class="input-field" min="0" placeholder="0" required>
-    <!--                                <input type="number" th:field="*{goalAmount}" id="targetAmount" class="input-field" step="1000000">-->
+                                    <input type="text" id="goalAmount" th:field="*{goalAmount}" class="input-field money" placeholder="0" required>
                                     <span class="input-unit">원</span>
                                 </div>
                             </div>
@@ -119,7 +118,6 @@
                                 <label class="input-label">목표 기간</label>
                                 <div class="input-wrapper">
                                     <input type="number" id="goalMonths" th:field="*{goalMonths}" class="input-field" min="1" placeholder="1" required>
-                                    <!--                                <input type="number" th:field="*{goalMonths}" id="targetPeriod" class="input-field" step="1">-->
                                     <span class="input-unit">개월</span>
                                 </div>
                             </div>
@@ -129,8 +127,7 @@
                             <div class="input-group">
                                 <label class="input-label">현재 자산</label>
                                 <div class="input-wrapper">
-                                    <input type="number" id="currentAsset" th:field="*{currentAsset}" class="input-field" min="0" placeholder="0" required>
-    <!--                                <input type="number" th:field="*{currentAsset}" id="currentAsset" class="input-field">-->
+                                    <input type="text" id="currentAsset" th:field="*{currentAsset}" class="input-field money" placeholder="0" required>
                                     <span class="input-unit">원</span>
                                 </div>
                             </div>
@@ -138,7 +135,8 @@
                             <div class="input-group">
                                 <label class="input-label">월 소득</label>
                                 <div class="input-wrapper">
-                                    <input type="number" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field" min="0" placeholder="0" required>
+                                    <input type="text" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field money" placeholder="0" required>
+<!--                                    <input type="number" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field" min="0" placeholder="0" required>-->
     <!--                                <input type="number" th:field="*{monthlyIncome}" id="monthPay" class="input-field">-->
                                     <span class="input-unit">원</span>
                                 </div>
@@ -159,7 +157,7 @@
                                 <label class="input-label">직업 유형</label>
                                 <div class="input-wrapper">
                                     <select th:field="*{jobType}" class="input-field" style="width: 100%; background: white;">
-                                        <option value="">선택하세요</option>
+<!--                                        <option value="">선택하세요</option>-->
                                         <option value="student">학생</option>
                                         <option value="employee">직장인</option>
                                         <option value="professional">전문직</option>
@@ -173,7 +171,7 @@
                                 <label class="input-label">투자 성향</label>
                                 <div class="input-wrapper">
                                     <select th:field="*{riskPreference}" class="input-field" style="width: 100%; background: white;">
-                                        <option value="">선택하세요</option>
+<!--                                        <option value="">선택하세요</option>-->
                                         <option value="low">안정형 (저위험)</option>
                                         <option value="medium">중립형 (중위험)</option>
                                         <option value="high">공격형 (고위험)</option>
@@ -244,7 +242,7 @@
                         <div class="analysis-item highlight warning" id="gapItem">
                             <span class="analysis-label strong"
                                   th:text="${assetDto.goalGap < 0 ? '목표보다 초과 금액' : '목표까지 부족 금액'}">입력하세요</span>
-                            <span class="analysis-value accent"
+                            <span class="analysis-value accent id=gapValue"
                                   th:text="${assetDto.goalGap < 0 ? '+' + #numbers.formatInteger(assetDto.goalGap*-1, 3, 'COMMA') : #numbers.formatInteger(assetDto.goalGap*-1, 3, 'COMMA')} + '원'"></span>
                         </div>
 
@@ -261,7 +259,7 @@
                                 <div class="banner-content">
                                     <span class="banner-label">달성 여부</span>
                                     <span class="banner-badge">AI 예측 - </span>
-                                    <strong class="banner-text" th:text="${assetDto.predictionLabel}"></strong>
+                                    <strong class="banner-text" th:text="${assetDto.modelPredictionLabel}"></strong>
                                     <span class="banner-sub" th:text="${#numbers.formatDecimal(assetDto.modelProbability * 100, 1, 2)} + '%'"></span>
                                 </div>
                             </div>
@@ -288,7 +286,7 @@
                 <div class="card">
                     <div class="card-title-section">
                         <h3>최근 자산 분석 이력</h3>
-                        <a href="/asset/history" class="link-primary">전체보기</a>
+<!--                        <a href="/asset/history" class="link-primary">전체보기</a>-->
                     </div>
 
                     <div class="transaction-list">
@@ -334,4 +332,5 @@
     </div>
 </div>
 </body>
+<script src="/js/asset/savings-planner.js"></script>
 </html>

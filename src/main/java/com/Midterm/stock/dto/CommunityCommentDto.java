@@ -2,20 +2,23 @@ package com.Midterm.stock.dto;
 
 import java.sql.Timestamp;
 
-public class CommunityDto {
+public class CommunityCommentDto {
+    private int comment_id;
     private int board_id;
     private int user_num;
     private String userName;
     private String userEmail;
-    private String category;
-    private String title;
-    private String news_link;
     private String content;
-    private int view_count;
-    private int like_count;
     private Timestamp created_at;
     private Timestamp updated_at;
-    private String tagNames;
+
+    public int getComment_id() {
+        return comment_id;
+    }
+
+    public void setComment_id(int comment_id) {
+        this.comment_id = comment_id;
+    }
 
     public int getBoard_id() {
         return board_id;
@@ -59,52 +62,12 @@ public class CommunityDto {
         return "";
     }
 
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getNews_link() {
-        return news_link;
-    }
-
-    public void setNews_link(String news_link) {
-        this.news_link = news_link;
-    }
-
     public String getContent() {
         return content;
     }
 
     public void setContent(String content) {
         this.content = content;
-    }
-
-    public int getView_count() {
-        return view_count;
-    }
-
-    public void setView_count(int view_count) {
-        this.view_count = view_count;
-    }
-
-    public int getLike_count() {
-        return like_count;
-    }
-
-    public void setLike_count(int like_count) {
-        this.like_count = like_count;
     }
 
     public Timestamp getCreated_at() {
@@ -121,13 +84,5 @@ public class CommunityDto {
 
     public void setUpdated_at(Timestamp updated_at) {
         this.updated_at = updated_at;
-    }
-
-    public String getTagNames() {
-        return tagNames;
-    }
-
-    public void setTagNames(String tagNames) {
-        this.tagNames = tagNames;
     }
 }
