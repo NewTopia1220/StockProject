@@ -295,37 +295,48 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    gap: 10px;
-    margin-top: 28px;
-    margin-bottom: 8px;
+    gap: 4px;
+    margin-top: 36px;
+    margin-bottom: 16px;
 }
 
 .pageBtn {
-    min-width: 42px;
-    height: 42px;
-    padding: 0 14px;
-    /*    border: 1px solid #d9dfeb;
-        border-radius: 12px;
-        background: #ffffff; /
-        color: #1d234f;
-        font-size: 14px;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        text-decoration: none;
-        transition: all 0.2s ease;
-    }
+    min-width: 36px;
+    height: 36px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #374151;
+    font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    transition: color 0.15s ease, background 0.15s ease;
+    cursor: pointer;
+}
 
-    .pageBtn:hover {
-        /background: #f4f6ff;/
-        color: #d74b5a;
-    }
-
-    .pageBtn.active {
-    /    background: #15164D;
-        border-color: #15164D;*/
+.pageBtn:hover {
     color: #d74b5a;
+    background: #fff0f2;
+}
+
+.pageBtn.active {
+    color: #d74b5a;
+    font-weight: 700;
+    background: transparent;
+}
+
+.pageBtn.pageArrow {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.pageBtn.pageArrow:hover {
+    color: #d74b5a;
+    background: #fff0f2;
 }
 .communitySidebar {
     top: 120px;

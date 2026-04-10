@@ -223,17 +223,26 @@
 
             <!-- 페이징 -->
             <div class="pagination" th:if="${totalPages > 1}">
+                <!-- 이전 버튼 -->
                 <a th:if="${currentPage > 1}"
                    th:href="@{/news(page=${currentPage - 1}, sector=${sector}, keyword=${keyword})}"
-                   class="pageBtn">‹ 이전</a>
-                <th:block th:each="i : ${#numbers.sequence(currentPage < 4 ? 1 : currentPage - 3, currentPage + 3 > totalPages ? totalPages : currentPage + 3)}">
+                   class="pageBtn pageArrow">&lt;</a>
+
+                <!-- 페이지 번호 -->
+                <th:block th:each="i : ${#numbers.sequence(
+                    currentPage <= 3 ? 1 : currentPage - 2,
+                    (currentPage <= 3 ? 5 : currentPage + 2) > totalPages ? totalPages : (currentPage <= 3 ? 5 : currentPage + 2)
+                )}">
                     <a th:href="@{/news(page=${i}, sector=${sector}, keyword=${keyword})}"
-                       class="pageBtn" th:classappend="${i == currentPage} ? ' active' : ''"
+                       th:classappend="${i == currentPage} ? ' active' : ''"
+                       class="pageBtn"
                        th:text="${i}">1</a>
                 </th:block>
+
+                <!-- 다음 버튼 -->
                 <a th:if="${currentPage < totalPages}"
                    th:href="@{/news(page=${currentPage + 1}, sector=${sector}, keyword=${keyword})}"
-                   class="pageBtn">다음 ›</a>
+                   class="pageBtn pageArrow">&gt;</a>
             </div>
         </section>
 
