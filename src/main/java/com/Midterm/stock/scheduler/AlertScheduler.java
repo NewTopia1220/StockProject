@@ -31,7 +31,7 @@ public class AlertScheduler {
     private final StockPriceService stockPriceService;
     private final WatchListService watchListService;
 
-    private static final double ALERT_THRESHOLD = 3.0;
+    private static final double ALERT_THRESHOLD = 0.5;
 
     /**
      * 5분마다 관심종목 등락률 체크 (평일 09:00~15:55)
