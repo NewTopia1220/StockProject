@@ -2,6 +2,8 @@
 //  bell.js — 알림 패널 공통 (모든 페이지에서 로드)
 // ════════════════════════════════════════════════════════
 
+
+
 function initAlertPanel() {
     const bellBtn    = document.getElementById('bellBtn');
     const alertPanel = document.getElementById('alertPanel');

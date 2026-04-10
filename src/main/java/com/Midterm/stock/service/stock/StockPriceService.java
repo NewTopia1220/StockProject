@@ -123,7 +123,7 @@ public class StockPriceService {
         String hourParam = nowTime.compareTo("153000") > 0 ? "153000" : nowTime;
 
         try {
-            for (int call = 0; call < 15; call++) {
+            for (int call = 0; call < 25; call++) {
                 final String hp = hourParam;
                 JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
