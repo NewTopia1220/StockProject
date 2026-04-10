@@ -206,6 +206,19 @@ async function initMainChart() {
     const isIntraday = (currentTab === 'time' || currentTab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
+    // 시가 plotLine 값
+    const openPriceVal = hasOhlc && ohlc.length > 0
+        ? (isIntraday ? ohlc[0][1] : ohlc[ohlc.length - 1][1])
+        : null;
+
+    // 분별 라인 방향 색상
+    const minuteLineColor = (() => {
+        if (currentTab !== 'minute' || ohlc.length < 2) return '#0E0F37';
+        const first = hasOhlc ? ohlc[0][4] : ohlc[0][1];
+        const last  = hasOhlc ? ohlc[ohlc.length - 1][4] : ohlc[ohlc.length - 1][1];
+        return last >= first ? '#ef4444' : '#3b82f6';
+    })();
+
     try {
     mainChart = Highcharts.stockChart('mainChart', {
         time: {
@@ -260,13 +273,14 @@ async function initMainChart() {
             }
             if (currentTab === 'time') {
                 const _n = new Date();
-                const _at9 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 9, 0) - 9 * 3600000;
-                const _now = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),
-                                      _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _at9    = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0) - 9 * 3600000;
+                const _at1530 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30) - 9 * 3600000;
+                const _nowTs  = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _xMax   = _nowTs < _at1530 ? _nowTs : _at1530;
                 return { ...base, ordinal: false,
                     tickInterval: 3600000,
                     min: _at9,
-                    max: Math.max(_now, _at9 + 3600000),
+                    max: _xMax,
                     dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
             }
             return { ...base, ordinal: false,
@@ -280,7 +294,8 @@ async function initMainChart() {
             },
             height: '72%',
             gridLineColor: '#f3f4f6',
-            resize: { enabled: true }
+            resize: { enabled: true },
+            plotLines: []
         }, {
             labels: { align: 'left', style: { color: '#9ca3af', fontSize: '11px' } },
             top: '72%', height: '28%', offset: 0,
@@ -292,11 +307,13 @@ async function initMainChart() {
                 data: ohlc,
                 color: '#3b82f6', upColor: '#ef4444',
                 lineColor: '#3b82f6', upLineColor: '#ef4444',
-                pointWidth: isIntraday ? 6 : undefined,
+                lineWidth: currentTab === 'minute' ? 2 : 1,
+                pointWidth: currentTab === 'time' ? 8 : currentTab === 'minute' ? 4 : undefined,
                 dataGrouping: { enabled: false }
             } : {
                 type: 'line', name: currentCode,
-                data: ohlc, color: '#0E0F37', lineWidth: 2,
+                data: ohlc, color: minuteLineColor,
+                lineWidth: currentTab === 'minute' ? 3 : 2,
                 marker: { enabled: false },
                 dataGrouping: { enabled: false }
             },

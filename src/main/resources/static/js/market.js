@@ -392,18 +392,33 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
     const isIntraday = (tab === 'time' || tab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
+    // 시가 plotLine 값
+    const openPriceVal = hasOhlc && ohlc.length > 0
+        ? (isIntraday ? ohlc[0][1] : ohlc[ohlc.length - 1][1])
+        : null;
+
+    // 분별 라인 방향 색상
+    const minuteLineColor = (() => {
+        if (tab !== 'minute' || ohlc.length < 2) return '#0E0F37';
+        const first = hasOhlc ? ohlc[0][4] : ohlc[0][1];
+        const last  = hasOhlc ? ohlc[ohlc.length - 1][4] : ohlc[ohlc.length - 1][1];
+        return last >= first ? '#ef4444' : '#3b82f6';
+    })();
+
     // 모든 탭 캔들스틱 (OHLCV 있을 때) / 라인 (없을 때)
     const mainSeries = hasOhlc ? {
         type: 'candlestick', name,
         data: ohlc,
         color: '#3b82f6', upColor: '#ef4444',
         lineColor: '#3b82f6', upLineColor: '#ef4444',
-        pointWidth: isIntraday ? 6 : undefined,  // 장중 캔들 더 굵게
+        lineWidth: tab === 'minute' ? 2 : 1,
+        pointWidth: tab === 'time' ? 8 : tab === 'minute' ? 4 : undefined,
         dataGrouping: { enabled: false }
     } : {
         type: 'line', name,
         data: ohlc,
-        color: '#0E0F37', lineWidth: 2,
+        color: minuteLineColor,
+        lineWidth: tab === 'minute' ? 3 : 2,
         marker: { enabled: false },
         dataGrouping: { enabled: false }
     };
@@ -457,15 +472,16 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                     dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
             }
             if (tab === 'time') {
-                // 09:00 KST ~ 현재 시간, 1시간 눈금
+                // 09:00 KST ~ 현재시간 (장마감 후에는 15:30) 표시
                 const _n = new Date();
-                const _at9 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 9, 0) - 9 * 3600000;
-                const _now = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),
-                                      _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _at9    = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0) - 9 * 3600000;
+                const _at1530 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30) - 9 * 3600000;
+                const _nowTs  = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _xMax   = _nowTs < _at1530 ? _nowTs : _at1530;
                 return { ...base, ordinal: false,
                     tickInterval: 3600000,
                     min: _at9,
-                    max: Math.max(_now, _at9 + 3600000),
+                    max: _xMax,
                     dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
             }
             // minute: 자동 스케일
@@ -476,7 +492,8 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
                       formatter: function() { return this.value.toLocaleString(); } },
             height: '72%', gridLineColor: '#f3f4f6',
-            resize: { enabled: !compact }
+            resize: { enabled: !compact },
+            plotLines: []
         }, {
             labels: { align: 'left', style: { color: '#9ca3af', fontSize: '10px' } },
             top: '72%', height: '28%', offset: 0,

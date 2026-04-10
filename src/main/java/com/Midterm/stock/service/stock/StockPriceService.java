@@ -114,25 +114,50 @@ public class StockPriceService {
         }
     }
 
-    /** 시간별 차트 (장중 전용) */
+    /** 시간별 차트 - 09:00~현재시간 데이터 수집 (최대 15회 호출) */
     public StockChartDto getTimePrice(String stockCode) {
         kisApi.issueToken();
+        List<JsonNode> allItems = new ArrayList<>();
+        // 현재 시간 사용 (장마감 이후면 15:30 고정)
+        String nowTime = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
+        String hourParam = nowTime.compareTo("153000") > 0 ? "153000" : nowTime;
+
         try {
-            String now = java.time.LocalTime.now().format(DateTimeFormatter.ofPattern("HHmmss"));
-            JsonNode response = kisApi.get(uriBuilder -> uriBuilder
-                    .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
-                    .queryParam("FID_ETC_CLS_CODE", "")
-                    .queryParam("FID_COND_MRKT_DIV_CODE", "J")
-                    .queryParam("FID_INPUT_ISCD", stockCode)
-                    .queryParam("FID_INPUT_HOUR_1", now)
-                    .queryParam("FID_PW_DATA_INCU_YN", "Y")
-                    .build(), "FHKST03010200");
-            if (response == null || response.get("output2") == null) return emptyChart();
-            return parseHourlyChart(response.get("output2"));  // 시간 단위 OHLCV 집계
+            for (int call = 0; call < 15; call++) {
+                final String hp = hourParam;
+                JsonNode response = kisApi.get(uriBuilder -> uriBuilder
+                        .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
+                        .queryParam("FID_ETC_CLS_CODE", "")
+                        .queryParam("FID_COND_MRKT_DIV_CODE", "J")
+                        .queryParam("FID_INPUT_ISCD", stockCode)
+                        .queryParam("FID_INPUT_HOUR_1", hp)
+                        .queryParam("FID_PW_DATA_INCU_YN", "Y")
+                        .build(), "FHKST03010200");
+
+                if (response == null || response.get("output2") == null) break;
+                JsonNode output2 = response.get("output2");
+                if (!output2.isArray() || output2.size() == 0) break;
+
+                List<JsonNode> batch = new ArrayList<>();
+                output2.forEach(batch::add);
+                allItems.addAll(batch);
+
+                // 배치 맨 마지막(가장 오래된) 시간 확인
+                String oldestTime = batch.get(batch.size() - 1)
+                        .path("stck_cntg_hour").asText("090000");
+                if (oldestTime.compareTo("090000") <= 0) break;
+                hourParam = oldestTime;
+                Thread.sleep(100);
+            }
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             System.out.println("시간별 차트 실패 [" + stockCode + "]: " + e.getMessage());
-            return emptyChart();
         }
+
+        if (allItems.isEmpty()) return emptyChart();
+        Collections.reverse(allItems); // 오래된 것부터 순서로
+        return parseHourlyChart(allItems);
     }
 
     /** 분별 차트 (장중 전용) */
@@ -394,20 +419,17 @@ public class StockPriceService {
      * (KIS API가 장중 전체가 아닌 제한된 구간만 반환하므로
      *  1시간 버킷 대신 5분 버킷으로 더 많은 캔들 생성)
      */
-    private StockChartDto parseHourlyChart(JsonNode array) {
-        List<JsonNode> items = new ArrayList<>();
-        array.forEach(items::add);
-        Collections.reverse(items); // 오래된 것부터
-
+    private StockChartDto parseHourlyChart(List<JsonNode> items) {
         Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
         Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
 
         for (JsonNode item : items) {
-            String raw = item.get("stck_cntg_hour").asText();
+            String raw = item.path("stck_cntg_hour").asText();
+            if (raw.length() < 2) continue;
             int hh  = parseIntSafe(raw.substring(0, 2));
             String key = String.format("%02d:00", hh); // 1시간 단위 버킷
-            int price = parseIntSafe(item.get("stck_prpr").asText("0"));
-            int vol   = parseIntSafe(item.get("cntg_vol").asText("0"));
+            int price = parseIntSafe(item.path("stck_prpr").asText("0"));
+            int vol   = parseIntSafe(item.path("cntg_vol").asText("0"));
             priceGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(price);
             volGroups.computeIfAbsent(key,   k -> new ArrayList<>()).add(vol);
         }
