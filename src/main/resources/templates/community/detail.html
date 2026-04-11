@@ -69,14 +69,6 @@
                                 <button type="button" class="moreMenuItem disabled" th:if="${!isOwner}" disabled>
                                     삭제하기
                                 </button>
-
-                                <button type="button" class="moreMenuItem disabled" th:if="${isOwner}" disabled>
-                                    신고하기
-                                </button>
-
-                                <button type="button" class="moreMenuItem" th:if="${!isOwner}">
-                                    신고하기
-                                </button>
                             </div>
                         </div>
 
@@ -134,11 +126,58 @@
                              th:text="${#strings.substring(comment.displayName, 0, 1)}">y</div>
 
                         <div class="commentBody">
-                            <div class="commentMeta">
-                                <strong th:text="${comment.displayName}">ya</strong>
-                                <span th:text="${#dates.format(comment.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-07 01:43</span>
+                            <div class="commentMetaRow">
+                                <div class="commentMeta">
+                                    <strong th:text="${comment.displayName}">ya</strong>
+                                    <span th:text="${#dates.format(comment.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-07 01:43</span>
+                                </div>
+
+                                <div class="commentMoreMenuWrap" th:if="${session.loginNum == comment.user_num}">
+                                    <button type="button"
+                                            class="commentMoreMenuButton"
+                                            th:onclick="|toggleCommentMenu(${comment.comment_id})|">
+                                        ⋮
+                                    </button>
+
+                                    <div class="commentMoreMenuDropdown"
+                                         th:id="|commentMenu-${comment.comment_id}|">
+                                        <button type="button"
+                                                class="commentMoreMenuItem"
+                                                th:onclick="|toggleCommentEdit(${comment.comment_id})|">
+                                            수정하기
+                                        </button>
+
+                                        <form th:action="@{/community/comment/delete}"
+                                              method="post"
+                                              onsubmit="return confirm('댓글을 삭제하시겠습니까?');">
+                                            <input type="hidden" name="comment_id" th:value="${comment.comment_id}">
+                                            <button type="submit" class="commentMoreMenuItem danger">삭제하기</button>
+                                        </form>
+                                    </div>
+                                </div>
                             </div>
-                            <p class="commentText" th:text="${comment.content}">댓글 내용</p>
+
+                            <p class="commentText"
+                               th:id="|commentText-${comment.comment_id}|"
+                               th:text="${comment.content}">댓글 내용</p>
+
+                            <form class="commentEditForm"
+                                  th:id="|commentEditForm-${comment.comment_id}|"
+                                  th:action="@{/community/comment/update}"
+                                  method="post"
+                                  style="display:none;">
+                                <input type="hidden" name="comment_id" th:value="${comment.comment_id}">
+                                <textarea name="content" maxlength="1000" th:text="${comment.content}" required></textarea>
+
+                                <div class="commentActionRow">
+                                    <button type="submit" class="commentActionBtn">저장</button>
+                                    <button type="button"
+                                            class="commentActionBtn ghost"
+                                            th:onclick="|toggleCommentEdit(${comment.comment_id})|">
+                                        취소
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 </div>
@@ -155,8 +194,6 @@
                     </div>
                 </div>
 
-                <button type="button" class="followButton">팔로우</button>
-
                 <div class="profileStats">
                     <div class="profileStatRow">
                         <span>게시글</span>
@@ -170,23 +207,30 @@
             </section>
 
             <section class="sideCard relatedCard">
-                <h3>관련 게시글</h3>
-
-                <div class="relatedItem">
-                    <strong>같은 카테고리의 다른 글 제목</strong>
-                    <span>조회 231 · 댓글 12</span>
+                <div class="relatedCardHeader">
+                    <h3>같은 카테고리 인기글</h3>
+                    <p th:text="|${dto.category}에서 반응이 높은 글이에요|">
+                        지금 보고 있는 글과 같은 주제에서 반응이 높은 글이에요
+                    </p>
                 </div>
 
-                <div class="relatedItem">
-                    <strong>관련 게시글 예시 제목</strong>
-                    <span>조회 115 · 댓글 4</span>
+                <div th:if="${popularSameCategoryPosts != null and !#lists.isEmpty(popularSameCategoryPosts)}">
+                    <a th:each="post : ${popularSameCategoryPosts}"
+                       th:href="@{/community/detail(board_id=${post.board_id})}"
+                       class="relatedItem">
+                        <strong th:text="${post.title}">게시글 제목</strong>
+                        <span th:text="|조회 ${post.view_count} · 좋아요 ${post.like_count} · 댓글 ${post.comment_count}|">
+                    조회 0 · 좋아요 0 · 댓글 0
+                </span>
+                    </a>
                 </div>
 
-                <div class="relatedItem">
-                    <strong>시장 이슈 관련 글</strong>
-                    <span>조회 88 · 댓글 9</span>
+                <div class="relatedEmpty"
+                     th:if="${popularSameCategoryPosts == null or #lists.isEmpty(popularSameCategoryPosts)}">
+                    아직 같은 카테고리 인기글이 없습니다.
                 </div>
             </section>
+
 
             <section class="sideCard analysisCard">
                 <h3>AI 종합 분석</h3>

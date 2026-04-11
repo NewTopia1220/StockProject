@@ -16,6 +16,7 @@ public class CommunityDto {
     private Timestamp created_at;
     private Timestamp updated_at;
     private String tagNames;
+    private int comment_count;
 
     public int getBoard_id() {
         return board_id;
@@ -129,5 +130,13 @@ public class CommunityDto {
 
     public void setTagNames(String tagNames) {
         this.tagNames = tagNames;
+    }
+
+    public int getComment_count() {
+        return comment_count;
+    }
+
+    public void setComment_count(int comment_count) {
+        this.comment_count = comment_count;
     }
 }

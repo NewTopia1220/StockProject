@@ -113,7 +113,7 @@ public class WatchListService {
                         + NumberFormatHelper.formatPrice(a.getPrice()) + "원"));
             }
 
-            // 가공된 알림 한 건 반환 
+            // 가공된 알림 한 건 반환
             return m;
         }).collect(Collectors.toList());
 

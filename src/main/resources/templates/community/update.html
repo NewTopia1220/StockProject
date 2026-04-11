@@ -24,8 +24,10 @@
             </div>
 
             <form name="communityWriteForm" class="communityWriteForm" th:action="@{/community/update}" method="post" th:object="${dto}" enctype="multipart/form-data" onsubmit="return check();">
+                <div th:if="${errorMessage}" class="cwErrorMessage" th:text="${errorMessage}"></div>
 
                 <input type="hidden" name="user_num" th:value="${session.loginNum}">
+                <input type="hidden" th:field="*{board_id}">
 
                 <div class="cwGridTwo">
                     <div class="cwField">
@@ -87,6 +89,13 @@
                         <span id="fileNameText">파일을 선택해주세요</span>
                     </label>
                 </div> -->
+
+                <div class="cwField">
+                    <label for="tagNames">태그</label>
+                    <input type="text" id="tagNames" th:field="*{tagNames}" class="cwInput" placeholder="예: #네이버 #AI #반도체">
+                    <small class="cwHint">샵(#)을 붙여 입력하세요. 예: #네이버 #AI</small>
+                </div>
+
                 <div class="newsDataLink">
                     <label for="newsKeyword">관련 뉴스</label>
                     <input type="text" id="newsKeyword" placeholder="관련 뉴스를 검색하세요">

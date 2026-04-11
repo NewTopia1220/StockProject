@@ -129,4 +129,82 @@ public class CommunityCommentDao {
             e.printStackTrace();
         }
     }
+
+    public CommunityCommentDto getComment(int comment_id) {
+        connect();
+        CommunityCommentDto dto = null;
+
+        String sql = "select cc.comment_id, cc.board_id, cc.user_num, "
+                + "u.name as user_name, u.email as user_email, "
+                + "cc.content, cc.created_at, cc.updated_at "
+                + "from community_comment cc "
+                + "join users u on cc.user_num = u.num "
+                + "where cc.comment_id = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, comment_id);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                dto = new CommunityCommentDto();
+                dto.setComment_id(rs.getInt("comment_id"));
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setContent(rs.getString("content"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return dto;
+    }
+
+    public int updateComment(int comment_id, String content) {
+        connect();
+        int count = -1;
+
+        String sql = "update community_comment "
+                + "set content = ?, updated_at = sysdate "
+                + "where comment_id = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, content);
+            pstmt.setInt(2, comment_id);
+            count = pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
+
+    public int deleteComment(int comment_id) {
+        connect();
+        int count = -1;
+
+        String sql = "delete from community_comment where comment_id = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, comment_id);
+            count = pstmt.executeUpdate();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
 }

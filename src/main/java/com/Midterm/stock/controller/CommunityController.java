@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @Controller
@@ -170,7 +171,7 @@ public class CommunityController {
 
     // 글 작성 처리
     @PostMapping("/insert")
-    public String insertProc(CommunityDto dto, HttpSession session) {
+    public String insertProc(CommunityDto dto, HttpSession session, Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
 
@@ -184,13 +185,26 @@ public class CommunityController {
             dto.setTagNames(dto.getTagNames().trim());
         }
 
+        // 제목, 본문 태그에서 금지어 설정
+        String bannedWord = findBannedWord(dto.getTitle(), dto.getContent(), dto.getTagNames());
+
+        if (bannedWord != null) {
+            model.addAttribute("currentPage", "community");
+            model.addAttribute("dto", dto);
+            model.addAttribute("errorMessage", "금지어가 포함되어 있습니다: " + bannedWord);
+            return "community/insert";
+        }
+
         int result = communityBoardDao.insertArticle(dto);
 
         if (result > 0) {
             return "redirect:/community";
-        } else {
-            return "community/insert";
         }
+
+        model.addAttribute("currentPage", "community");
+        model.addAttribute("dto", dto);
+        model.addAttribute("errorMessage", "게시글 저장 중 오류가 발생했습니다.");
+        return "community/insert";
     }
 
     // 글 상세보기
@@ -225,10 +239,11 @@ public class CommunityController {
 
         boolean likedByMe = communityLikeDao.existsLike(board_id, loginNum);
         ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByBoardId(board_id);
+        ArrayList<CommunityDto> popularSameCategoryPosts =
+                communityBoardDao.getPopularSameCategoryArticles(dto.getCategory(), dto.getBoard_id(), 3);
 
         model.addAttribute("dto", dto);
-        model.addAttribute("like" +
-                "dByMe", likedByMe);
+        model.addAttribute("likedByMe", likedByMe);
         model.addAttribute("comments", comments);
         model.addAttribute("commentCount", comments.size());
         model.addAttribute("isOwner", isOwner);
@@ -236,6 +251,7 @@ public class CommunityController {
         model.addAttribute("userArticleCount", userArticleCount);
         model.addAttribute("userCommentCount", userCommentCount);
         model.addAttribute("relatedNewsTitle", relatedNewsTitle);
+        model.addAttribute("popularSameCategoryPosts", popularSameCategoryPosts);
 
         return "community/detail";
     }
@@ -294,6 +310,62 @@ public class CommunityController {
 
         return "redirect:/community/detail?board_id=" + board_id;
     }
+
+    @PostMapping("/comment/update")
+    public String updateComment(@RequestParam("comment_id") int comment_id,
+                                @RequestParam("content") String content,
+                                HttpSession session) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        CommunityCommentDto comment = communityCommentDao.getComment(comment_id);
+
+        if (comment == null) {
+            return "redirect:/community";
+        }
+
+        if (comment.getUser_num() != loginNum) {
+            return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+        }
+
+        String trimmedContent = content == null ? "" : content.trim();
+        if (trimmedContent.isEmpty()) {
+            return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+        }
+
+        communityCommentDao.updateComment(comment_id, trimmedContent);
+        return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+    }
+
+    @PostMapping("/comment/delete")
+    public String deleteComment(@RequestParam("comment_id") int comment_id,
+                                HttpSession session) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        CommunityCommentDto comment = communityCommentDao.getComment(comment_id);
+
+        if (comment == null) {
+            return "redirect:/community";
+        }
+
+        if (comment.getUser_num() != loginNum) {
+            return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+        }
+
+        communityCommentDao.deleteComment(comment_id);
+        return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+    }
+
+
 
     // 좋아요 처리
     @PostMapping("/like")
@@ -384,7 +456,7 @@ public class CommunityController {
 
     // 수정 처리
     @PostMapping("/update")
-    public String updateProc(CommunityDto dto, HttpSession session) {
+    public String updateProc(CommunityDto dto, HttpSession session, Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
 
@@ -406,8 +478,38 @@ public class CommunityController {
             dto.setTagNames(dto.getTagNames().trim());
         }
 
+        String bannedWord = findBannedWord(dto.getTitle(), dto.getContent(), dto.getTagNames());
+
+        if (bannedWord != null) {
+            model.addAttribute("dto", dto);
+            model.addAttribute("currentPage", "community");
+            model.addAttribute("errorMessage", "금지어가 포함되어 있습니다: " + bannedWord);
+            return "community/update";
+        }
+
         communityBoardDao.updateArticle(dto);
         return "redirect:/community/detail?board_id=" + dto.getBoard_id();
+    }
+
+    // 금지어 설정
+    private static final List<String> BANNED_WORDS = List.of(
+            "시발", "병신", "개새끼", "뒤져", "뒤질", "뒤졌", "존나", "십창", "맘충", "여적여", "개줌마", "빨갱이",
+            "찍어야", "낙선시켜", "좌파", "우파", "정치충", "종북", "느금", "개비", "니애미"
+    );
+
+    // 금지어 찾기
+    private String findBannedWord(String... values) {
+        for (String value : values) {
+            String text = value == null ? "" : value.trim().toLowerCase();
+
+            for (String bannedWord : BANNED_WORDS) {
+                if (text.contains(bannedWord.toLowerCase())) {
+                    return bannedWord;
+                }
+            }
+        }
+
+        return null;
     }
 
     // 카테고리 파라미터를 한글명으로 변환

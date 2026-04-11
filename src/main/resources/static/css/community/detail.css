@@ -461,23 +461,6 @@
     font-size: 14px;
 }
 
-.followButton {
-    width: 100%;
-    height: 48px;
-    border: none;
-    border-radius: 16px;
-    background: #15164D;
-    color: #ffffff;
-    font-size: 16px;
-    font-weight: 700;
-    cursor: pointer;
-    margin-bottom: 20px;
-}
-
-.followButton:hover {
-    background: #20266a;
-}
-
 .profileStats {
     padding-top: 18px;
     border-top: 1px solid #edf1f7;
@@ -501,7 +484,6 @@
     font-weight: 800;
 }
 
-.relatedCard h3,
 .analysisCard h3 {
     margin: 0 0 18px;
     color: #1b2254;
@@ -509,9 +491,29 @@
     font-weight: 800;
 }
 
+.relatedCardHeader {
+    margin-bottom: 18px;
+}
+
+.relatedCardHeader h3 {
+    margin: 0 0 8px;
+    color: #1b2254;
+    font-size: 22px;
+    font-weight: 800;
+}
+
+.relatedCardHeader p {
+    margin: 0;
+    color: #8f97ac;
+    font-size: 14px;
+    line-height: 1.6;
+}
+
 .relatedItem {
+    display: block;
     padding: 14px 0;
     border-bottom: 1px solid #edf1f7;
+    text-decoration: none;
 }
 
 .relatedItem:last-child {
@@ -525,11 +527,23 @@
     font-size: 16px;
     line-height: 1.5;
     margin-bottom: 6px;
+    transition: color 0.2s ease;
 }
 
 .relatedItem span {
     color: #a0a7ba;
     font-size: 13px;
+}
+
+.relatedItem:hover strong {
+    color: #15164D;
+    text-decoration: underline;
+}
+
+.relatedEmpty {
+    color: #a0a7ba;
+    font-size: 14px;
+    line-height: 1.6;
 }
 
 .analysisCard {
@@ -570,6 +584,73 @@
     color: #8f97ac;
     font-size: 17px;
     font-weight: 600;
+}
+
+.commentMetaRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:12px;
+}
+
+.commentMoreMenuWrap{
+    position:relative;
+    flex-shrink:0;
+}
+
+.commentMoreMenuButton{
+    width:32px;
+    height:32px;
+    border:none;
+    border-radius:10px;
+    background:transparent;
+    color:#6b7280;
+    font-size:20px;
+    line-height:1;
+    cursor:pointer;
+}
+
+.commentMoreMenuButton:hover{
+    background:#f3f4f6;
+    color:#111827;
+}
+
+.commentMoreMenuDropdown{
+    position:absolute;
+    top:36px;
+    right:0;
+    min-width:120px;
+    padding:6px;
+    border:1px solid #e5e7eb;
+    border-radius:12px;
+    background:#ffffff;
+    box-shadow:0 12px 24px rgba(15, 23, 42, 0.12);
+    display:none;
+    z-index:20;
+}
+
+.commentMoreMenuDropdown.show{
+    display:block;
+}
+
+.commentMoreMenuItem{
+    width:100%;
+    border:none;
+    background:none;
+    padding:10px 12px;
+    border-radius:8px;
+    text-align:left;
+    font-size:14px;
+    color:#111827;
+    cursor:pointer;
+}
+
+.commentMoreMenuItem:hover{
+    background:#f9fafb;
+}
+
+.commentMoreMenuItem.danger{
+    color:#dc2626;
 }
 
 @media (max-width: 1100px) {
@@ -621,7 +702,6 @@
     }
 
     .commentSubmitButton,
-    .followButton,
     .analysisLink {
         width: 100%;
     }

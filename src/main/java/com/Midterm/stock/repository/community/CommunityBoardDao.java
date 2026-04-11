@@ -723,6 +723,71 @@ public class CommunityBoardDao {
         return count;
     }
 
+    // 카테고리별 인기글 조회 메서드
+    public ArrayList<CommunityDto> getPopularSameCategoryArticles(String category, int currentBoardId, int limit) {
+        connect();
+
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+
+        String sql = "select * from ( "
+                + " select "
+                + "     c.board_id, "
+                + "     c.user_num, "
+                + "     u.name as user_name, "
+                + "     u.email as user_email, "
+                + "     c.category, "
+                + "     c.title, "
+                + "     c.news_link, "
+                + "     c.view_count, "
+                + "     c.like_count, "
+                + "     c.created_at, "
+                + "     c.updated_at, "
+                + "     count(cm.comment_id) as comment_count "
+                + " from community_board c "
+                + " join users u on c.user_num = u.num "
+                + " left join community_comment cm on c.board_id = cm.board_id "
+                + " where c.category = ? "
+                + "   and c.board_id <> ? "
+                + " group by "
+                + "     c.board_id, c.user_num, u.name, u.email, "
+                + "     c.category, c.title, c.news_link, "
+                + "     c.view_count, c.like_count, c.created_at, c.updated_at "
+                + " order by c.like_count desc, count(cm.comment_id) desc, c.view_count desc, c.created_at desc "
+                + " ) where rownum <= ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setString(1, category);
+            pstmt.setInt(2, currentBoardId);
+            pstmt.setInt(3, limit);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setComment_count(rs.getInt("comment_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return lists;
+    }
+
     private void closeAll() {
         try {
             if (rs != null) rs.close();

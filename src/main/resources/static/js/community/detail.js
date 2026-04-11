@@ -63,3 +63,43 @@ document.addEventListener("click", function (event) {
         menu.classList.remove("show");
     }
 });
+
+function toggleCommentMenu(commentId) {
+    const targetMenu = document.getElementById(`commentMenu-${commentId}`);
+    if (!targetMenu) return;
+
+    document.querySelectorAll(".commentMoreMenuDropdown").forEach(menu => {
+        if (menu !== targetMenu) {
+            menu.classList.remove("show");
+        }
+    });
+
+    targetMenu.classList.toggle("show");
+}
+
+function toggleCommentEdit(commentId) {
+    const text = document.getElementById(`commentText-${commentId}`);
+    const form = document.getElementById(`commentEditForm-${commentId}`);
+    const menu = document.getElementById(`commentMenu-${commentId}`);
+
+    if (!text || !form) return;
+
+    const isHidden = form.style.display === "none" || form.style.display === "";
+    form.style.display = isHidden ? "block" : "none";
+    text.style.display = isHidden ? "none" : "block";
+
+    if (menu) {
+        menu.classList.remove("show");
+    }
+}
+
+document.addEventListener("click", function (event) {
+    document.querySelectorAll(".commentMoreMenuWrap").forEach(wrap => {
+        if (!wrap.contains(event.target)) {
+            const menu = wrap.querySelector(".commentMoreMenuDropdown");
+            if (menu) {
+                menu.classList.remove("show");
+            }
+        }
+    });
+});
