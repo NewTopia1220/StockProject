@@ -118,7 +118,7 @@ body { background: var(--bg-page); color: var(--text-main); transition: backgrou
     min-height: 450px;
     box-shadow: var(--shadow);
 }
-.chartContainer { height: 320px; position: relative; width: 100%; }
+.chartContainer { position: relative; width: 100%; }
 
 .analysisBox { flex: 3; }
 .combinedAnalysis {

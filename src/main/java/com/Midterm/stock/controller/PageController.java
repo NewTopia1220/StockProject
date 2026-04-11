@@ -48,7 +48,7 @@ public class PageController {
     private WatchListService watchListService;
 
     private static final List<String[]> FIXED_SECTORS = Arrays.asList(
-            new String[]{"IT/반도체", "반도체·AI"},
+            new String[]{"IT/반도체", "IT·반도체"},
             new String[]{"2차전지", "2차전지"},
             new String[]{"제약/바이오", "제약·바이오"},
             new String[]{"자동차/모빌리티", "자동차·모빌리티"},

@@ -262,6 +262,7 @@
 
 /* 원문 링크 */
 .newsOrigLink {
+    min-height: 34px;
     font-size: 13px;
     font-weight: 700;
     color: #0E0F37;
@@ -735,7 +736,6 @@
     margin-top: 2px;
 }
 
-.newsOrigLink,
 .likeBtn,
 .commentToggleBtn {
     min-height: 34px;
@@ -746,4 +746,8 @@
 .commentSection {
     margin-top: 10px;
     padding: 12px;
+}
+
+.sidebarCard {
+    margin-top: 14px;
 }
