@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -6,7 +6,8 @@
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/stock.css}">
     <link rel="stylesheet" th:href="@{/css/ai_predict.css}">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js"></script>
 </head>
 <body class="withMainHeader">
 
@@ -100,7 +101,7 @@
                         <button class="chartTab" data-tab="minute">분별</button>
                     </div>
                     <div class="chartContainer">
-                        <canvas id="mainChart"></canvas>
+                        <div id="mainChart"></div>
                     </div>
                 </div>
 
