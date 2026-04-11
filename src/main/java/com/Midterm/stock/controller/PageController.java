@@ -1,15 +1,16 @@
 package com.Midterm.stock.controller;
 
-import com.Midterm.stock.dto.AssetDto;
+import com.Midterm.stock.dto.AiPredictionDto;
 import com.Midterm.stock.dto.StockResponseDto;
-import com.Midterm.stock.service.WatchListService;
-
-import com.Midterm.stock.service.stock.StockPriceService;
-
 import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.NewsDao;
 import com.Midterm.stock.repository.UserDao;
+import com.Midterm.stock.service.WatchListService;
+import com.Midterm.stock.service.stock.ExchangeService;
+import com.Midterm.stock.service.stock.StockAiService;
+import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,47 +18,58 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
+@Slf4j
 @Controller
 public class PageController {
 
     @Autowired
     private StockPriceService stockPriceService;
 
-    // 고정 8섹터 순서 정의 (DB 섹터명과 매핑)
+    @Autowired
+    private ExchangeService exchangeService;
+
+    @Autowired
+    private StockAiService stockAiService;
+
+    @Autowired
+    private UserDao userDao;
+
+    @Autowired
+    private NewsDao newsDao;
+
+    @Autowired
+    private WatchListService watchListService;
+
     private static final List<String[]> FIXED_SECTORS = Arrays.asList(
-            new String[]{"IT/반도체", "반도체·AI"},
+            new String[]{"IT/반도체", "IT·반도체"},
             new String[]{"2차전지", "2차전지"},
-            new String[]{"바이오", "제약/바이오"},
+            new String[]{"제약/바이오", "제약·바이오"},
             new String[]{"자동차/모빌리티", "자동차·모빌리티"},
             new String[]{"IT/플랫폼", "IT·플랫폼"},
             new String[]{"금융/밸류업", "금융·밸류업"},
-            new String[]{"방산", "방산·우주항공"},
+            new String[]{"방산/우주항공", "방산·우주항공"},
             new String[]{"엔터/미디어", "엔터·미디어"}
     );
 
-    // 섹터 아이콘
-    private static final Map<String, String> SECTOR_ICON;
+    private static final Map<String, String> SECTOR_ICON = new HashMap<>();
 
     static {
-        SECTOR_ICON = new HashMap<>();
         SECTOR_ICON.put("IT/반도체", "💻");
         SECTOR_ICON.put("2차전지", "🔋");
-        SECTOR_ICON.put("바이오", "💊");
+        SECTOR_ICON.put("제약/바이오", "💊");
         SECTOR_ICON.put("자동차/모빌리티", "🚗");
         SECTOR_ICON.put("IT/플랫폼", "🌐");
         SECTOR_ICON.put("금융/밸류업", "💰");
         SECTOR_ICON.put("방산/우주항공", "🚀");
         SECTOR_ICON.put("엔터/미디어", "🎬");
     }
-
-    @Autowired
-    private UserDao userDao;
-    @Autowired
-    private NewsDao newsDao;
-    @Autowired
-    private WatchListService watchListService;
 
     @GetMapping("/login")
     public String loginPage() {
@@ -74,39 +86,27 @@ public class PageController {
         return "findEmail";
     }
 
-    @GetMapping("findPassword")
+    @GetMapping("/findPassword")
     public String findPasswordPage() {
         return "findPassword";
     }
 
-    /**
-     * 주식 메인 페이지
-     * GET /stock?code=005930
-     * - 페이지 첫 로드 시 서버사이드 렌더링으로 초기 데이터 포함
-     * - 이후 데이터는 stock.js에서 폴링으로 업데이트
-     * - 비로그인 시 /login 리다이렉트
-     *
-     * @param code 초기 표시 종목코드 (기본값: 005930 삼성전자)
-     */
-
-
     @GetMapping("/stock")
     public String stockPage(@RequestParam(defaultValue = "005930") String code,
-                            HttpSession session, Model model) {
+                            HttpSession session,
+                            Model model) {
         String loginUser = (String) session.getAttribute("loginUser");
         if (loginUser == null) {
             return "redirect:/login";
         }
 
-        // 초기 렌더링용 데이터 (JS 폴링 전 빈 화면 방지)
         model.addAttribute("stockInfo", stockPriceService.getCurrentPrice(code));
         model.addAttribute("chartData", stockPriceService.getDailyPrice(code));
         model.addAttribute("kospiInfo", stockPriceService.getKospiIndex());
         model.addAttribute("kosdaqInfo", stockPriceService.getKosdaqIndex());
+        model.addAttribute("exchangeInfo", exchangeService.getExchangeRate("USD"));
         model.addAttribute("stockCode", code);
 
-
-        // AI 종합 분석
         Map<String, Object> analysis = newsDao.getTodayAnalysis();
         int totalCount = (int) analysis.getOrDefault("totalCount", 0);
         double typeProb = (double) analysis.getOrDefault("avgTypeProb", 0.0);
@@ -115,12 +115,14 @@ public class PageController {
         int negCount = (int) analysis.getOrDefault("negativeCount", 0);
 
         double sentimentScore = 50.0;
-        String sentimentLabel = "중립", statusBadge = "중립";
+        String sentimentLabel = "중립";
+        String statusBadge = "중립";
         String analysisDesc = "시장은 중립적인 흐름입니다. 종목별 선택적 접근이 유효합니다.";
 
         if (totalCount > 0) {
             sentimentScore = Math.round((double) posCount / totalCount * 100.0 * 10) / 10.0;
             double negScore = Math.round((double) negCount / totalCount * 100.0 * 10) / 10.0;
+
             if (sentimentScore >= 60) {
                 sentimentLabel = "긍정";
                 statusBadge = "강세";
@@ -139,30 +141,31 @@ public class PageController {
             }
         }
 
-        // DB 섹터레벨 집계
         LinkedHashMap<String, Map<String, Object>> dbSectorMap = newsDao.getSectorLevelMap();
-
-        // 고정 8섹터 카드 생성
         List<Map<String, Object>> sectorCards = new ArrayList<>();
-        for (String[] s : FIXED_SECTORS) {
-            String dbKey = s[0]; // DB 섹터명
-            String dispKey = s[1]; // 화면 표시명
+
+        for (String[] sector : FIXED_SECTORS) {
+            String dbKey = sector[0];
+            String displayName = sector[1];
 
             Map<String, Object> dbData = findSectorData(dbSectorMap, dbKey);
             int articleCount = dbData != null ? (int) dbData.get("articleCount") : 0;
             int pos = dbData != null ? (int) dbData.get("positiveCount") : 0;
             int neg = dbData != null ? (int) dbData.get("negativeCount") : 0;
             int neu = dbData != null ? (int) dbData.get("neutralCount") : 0;
-            double atp = dbData != null ? (double) dbData.get("avgTypeProb") : 0.0;
+            double avgTypeProb = dbData != null ? (double) dbData.get("avgTypeProb") : 0.0;
+            double avgClickbaitProb = dbData != null ? (double) dbData.get("avgClickbaitProb") : 0.0;
 
             String dominant = articleCount == 0 ? "없음"
                     : (pos >= neg && pos >= neu) ? "호재"
                     : (neg >= pos && neg >= neu) ? "악재" : "중립";
+
             int posRatio = articleCount > 0 ? (int) Math.round((double) pos / articleCount * 100) : 0;
+            int trendScore = calculateSectorTrendScore(articleCount, pos, neg, neu, avgTypeProb, avgClickbaitProb);
 
             Map<String, Object> card = new LinkedHashMap<>();
             card.put("sectorKey", dbKey);
-            card.put("sectorName", dispKey);
+            card.put("sectorName", displayName);
             card.put("icon", SECTOR_ICON.getOrDefault(dbKey, "📈"));
             card.put("articleCount", articleCount);
             card.put("positiveCount", pos);
@@ -170,11 +173,13 @@ public class PageController {
             card.put("neutralCount", neu);
             card.put("dominant", dominant);
             card.put("posRatio", posRatio);
-            card.put("avgTypeProb", String.format("%.1f", atp));
+            card.put("avgTypeProb", String.format("%.1f", avgTypeProb));
+            card.put("avgClickbaitProb", String.format("%.1f", avgClickbaitProb));
+            card.put("trendScore", trendScore);
+            card.put("trendDirection", resolveTrendDirection(trendScore));
+            card.put("trendLabel", resolveTrendLabel(trendScore));
             sectorCards.add(card);
         }
-
-        List<Map<String, Object>> tickerCompanies = newsDao.getTodayTickerCompanies();
 
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("typeProb", String.format("%.1f", typeProb));
@@ -183,47 +188,38 @@ public class PageController {
         model.addAttribute("sentimentLabel", sentimentLabel);
         model.addAttribute("statusBadge", statusBadge);
         model.addAttribute("analysisDesc", analysisDesc);
-        model.addAttribute("tickerCompanies", tickerCompanies);
+        model.addAttribute("tickerCompanies", newsDao.getTodayTickerCompanies());
         model.addAttribute("sectorCards", sectorCards);
         model.addAttribute("currentPage", "stock");
+
+        try {
+            AiPredictionDto aiResult = stockAiService.predict(code);
+            model.addAttribute("aiPrediction", aiResult);
+        } catch (Exception e) {
+            log.warn("[PageController] AI prediction failed: {}", e.getMessage());
+            model.addAttribute("aiPrediction", null);
+        }
 
         return "stock";
     }
 
-    // 마이페이지 화면
-    private Map<String, Object> findSectorData(
-            LinkedHashMap<String, Map<String, Object>> dbMap, String key) {
-        if (dbMap.containsKey(key)) return dbMap.get(key);
-        // 부분 매칭 (DB 섹터명이 약간 다를 수 있음)
-        String kn = key.replace("/", "").replace(" ", "").toLowerCase();
-        for (Map.Entry<String, Map<String, Object>> e : dbMap.entrySet()) {
-            String dn = e.getKey().replace("/", "").replace(" ", "").toLowerCase();
-            if (dn.contains(kn) || kn.contains(dn)) return e.getValue();
-        }
-        return null;
-    }
-
-    // ── 종목 리스트 페이지 ────────────────────────────────────
-
-    /**
-     * 거래대금 상위 20종목 리스트
-     * GET /market
-     */
     @GetMapping("/market")
     public String marketPage(HttpSession session, Model model) {
-        if (session.getAttribute("loginUser") == null) return "redirect:/login";
+        if (session.getAttribute("loginUser") == null) {
+            return "redirect:/login";
+        }
+
         model.addAttribute("currentPage", "market");
-        return "market";  // 데이터는 JS에서 /api/stock/top-trade 로 비동기 로딩
+        return "market";
     }
 
-    /**
-     * 종목 상세 페이지
-     * GET /market/{code}
-     */
     @GetMapping("/market/{code}")
     public String marketDetailPage(@PathVariable String code,
-                                   HttpSession session, Model model) {
-        if (session.getAttribute("loginUser") == null) return "redirect:/login";
+                                   HttpSession session,
+                                   Model model) {
+        if (session.getAttribute("loginUser") == null) {
+            return "redirect:/login";
+        }
 
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         StockResponseDto stockInfo = stockPriceService.getCurrentPrice(code);
@@ -236,17 +232,77 @@ public class PageController {
         return "marketDetail";
     }
 
-    // 마이페이지
     @GetMapping("/mypage")
     public String mypage(HttpSession session, Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
-        if (loginNum == null) return "redirect:/login";
+        if (loginNum == null) {
+            return "redirect:/login";
+        }
+
         UserDto user = userDao.getUserInfo(loginNum);
-        if (user == null) return "redirect:/login";
+        if (user == null) {
+            return "redirect:/login";
+        }
+
         model.addAttribute("user", user);
         model.addAttribute("currentPage", "mypage");
         return "mypage";
+    }
 
+    private Map<String, Object> findSectorData(LinkedHashMap<String, Map<String, Object>> dbMap, String key) {
+        if (dbMap.containsKey(key)) {
+            return dbMap.get(key);
+        }
+
+        String normalizedKey = key.replace("/", "").replace(" ", "").toLowerCase();
+        for (Map.Entry<String, Map<String, Object>> entry : dbMap.entrySet()) {
+            String normalizedDbKey = entry.getKey().replace("/", "").replace(" ", "").toLowerCase();
+            if (normalizedDbKey.contains(normalizedKey) || normalizedKey.contains(normalizedDbKey)) {
+                return entry.getValue();
+            }
+        }
+        return null;
+    }
+
+    private int calculateSectorTrendScore(int articleCount, int pos, int neg, int neu,
+                                          double avgTypeProb, double avgClickbaitProb) {
+        if (articleCount <= 0) {
+            return 50;
+        }
+
+        double sentimentBias = (double) (pos - neg) / articleCount;
+        double articleSupport = Math.min(1.0, Math.log1p(articleCount) / Math.log(12));
+        double reliability = ((avgTypeProb / 100.0) * 0.7)
+                + ((1.0 - (avgClickbaitProb / 100.0)) * 0.3);
+        double neutralPenalty = 1.0 - (((double) neu / articleCount) * 0.35);
+
+        double score = 50.0 + (38.0 * sentimentBias * articleSupport * reliability * neutralPenalty);
+        return (int) Math.round(Math.max(0, Math.min(100, score)));
+    }
+
+    private String resolveTrendDirection(int trendScore) {
+        if (trendScore >= 58) {
+            return "up";
+        }
+        if (trendScore <= 42) {
+            return "down";
+        }
+        return "neutral";
+    }
+
+    private String resolveTrendLabel(int trendScore) {
+        if (trendScore >= 72) {
+            return "강한 상승";
+        }
+        if (trendScore >= 58) {
+            return "상승 우세";
+        }
+        if (trendScore <= 28) {
+            return "강한 하락";
+        }
+        if (trendScore <= 42) {
+            return "하락 우세";
+        }
+        return "중립";
     }
 }
-

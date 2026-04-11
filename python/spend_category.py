@@ -99,7 +99,7 @@ class Transaction(BaseModel):  # 웹에서 받을 JSON 데이터 형식 정의
 # os.environ["TNS_ADMIN"] = "C:/oraclepw"
 
 # 환경 변수를 설정해서 URL 뒤의 물음표(?) 부분 지움
-DB_URL = "oracle+oracledb://ADMIN:Heeyoun1220!@stoxle_medium?events=true"
+DB_URL = "oracle+oracledb://ADMIN:Heeyoun1220!@stoxle_low?events=true"
 
 engine = create_engine(DB_URL, echo=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

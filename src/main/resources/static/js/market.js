@@ -450,7 +450,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             }
         },
         navigator: { enabled: !compact && !isIntraday },
-        scrollbar: { enabled: false },
+        scrollbar: { enabled: !compact && !isIntraday },
         tooltip: {
             split: false, shared: true, valueDecimals: 0,
             formatter: function () {
