@@ -5,21 +5,23 @@
     <title>Stoxle - 주식 분석 메인</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/stock.css}">
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js"></script>
+    <link rel="stylesheet" th:href="@{/css/ai_predict.css}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body class="withMainHeader">
 
     <div th:replace="~{fragments/header :: header('stock')}"></div>
     <!-- 다크모드 토글 -->
-
+    <button class="darkModeBtn" id="darkModeBtn" title="다크모드 전환">🌙</button>
 
     <div class="pageContainer">
         <div class="stockMainPage">
             <!-- 지수 티커 -->
             <div class="marketTicker">
-                <div class="tickerItem">
-                    <span class="label">KOSPI</span>
+                <div class="tickerItem clickableTicker" id="kospiTicker" data-chart-source="kospi">
+                    <div class="tickerHead">
+                        <span class="label">KOSPI</span>
+                    </div>
                     <div class="valueGroup">
                         <strong id="kospiPrice" th:text="${kospiInfo.currentPrice}">-</strong>
                         <span id="kospiRate"
@@ -27,8 +29,10 @@
                             th:text="${kospiInfo.changeRate + '%'}">-</span>
                     </div>
                 </div>
-                <div class="tickerItem">
-                    <span class="label">KOSDAQ</span>
+                <div class="tickerItem clickableTicker" id="kosdaqTicker" data-chart-source="kosdaq">
+                    <div class="tickerHead">
+                        <span class="label">KOSDAQ</span>
+                    </div>
                     <div class="valueGroup">
                         <strong id="kosdaqPrice" th:text="${kosdaqInfo.currentPrice}">-</strong>
                         <span id="kosdaqRate"
@@ -36,25 +40,22 @@
                             th:text="${kosdaqInfo.changeRate + '%'}">-</span>
                     </div>
                 </div>
-                <div class="tickerItem">
-                    <span class="label">환율</span>
-                    <div class="valueGroup">
-                        <!-- 통화 선택 셀렉트 -->
-                        <select id="currencySelect" style="
-                            border: none;
-                            background: transparent;
-                            font-size: 13px;
-                            color: #555;
-                            cursor: pointer;
-                            margin-right: 6px;">
+                <div class="tickerItem exchangeTicker clickableTicker" id="exchangeTicker" data-chart-source="exchange">
+                    <div class="tickerHead">
+                        <span class="label">환율</span>
+                        <select id="currencySelect" class="tickerSelect">
                             <option value="USD">USD/KRW</option>
                             <option value="JPY(100)">JPY/KRW</option>
                             <option value="EUR">EUR/KRW</option>
                             <option value="CNH">CNH/KRW</option>
                             <option value="GBP">GBP/KRW</option>
                         </select>
-                        <strong id="exchangePrice">-</strong>
-                        <span id="exchangeRate" class="down">-</span>
+                    </div>
+                    <div class="valueGroup">
+                        <strong id="exchangePrice" th:text="${exchangeInfo.currentPrice}">-</strong>
+                        <span id="exchangeRate"
+                            th:classappend="${exchangeInfo.changeRate != null and #strings.startsWith(exchangeInfo.changeRate, '-')} ? 'down' : 'up'"
+                            th:text="${exchangeInfo.changeRate + '%'}">-</span>
                     </div>
                 </div>
             </div>
@@ -86,10 +87,10 @@
                             <span id="chartPriceChange" class="up">-</span>
                         </div>
                         <div class="stockMetaRow">
-                            <span>시가 <strong id="chartOpenPrice">-</strong></span>
-                            <span>고가 <strong id="chartHighPrice" class="up">-</strong></span>
-                            <span>저가 <strong id="chartLowPrice" class="down">-</strong></span>
-                            <span>거래량 <strong id="chartVolume">-</strong></span>
+                            <span><span id="chartOpenLabel">시가</span> <strong id="chartOpenPrice">-</strong></span>
+                            <span><span id="chartHighLabel">고가</span> <strong id="chartHighPrice" class="up">-</strong></span>
+                            <span><span id="chartLowLabel">저가</span> <strong id="chartLowPrice" class="down">-</strong></span>
+                            <span><span id="chartVolumeLabel">거래량</span> <strong id="chartVolume">-</strong></span>
                         </div>
                     </div>
                     <!-- 탭 버튼 추가 -->
@@ -99,7 +100,7 @@
                         <button class="chartTab" data-tab="minute">분별</button>
                     </div>
                     <div class="chartContainer">
-                        <div id="mainChart" style="width:100%;height:100%;"></div>
+                        <canvas id="mainChart"></canvas>
                     </div>
                 </div>
 
@@ -155,9 +156,56 @@
 
                         <p class="analysisDesc" th:text="${analysisDesc}">분석 중...</p>
                     </div>
+
+                    <div class="aiPredictPanel aiRotatorPanel" id="aiRotatorPanel">
+                        <div class="aiPredictHeader">
+                            <span class="aiPredictTitle" id="aiRotatorTitle">AI 시장 흐름 브리핑</span>
+                            <span class="aiPredictBadge" id="aiRotatorBadge">NEW</span>
+                        </div>
+
+                        <div class="aiPredictSubject" id="aiRotatorSubject"
+                             th:text="${aiPrediction != null and aiPrediction.stockName != null ? aiPrediction.stockName + ' · ' + aiPrediction.stockCode : stockCode}">
+                            005930
+                        </div>
+
+                        <div class="aiPredictMain">
+                            <div class="aiPredictArrow" id="aiRotatorArrow">↑</div>
+                            <div class="aiPredictInfo">
+                                <div class="aiPredictHeadline" id="aiRotatorHeadline">상승 예측</div>
+                                <div class="aiPredictProb" id="aiRotatorSubline">확률 83.5% · 확신도 높음</div>
+                            </div>
+                        </div>
+
+                        <div class="aiPredictDivider"></div>
+
+                        <div class="aiPredictFactors">
+                            <div class="aiPredictFactor">
+                                <span class="factorLabel" id="aiFactor1Label">뉴스 감성</span>
+                                <div class="factorBar">
+                                    <div class="factorFill fill-pos" id="aiFactor1Fill"></div>
+                                </div>
+                                <span class="factorVal" id="aiFactor1Value">+강세</span>
+                            </div>
+                            <div class="aiPredictFactor">
+                                <span class="factorLabel" id="aiFactor2Label">낚시성</span>
+                                <div class="factorBar">
+                                    <div class="factorFill fill-neg" id="aiFactor2Fill"></div>
+                                </div>
+                                <span class="factorVal" id="aiFactor2Value">-주의</span>
+                            </div>
+                            <div class="aiPredictFactor">
+                                <span class="factorLabel" id="aiFactor3Label">기사 수</span>
+                                <div class="factorBar">
+                                    <div class="factorFill fill-pos" id="aiFactor3Fill"></div>
+                                </div>
+                                <span class="factorVal" id="aiFactor3Value">+강세</span>
+                            </div>
+                        </div>
+
+                        <div class="aiPredictMeta" id="aiRotatorMeta">참고용</div>
+                    </div>
                 </div>
             </div>
-
             <!-- 전광판 -->
             <div class="price-ticker-container">
                 <div class="price-ticker-wrapper">
@@ -210,30 +258,52 @@
                                 <span class="down" th:text="'악재 ' + (100 - ${card['posRatio']}) + '%'">악재</span>
                             </div>
                         </div>
-                        <div class="scNoData" th:if="${card['articleCount'] == 0}">오늘 수집된 기사 없음</div>
 
-                        <!-- 통계 행 -->
-                        <div class="scStats">
-                            <div class="scStat">
-                                <span class="scStatNum up"   th:text="${card['positiveCount']}">0</span>
-                                <span class="scStatLabel">호재</span>
+                        <div class="scTrendBox is-collapsed" th:if="${card['articleCount'] > 0}">
+                            <div class="scTrendTop">
+                                <span class="scTrendTitle">상승 점수</span>
+                                <div class="scTrendTools">
+                                    <span class="scTrendPreviewScore" th:text="${card['trendScore']} + '점'">50점</span>
+                                    <button type="button" class="scTrendToggle" aria-expanded="false" aria-label="상승 점수 펼치기">
+                                        <span class="scTrendToggleIcon">▾</span>
+                                    </button>
+                                </div>
                             </div>
-                            <div class="scStatDiv"></div>
-                            <div class="scStat">
-                                <span class="scStatNum down" th:text="${card['negativeCount']}">0</span>
-                                <span class="scStatLabel">악재</span>
-                            </div>
-                            <div class="scStatDiv"></div>
-                            <div class="scStat">
-                                <span class="scStatNum"      th:text="${card['neutralCount']}">0</span>
-                                <span class="scStatLabel">중립</span>
-                            </div>
-                            <div class="scStatDiv"></div>
-                            <div class="scStat">
-                                <span class="scStatNum trustNum" th:text="${card['avgTypeProb']} + '%'">0%</span>
-                                <span class="scStatLabel">신뢰도</span>
+                            <div class="scTrendBody">
+                                <div class="scTrendScoreRow">
+                                    <strong class="scTrendScore" th:text="${card['trendScore']} + '점'">50점</strong>
+                                    <span class="scTrendState"
+                                          th:classappend="${card['trendDirection'] == 'up'} ? ' trend-up' : (${card['trendDirection'] == 'down'} ? ' trend-down' : ' trend-neutral')"
+                                          th:text="${card['trendLabel']}">중립</span>
+                                </div>
+                                <div class="scTrendBar">
+                                    <div class="scTrendFill"
+                                         th:classappend="${card['trendDirection'] == 'up'} ? ' fill-trend-up' : (${card['trendDirection'] == 'down'} ? ' fill-trend-down' : ' fill-trend-neutral')"
+                                         th:style="'width:' + ${card['trendScore']} + '%'"></div>
+                                </div>
+                                <div class="scTrendMeta">
+                                    <span class="scTrendConfidence" th:text="'신뢰도 ' + ${card['avgTypeProb']} + '%'">신뢰도 0%</span>
+                                    <span class="scTrendNoise" th:text="'노이즈 ' + ${card['avgClickbaitProb']} + '%'">노이즈 0%</span>
+                                </div>
+                                <div class="scStats">
+                                    <div class="scStat">
+                                        <span class="scStatNum up" th:text="${card['positiveCount']}">0</span>
+                                        <span class="scStatLabel">호재</span>
+                                    </div>
+                                    <div class="scStatDiv"></div>
+                                    <div class="scStat">
+                                        <span class="scStatNum down" th:text="${card['negativeCount']}">0</span>
+                                        <span class="scStatLabel">악재</span>
+                                    </div>
+                                    <div class="scStatDiv"></div>
+                                    <div class="scStat">
+                                        <span class="scStatNum" th:text="${card['neutralCount']}">0</span>
+                                        <span class="scStatLabel">중립</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
+                        <div class="scNoData" th:if="${card['articleCount'] == 0}">오늘 수집된 기사 없음</div>
                     </a>
                 </div>
             </div>
@@ -246,8 +316,29 @@
         noiseProb:      parseFloat(/*[[${noiseProb}]]*/ '0'),
         sentimentScore: parseFloat(/*[[${sentimentScore}]]*/ '50')
     };
+
+    window.AI_ROTATOR_DATA = {
+        stock: {
+            valid: /*[[${aiPrediction != null and aiPrediction.valid}]]*/ false,
+            stockCode: /*[[${aiPrediction != null and aiPrediction.stockCode != null ? aiPrediction.stockCode : stockCode}]]*/ '005930',
+            stockName: /*[[${aiPrediction != null and aiPrediction.stockName != null ? aiPrediction.stockName : ''}]]*/ '',
+            prediction: /*[[${aiPrediction != null and aiPrediction.prediction != null ? aiPrediction.prediction : ''}]]*/ '',
+            up: /*[[${aiPrediction != null and aiPrediction.up}]]*/ false,
+            probabilityPercent: /*[[${aiPrediction != null ? aiPrediction.probabilityPercent : 0}]]*/ 0,
+            confidence: /*[[${aiPrediction != null and aiPrediction.confidence != null ? aiPrediction.confidence : ''}]]*/ '',
+            articleCount: /*[[${aiPrediction != null and aiPrediction.articleCount != null ? aiPrediction.articleCount : 0}]]*/ 0,
+            sentimentMean: /*[[${aiPrediction != null and aiPrediction.sentimentMean != null ? aiPrediction.sentimentMean : 0}]]*/ 0,
+            clickbaitMean: /*[[${aiPrediction != null and aiPrediction.clickbaitMean != null ? aiPrediction.clickbaitMean : 0}]]*/ 0,
+            typeProbMean: /*[[${aiPrediction != null and aiPrediction.typeProbMean != null ? aiPrediction.typeProbMean : 0}]]*/ 0,
+            factRatio: /*[[${aiPrediction != null and aiPrediction.factRatio != null ? aiPrediction.factRatio : 0}]]*/ 0,
+            volatility20d: /*[[${aiPrediction != null and aiPrediction.volatility20d != null ? aiPrediction.volatility20d : 0}]]*/ 0,
+            cvAuc: /*[[${aiPrediction != null ? aiPrediction.cvAuc : 0}]]*/ 0,
+            nTrain: /*[[${aiPrediction != null ? aiPrediction.nTrain : 0}]]*/ 0,
+            message: /*[[${aiPrediction != null and aiPrediction.message != null ? aiPrediction.message : ''}]]*/ ''
+        },
+        sectors: /*[[${sectorCards}]]*/ []
+    };
 </script>
 <script th:src="@{/js/stock.js}"></script>
-<script th:src="@{/js/market.js}"></script>
 </body>
 </html>

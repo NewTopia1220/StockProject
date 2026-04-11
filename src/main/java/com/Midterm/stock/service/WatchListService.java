@@ -133,19 +133,31 @@ public class WatchListService {
         }
     }
 
-    // -------------------민경----------------------------
-
-    /** 알림 설정 여부 확인 (스케줄러에서 사용) */
+    // 마이페이지 알림
+    // 주가 등락 알림 설정 여부 확인 (스케줄러에서 사용)
     public boolean isNotifyEnabled(Integer userNum) {
-        // 유저 리포지토리에서 해당 유저의 notifyStock 값을 가져옴
-        // 여기서는 예시로 간단히 구현 (실제로는 userRepository 사용 권장)
+        // 유저dao에서 해당 유저의 notifyStock 값을 가져옴
         Integer status = userDao.findNotifyStockStatusByNum(userNum);
-        return status != null && status == 1;
+        // [로그 추가] DB에서 실제로 꺼내온 값이 뭔지 확인
+        System.out.println("DEBUG: 유저 " + userNum + "의 DB상 알림 상태값 -> " + status);
+
+        boolean result = (status != null && status == 1);
+        System.out.println("DEBUG: 최종 판단 결과 (true면 알림 보냄) -> " + result);
+
+        return result;
+    }
+    // 댓글 알림 설정 여부 확인 (댓글 작성 로직에서 호출)
+    public boolean isCommentNotifyEnabled(Integer userNum) {
+        Integer status = userDao.findNotifyCommentStatusByNum(userNum);
+        return (status != null && status == 1);
     }
 
-    /** 알림 설정 변경 (토글 클릭 시 사용) */
+
+    // 알림 설정 변경 (토글 클릭 시 사용)
     @Transactional
-    public void updateNotifySetting(Integer userNum, int status) {
-        userDao.updateNotifySetting(userNum, status);
+    public void updateNotifySetting(Integer userNum, String type, int status) {
+        // 다오(UserDao)에서 이미 type을 받아 분기 처리를 하므로, 서비스의 if문은 생략 가능합니다.
+        userDao.updateNotifySetting(userNum, type, status);
     }
+
 }

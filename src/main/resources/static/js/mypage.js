@@ -161,33 +161,57 @@ function saveEdit(type) {
 /**
  * 알림 설정 토글 이벤트 (주가 알림 등)
  */
+// document.querySelectorAll('.toggle-input').forEach(toggle => {
+//     toggle.addEventListener('change', function() {
+//         const type = this.dataset.type; // HTML의 data-type="stock" 값
+//         const isEnabled = this.checked ? 1 : 0; // 체크되면 1, 해제되면 0
+//         const userNum = document.getElementById('user-num').value;
+//
+//         fetch('/api/user/settings/notification', {
+//             method: 'POST',
+//             headers: { 'Content-Type': 'application/json' },
+//             body: JSON.stringify({
+//                 userNum: userNum,
+//                 status: isEnabled
+//             })
+//         })
+//             .then(response => response.json())
+//             .then(data => {
+//                 if (!data.ok) {
+//                     alert('설정 저장에 실패했습니다.');
+//                     this.checked = !this.checked; // 실패 시 토글 복구
+//                 }
+//             })
+//             .catch(err => {
+//                 console.error('Error:', err);
+//                 this.checked = !this.checked;
+//             });
+//     });
+// });
+// 모든 토글 스위치에 이벤트 리스너 등록
 document.querySelectorAll('.toggle-input').forEach(toggle => {
     toggle.addEventListener('change', function() {
-        const type = this.dataset.type; // HTML의 data-type="stock" 값
-        const isEnabled = this.checked ? 1 : 0; // 체크되면 1, 해제되면 0
-        const userNum = document.getElementById('user-num').value;
+        const type = this.getAttribute('data-type'); // 'stock' 또는 'comment'
+        const status = this.checked ? 1 : 0;
 
         fetch('/api/user/settings/notification', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                userNum: userNum,
-                status: isEnabled
+                type: type,
+                status: status
             })
         })
-            .then(response => response.json())
+            .then(res => res.json())
             .then(data => {
-                if (!data.ok) {
-                    alert('설정 저장에 실패했습니다.');
-                    this.checked = !this.checked; // 실패 시 토글 복구
+                if (data.ok) {
+                    console.log(`${type} 알림 설정 변경 완료: ${status}`);
                 }
-            })
-            .catch(err => {
-                console.error('Error:', err);
-                this.checked = !this.checked;
             });
     });
 });
+
+
 
 /**
  * 카드 등장 애니메이션 (Intersection Observer)

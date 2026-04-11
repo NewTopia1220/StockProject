@@ -78,37 +78,40 @@
                 <div class="page-header">
                     <div class="month-selector" style="display: flex; align-items: center; gap: 15px;">
 
-                        <!-- 이전 버튼 비활성화 -->
-                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed;">
+                        <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed; opacity: 0.5;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </div>
 
-                        <a th:if="${hasPrevData}" th:href="@{/asset/dashboard(month=${prevMonth}, year=${prevYear})}" class="btn-month">
+                        <a th:if="${hasPrevData}"
+                           th:href="@{/asset/dashboard(month=${prevMonth}, year=${prevYear})}"
+                           class="btn-month"
+                           th:title="|${prevYear}년 ${prevMonth}월로 이동|">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
                             </svg>
                         </a>
 
-                        <h1 style="margin: 0;">
-                            <span th:text="|${selectedYear}년 ${selectedMonth}월|">2025년 4월 대시보드</span>
+                        <h1 style="margin: 0; min-width: 150px; text-align: center;">
+                            <span th:text="|${selectedYear}년 ${selectedMonth}월|">2026년 4월</span>
                         </h1>
 
-
-
-                        <a th:if="${hasNextData}" th:href="@{/asset/dashboard(month=${nextMonth}, year=${nextYear})}" class="btn-month">  <!--다음달-->
+                        <a th:if="${hasNextData}"
+                           th:href="@{/asset/dashboard(month=${nextMonth}, year=${nextYear})}"
+                           class="btn-month"
+                           th:title="|${nextYear}년 ${nextMonth}월로 이동|">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </a>
 
-                        <!--다음버튼 비활성화-->
-                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed;">
+                        <div th:unless="${hasNextData}" style="color: #ccc; cursor: not-allowed; opacity: 0.5;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </div>
+
                     </div>
 
                     <p class="page-subtitle" th:text="|${selectedYear}년 ${selectedMonth}월의 재무 상태를 확인하세요|"></p>

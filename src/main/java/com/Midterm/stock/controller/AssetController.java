@@ -87,32 +87,39 @@ public class AssetController {
         model.addAttribute("currentRealYear", currentRealYear);
         model.addAttribute("recentTransactions", transactions);
 
-        // 이번 달 지출 / 전 달 지출
-            // 이전 달 계산 (1월일 경우 12월로 가야 하는 로직은 필요에 따라 Dao에서 처리하거나 여기서 보정)
-        int currentMonthSpending = assetDao.getMonthSpending(month, year, loginNum);  // 일단 넣어준거 수정해야됨
-        int prevMonth = (month == 1) ? 12 : month - 1;
-        int prevYear = (month == 1) ? year - 1 : year;  // 1월이면 전년도 12월
-        int previousMonthSpending = assetDao.getMonthSpending(prevMonth, prevYear, loginNum);  // 일단 넣어준거 수정해야됨
+        // 이번 달 지출 / 이전 달 지출
+        // -----------------------민경 수정 추가 -----------------------------------------
+        // 1. [민경 수정] 이전 데이터 점프 좌표 찾기
+        int currentMonthSpending = assetDao.getMonthSpending(month, year, loginNum);
+        Map<String, Integer> prevDate = assetDao.getNearestPrevDate(month, year, loginNum);
+        int previousMonthSpending = 0; // 초기값
+
+        if (prevDate != null) {
+            int pMonth = prevDate.get("month");
+            int pYear = prevDate.get("year");
+            model.addAttribute("hasPrevData", true);
+            model.addAttribute("prevMonth", pMonth);
+            model.addAttribute("prevYear", pYear);
+            // 이전 데이터가 있는 달의 지출액을 가져와야 증감률 비교가 됨
+            previousMonthSpending = assetDao.getMonthSpending(pMonth, pYear, loginNum);
+        } else {
+            model.addAttribute("hasPrevData", false);
+        }
+
+        // 2. [민경 수정] 다음 데이터 점프 좌표 찾기
+        Map<String, Integer> nextDate = assetDao.getNearestNextDate(month, year, loginNum);
+        if (nextDate != null) {
+            model.addAttribute("hasNextData", true);
+            model.addAttribute("nextMonth", nextDate.get("month"));
+            model.addAttribute("nextYear", nextDate.get("year"));
+        } else {
+            model.addAttribute("hasNextData", false);
+        }
 
         model.addAttribute("currentMonthSpending", currentMonthSpending);
         model.addAttribute("previousMonthSpending", previousMonthSpending);
-        model.addAttribute("prevMonth", prevMonth);
-        model.addAttribute("prevYear", prevYear);
 
-        // 이전 달과 다음 달의 데이터 존재 여부 확인
-        List<AssetDto> prevTransactions = assetDao.getRecentTransactionsByMonth(prevMonth, prevYear, loginNum);
-        boolean hasPrevData = !prevTransactions.isEmpty();
-
-        int nextMonth = (month == 12) ? 1 : month + 1;
-        int nextYear = (month == 12) ? year + 1 : year; // 12월이면 다음년도 1월
-        List<AssetDto> nextTransactions = assetDao.getRecentTransactionsByMonth(nextMonth, nextYear, loginNum);
-        boolean hasNextData = !nextTransactions.isEmpty();
-
-        model.addAttribute("hasPrevData", hasPrevData);
-        model.addAttribute("hasNextData", hasNextData);
-        model.addAttribute("nextMonth", nextMonth);
-        model.addAttribute("nextYear", nextYear);
-
+        //----------------------------------------------------------------------------
 
         //이번 달 지출과 지난달 지출을 비교해서 증감률을 계산 -> 색상(빨강/파랑)과 화살표 방향까지 바꿈
         double diffRate = 0;
@@ -158,7 +165,7 @@ public class AssetController {
 
 
         // 월별 지출 가져오기 5개월
-        List<Map<String, Object>> trendData = assetDao.getLast5MonthsSpending(loginNum);
+        List<Map<String, Object>> trendData = assetDao.getLast5MonthsSpending(year, month, loginNum);
 
         // 평균 계산
         int sum = trendData.stream().mapToInt(m -> (int) m.get("total")).sum();
@@ -250,29 +257,38 @@ public class AssetController {
         model.addAttribute("selectedYear", year);
 
         // 3. 인사이트 데이터 생성 (선택된 달 vs 이전 달)
-        int prevMonth = (month == 1) ? 12 : month - 1;
-        int prevYear = (month == 1) ? year - 1 : year;
         Map<String, Integer> currentMap = assetDao.getCategoryMapByMonth(month, year, loginNum);
-        Map<String, Integer> previousMap = assetDao.getCategoryMapByMonth(prevMonth, prevYear, loginNum);
-        model.addAttribute("prevMonth", prevMonth);
-        model.addAttribute("prevYear", prevYear);
+        Map<String, Integer> previousMap; // 선언만 해두고 아래 if문에서 채웁니다.
 
-        List<Map<String, Object>> insights = new ArrayList<>();
+        // 1. 이전 데이터 점프 좌표 찾기
+        Map<String, Integer> prevDate = assetDao.getNearestPrevDate(month, year, loginNum);
+        if (prevDate != null) {
+            int pMonth = prevDate.get("month");
+            int pYear = prevDate.get("year");
+            model.addAttribute("hasPrevData", true);
+            model.addAttribute("prevMonth", pMonth);
+            model.addAttribute("prevYear", pYear);
 
-        // 이전 달 데이터 존재 여부 확인
-        boolean hasPrevData = assetDao.getRecentTransactionsByMonth(prevMonth, prevYear, loginNum) != null
-                && !assetDao.getRecentTransactionsByMonth(prevMonth, prevYear, loginNum).isEmpty();
-        model.addAttribute("hasPrevData", hasPrevData);
+            // 인사이트 비교를 위해 이전 달 지출 맵을 '점프한 달' 기준으로 다시 가져옴
+            previousMap = assetDao.getCategoryMapByMonth(pMonth, pYear, loginNum);
+        } else {
+            model.addAttribute("hasPrevData", false);
+            previousMap = new HashMap<>(); // 이전 데이터 없으면 빈 맵
+        }
 
-        // 다음 달 데이터 존재 여부 확인
-        int nextMonth = (month == 12) ? 1 : month + 1;
-        int nextYear = (month == 12) ? year + 1 : year; // 12월이면 다음년도 1월
-        boolean hasNextData = assetDao.getRecentTransactionsByMonth(nextMonth, nextYear, loginNum) != null
-                && !assetDao.getRecentTransactionsByMonth(nextMonth, nextYear, loginNum).isEmpty();
-        model.addAttribute("hasNextData", hasNextData);
-        model.addAttribute("nextMonth", nextMonth);
-        model.addAttribute("nextYear", nextYear);
+        // 2. 다음 데이터 점프 좌표 찾기
+        Map<String, Integer> nextDate = assetDao.getNearestNextDate(month, year, loginNum);
+        if (nextDate != null) {
+            model.addAttribute("hasNextData", true);
+            model.addAttribute("nextMonth", nextDate.get("month"));
+            model.addAttribute("nextYear", nextDate.get("year"));
+        } else {
+            model.addAttribute("hasNextData", false);
+        }
 
+        List<Map<String, Object>> insights = new ArrayList<>(); //
+
+        //   ----------------------민경 수정-------------------------------------
 
         // 이번 달에 소비가 있는 카테고리들을 순회하며 비교
         for (String category : currentMap.keySet()) {

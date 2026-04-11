@@ -563,41 +563,53 @@ body {
     background-color: var(--accent);
 }
 
+
+
+/* 도넛 차트 영역 레이아웃 수정 */
 .category-chart {
     display: flex;
-    /*gap: 32px;*/
-    /*align-items: center;*/
-    align-items: flex-start; /* ❗ 중심축을 위(start)로 고정하여 차트가 위로 올라오게 함 */
-    justify-content: flex-start; /* 왼쪽 정렬 */
-    /*padding-top: 10px; !* 카드 상단 제목과의 여백 조절 *!*/
-    /*width: 100%; !* 부모 너비를 꽉 채워야 auto 마진이 작동합니다 *!*/
-    gap: 60px;
+    align-items: center; /* 차트와 리스트의 높이를 중앙으로 맞춤 */
+    justify-content: flex-start;
+    gap: 40px;          /* 차트와 리스트 사이 간격 */
+    padding: 10px 0;
+    min-height: 250px;  /* 카테고리가 적어도 최소 높이 유지 */
 }
 
 .donut-chart {
-    width: 200px;
-    height: 200px;
-    flex-shrink: 0;
-    margin-left: -30px;
-    margin-right: 30px; /* 도넛과 글자 사이의 최소 간격만 확보 */
+    width: 220px !important;  /* 차트 가로 크기 고정 */
+    height: 220px !important; /* 차트 세로 크기 고정 */
+    flex-shrink: 0;           /* 크기가 절대 줄어들지 않게 함 */
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
+/* 캔버스가 부모 영역을 100%만 차지하도록 강제 */
+#categoryDonut {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+/* 카테고리 리스트 영역 */
 .category-list {
     flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px; /* 항목 간 간격 */
 }
 
-/*.category-item {*/
-/*    display: flex;*/
-/*    justify-content: space-between;*/
-/*    align-items: center;*/
-/*    padding: 8px 0;*/
-/*}*/
+/* 플레이스홀더 스타일 */
+.empty-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px;
+    color: #9ca3af; /* 연한 회색 */
+    font-size: 15px;
+}
 
-/*.category-info {*/
-/*    display: flex;*/
-/*    align-items: center;*/
-/*    gap: 12px;*/
-/*}*/
 
 /* 카테고리 아이템 전체 레이아웃 */
 .category-item {

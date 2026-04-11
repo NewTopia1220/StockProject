@@ -136,8 +136,6 @@
                                 <label class="input-label">월 소득</label>
                                 <div class="input-wrapper">
                                     <input type="text" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field money" placeholder="0" required>
-<!--                                    <input type="number" id="monthlyIncome" th:field="*{monthlyIncome}" class="input-field" min="0" placeholder="0" required>-->
-    <!--                                <input type="number" th:field="*{monthlyIncome}" id="monthPay" class="input-field">-->
                                     <span class="input-unit">원</span>
                                 </div>
                             </div>
@@ -157,7 +155,6 @@
                                 <label class="input-label">직업 유형</label>
                                 <div class="input-wrapper">
                                     <select th:field="*{jobType}" class="input-field" style="width: 100%; background: white;">
-<!--                                        <option value="">선택하세요</option>-->
                                         <option value="student">학생</option>
                                         <option value="employee">직장인</option>
                                         <option value="professional">전문직</option>
@@ -171,7 +168,6 @@
                                 <label class="input-label">투자 성향</label>
                                 <div class="input-wrapper">
                                     <select th:field="*{riskPreference}" class="input-field" style="width: 100%; background: white;">
-<!--                                        <option value="">선택하세요</option>-->
                                         <option value="low">안정형 (저위험)</option>
                                         <option value="medium">중립형 (중위험)</option>
                                         <option value="high">공격형 (고위험)</option>
@@ -193,7 +189,7 @@
                             <div>
                                 <p class="result-label">매월 필요한 저축액</p>
                                 <h2 class="result-value">
-                                    <span id="monthlyRequired" th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 3, 'COMMA')} + '원'">저축 시뮬레이터를 입력하세요</span>
+                                    <span id="monthlyRequired" th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 0, 'COMMA') + '원'}">저축 시뮬레이터를 입력하세요</span>
                                 </h2>
                             </div>
                             <div class="result-icon">
@@ -216,34 +212,34 @@
                         <div class="analysis-item">
                             <span class="analysis-label">월 수입</span>
                             <span class="analysis-value primary" id="displayIncome"
-                                  th:text="${'+' + #numbers.formatInteger(assetDto.monthlyIncome, 3, 'COMMA') + '원'}">0원</span>
+                                  th:text="${'+' + #numbers.formatInteger(assetDto.monthlyIncome, 0, 'COMMA') + '원'}">0원</span>
                         </div>
 
 
                         <div class="analysis-item">
                             <span class="analysis-label">월 지출</span>
                             <span class="analysis-value"
-                                  th:text="${'-' + #numbers.formatInteger(currentMonthSpending, 3, 'COMMA') + '원'}">0원</span>
+                                  th:text="${'-' + #numbers.formatInteger(currentMonthSpending, 0, 'COMMA') + '원'}">0원</span>
                         </div>
 
 
                         <div class="analysis-item highlight">
                             <span class="analysis-label strong">월 저축 가능 금액</span>
                             <span class="analysis-value primary" id="availableAmount"
-                                  th:text="${#numbers.formatInteger(assetDto.monthlySaving, 3, 'COMMA')} + '원'">0원</span>
+                                  th:text="${#numbers.formatInteger(assetDto.monthlySaving, 0, 'COMMA')} + '원'">0원</span>
                         </div>
 
                         <div class="analysis-item highlight">
                             <span class="analysis-label strong">월 필요 저축액</span>  <!--목표 달성 필요 금액-->
                             <span class="analysis-value primary" id="requiredAmount"
-                                  th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 3, 'COMMA')} + '원'">입력하세요</span>
+                                  th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 0, 'COMMA')} + '원'">입력하세요</span>
                         </div>
 
                         <div class="analysis-item highlight warning" id="gapItem">
                             <span class="analysis-label strong"
                                   th:text="${assetDto.goalGap < 0 ? '목표보다 초과 금액' : '목표까지 부족 금액'}">입력하세요</span>
                             <span class="analysis-value accent id=gapValue"
-                                  th:text="${assetDto.goalGap < 0 ? '+' + #numbers.formatInteger(assetDto.goalGap*-1, 3, 'COMMA') : #numbers.formatInteger(assetDto.goalGap*-1, 3, 'COMMA')} + '원'"></span>
+                                  th:text="${assetDto.goalGap < 0 ? '+' + #numbers.formatInteger(assetDto.goalGap*-1, 0, 'COMMA') : #numbers.formatInteger(assetDto.goalGap*-1, 0, 'COMMA')} + '원'"></span>
                         </div>
 
 
@@ -274,7 +270,7 @@
                                     <span class="banner-label">분석 결과</span>
                                     <span class="banner-badge">분석 톤 - </span>
                                     <strong class="banner-text" th:text="${assetDto.toneTitle}"></strong>
-                                    <span class="banner-sub" th:text="${#numbers.formatInteger(assetDto.monthlySaving, 3, 'COMMA')} + '원'"></span>
+                                    <span class="banner-sub" th:text="${#numbers.formatInteger(assetDto.monthlySaving, 0, 'COMMA')} + '원'"></span>
                                 </div>
                             </div>
                         </div>
@@ -286,7 +282,6 @@
                 <div class="card">
                     <div class="card-title-section">
                         <h3>최근 자산 분석 이력</h3>
-<!--                        <a href="/asset/history" class="link-primary">전체보기</a>-->
                     </div>
 
                     <div class="transaction-list">
@@ -304,7 +299,7 @@
                                 </div>
                                 <div>
                                     <p class="transaction-title">
-                                        <span th:text="${#numbers.formatInteger(item.goalAmount, 3, 'COMMA')} + '원'">0원</span> 목표
+                                        <span th:text="${#numbers.formatInteger(item.goalAmount, 0, 'COMMA')} + '원'">0원</span> 목표
                                     </p>
                                     <p class="transaction-meta">
                                         <span th:text="'기간: ' + ${item.goalMonths} + '개월'"></span> •
@@ -319,7 +314,7 @@
                                    th:classappend="${item.prediction == 1 ? 'positive' : 'negative'}">
                                 </p>
                                 <p class="transaction-meta" style="font-size: 11px;"
-                                   th:text="'현재: ' + ${#numbers.formatInteger(item.currentAsset, 3, 'COMMA')} + '원'">
+                                   th:text="'현재: ' + ${#numbers.formatInteger(item.currentAsset, 0, 'COMMA')} + '원'">
                                 </p>
                             </div>
                         </div>

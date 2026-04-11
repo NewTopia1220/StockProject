@@ -15,40 +15,101 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * 도넛 차트가 12시부터 한 바퀴 쭉~ 채워지는 애니메이션
  */
+// function drawCategoryDonut() {
+//     const canvas = document.getElementById('categoryDonut');
+//     if (!canvas || !window.categoryData || window.categoryData.length === 0) return;
+//
+//     const ctx = canvas.getContext('2d');
+//     const centerX = canvas.width / 2;
+//     const centerY = canvas.height / 2;
+//     const radius = 120;
+//     const innerRadius = 70;
+//
+//     const total = window.categoryData.reduce((sum, cat) => sum + Number(cat.value), 0);
+//
+//     let currentPercent = 0; // 0에서 1까지 증가하는 전체 진행률
+//     const speed = 0.02;     // 채워지는 속도 (낮을수록 느림)
+//
+//     function animate() {
+//         ctx.clearRect(0, 0, canvas.width, canvas.height);
+//
+//         // 전체 원 중에서 현재 진행률만큼만 그릴 '총 각도'
+//         const totalDrawAngle = currentPercent * (Math.PI * 2);
+//         let startAngle = -Math.PI / 2; // 시작점: 12시 방향
+//
+//         // 누적된 각도를 추적하면서 각 카테고리를 그립니다.
+//         let accumulatedAngle = 0;
+//
+//         window.categoryData.forEach(category => {
+//             const categoryAngle = (Number(category.value) / total) * (Math.PI * 2);
+//
+//             // 현재까지 그려야 할 총 각도(totalDrawAngle) 내에 이 카테고리가 포함되는지 계산
+//             if (accumulatedAngle < totalDrawAngle) {
+//                 // 이 조각이 그려질 실제 각도 (남은 각도와 카테고리 각도 중 작은 값)
+//                 const drawAngle = Math.min(categoryAngle, totalDrawAngle - accumulatedAngle);
+//
+//                 ctx.beginPath();
+//                 ctx.arc(centerX, centerY, radius, startAngle, startAngle + drawAngle);
+//                 ctx.arc(centerX, centerY, innerRadius, startAngle + drawAngle, startAngle, true);
+//                 ctx.closePath();
+//
+//                 ctx.fillStyle = category.color;
+//                 ctx.fill();
+//
+//                 startAngle += categoryAngle;
+//                 accumulatedAngle += categoryAngle;
+//             }
+//         });
+//
+//         if (currentPercent < 1) {
+//             currentPercent += speed;
+//             requestAnimationFrame(animate);
+//         }
+//     }
+//
+//     setTimeout(animate, 300);
+// }
 function drawCategoryDonut() {
     const canvas = document.getElementById('categoryDonut');
     if (!canvas || !window.categoryData || window.categoryData.length === 0) return;
 
     const ctx = canvas.getContext('2d');
+
+    // 🔍 [수정 포인트 1] 캔버스의 실제 표시 크기에 맞춰 해상도 조정
+    // CSS에서 220px로 잡았으므로 그에 맞게 캔버스 크기를 강제합니다.
+    canvas.width = 220;
+    canvas.height = 220;
+
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = 120;
-    const innerRadius = 70;
+
+    // 🔍 [수정 포인트 2] 반지름 조절 (220px 안에 쏙 들어오게)
+    const radius = 90;       // 바깥쪽 반지름 (기존 120 -> 90)
+    const innerRadius = 55;   // 안쪽 구멍 반지름 (기존 70 -> 55)
 
     const total = window.categoryData.reduce((sum, cat) => sum + Number(cat.value), 0);
 
-    let currentPercent = 0; // 0에서 1까지 증가하는 전체 진행률
-    const speed = 0.02;     // 채워지는 속도 (낮을수록 느림)
+    let currentPercent = 0;
+    const speed = 0.02;
 
     function animate() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        // 전체 원 중에서 현재 진행률만큼만 그릴 '총 각도'
         const totalDrawAngle = currentPercent * (Math.PI * 2);
-        let startAngle = -Math.PI / 2; // 시작점: 12시 방향
+        let startAngle = -Math.PI / 2;
 
-        // 누적된 각도를 추적하면서 각 카테고리를 그립니다.
         let accumulatedAngle = 0;
 
         window.categoryData.forEach(category => {
             const categoryAngle = (Number(category.value) / total) * (Math.PI * 2);
 
-            // 현재까지 그려야 할 총 각도(totalDrawAngle) 내에 이 카테고리가 포함되는지 계산
             if (accumulatedAngle < totalDrawAngle) {
-                // 이 조각이 그려질 실제 각도 (남은 각도와 카테고리 각도 중 작은 값)
                 const drawAngle = Math.min(categoryAngle, totalDrawAngle - accumulatedAngle);
 
                 ctx.beginPath();
+                // 🔍 [수정 포인트 3] 선을 부드럽게 그리기 위한 설정
+                ctx.lineCap = 'round';
+
                 ctx.arc(centerX, centerY, radius, startAngle, startAngle + drawAngle);
                 ctx.arc(centerX, centerY, innerRadius, startAngle + drawAngle, startAngle, true);
                 ctx.closePath();
@@ -69,7 +130,6 @@ function drawCategoryDonut() {
 
     setTimeout(animate, 300);
 }
-
 
 
 

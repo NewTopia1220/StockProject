@@ -97,16 +97,19 @@
                             </label>
                         </div>
 
-<!--                        <div class="settings-item">-->
-<!--                            <div class="settings-info">-->
-<!--                                <p class="settings-label">예산 초과 알림</p>-->
-<!--                                <p class="settings-value">예산을 초과할 때 알림을 받습니다</p>-->
-<!--                            </div>-->
-<!--                            <label class="toggle-switch">-->
-<!--                                <input type="checkbox" checked>-->
-<!--                                <span class="toggle-slider"></span>-->
-<!--                            </label>-->
-<!--                        </div>-->
+                        <div class="settings-item">
+                            <div class="settings-info">
+                                <p class="settings-label">커뮤니티 댓글 알림</p>
+                                <p class="settings-value">내 게시글에 댓글이 달릴 때 알림을 받습니다</p>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox"
+                                       class="toggle-input"
+                                       data-type="comment"
+                                       th:checked="${user.notifyComment == 1}">
+                                <span class="toggle-slider"></span>
+                            </label>
+                        </div>
 
                     </div>
                 </div>

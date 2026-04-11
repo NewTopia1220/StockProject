@@ -1,15 +1,27 @@
 package com.Midterm.stock.controller;
 
+import com.Midterm.stock.dto.AiPredictionDto;
 import com.Midterm.stock.dto.NewsDto;
 import com.Midterm.stock.repository.NewsDao;
+import com.Midterm.stock.service.stock.StockAiService;
 import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequestMapping("/news")
@@ -18,74 +30,159 @@ public class NewsController {
     @Autowired
     private NewsDao newsDao;
 
-    @GetMapping({"", "/"})
-    public String newsList(
-            @RequestParam(required = false) String sector,
-            @RequestParam(required = false) String keyword,
-            @RequestParam(defaultValue = "1") int page,
-            HttpSession session, Model model) {
+    @Autowired
+    private StockAiService stockAiService;
 
-        if (session.getAttribute("loginUser") == null) return "redirect:/login";
+    @GetMapping({"", "/"})
+    public String newsList(@RequestParam(required = false) String sector,
+                           @RequestParam(required = false) String keyword,
+                           @RequestParam(defaultValue = "1") int page,
+                           HttpSession session,
+                           Model model) {
+
+        if (session.getAttribute("loginUser") == null) {
+            return "redirect:/login";
+        }
+
         Integer userNum = (Integer) session.getAttribute("loginNum");
         int uid = userNum != null ? userNum : 0;
 
         int pageSize = 7;
         int start = (page - 1) * pageSize + 1;
-        int end   = page * pageSize;
+        int end = page * pageSize;
 
         List<NewsDto> newsList = newsDao.getNewsList(sector, keyword, start, end, uid);
-        int totalCount         = newsDao.getNewsCount(sector, keyword);
-        int totalPages         = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
+        enrichPredictionSignals(newsList);
 
-        // --- 여기부터 출력 코드 추가 ---
-        System.out.println("=========================================");
-        System.out.println("[DEBUG] 가져온 뉴스 개수: " + (newsList != null ? newsList.size() : 0));
-
-        if (newsList != null && !newsList.isEmpty()) {
-            for (NewsDto dto : newsList) {
-                // DTO의 getPubDate() 메서드를 통해 날짜만 출력
-                System.out.println("기사 날짜: " + dto.getPubDate() + " | 제목: " + dto.getTitle());
-            }
-        } else {
-            System.out.println("[경고] 검색된 뉴스 데이터가 없습니다.");
-        }
-        System.out.println("=========================================");
-        // --- 여기까지 ---
-
+        int totalCount = newsDao.getNewsCount(sector, keyword);
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
         LinkedHashMap<String, List<String>> sectorMap = newsDao.getSidebarSectorMap();
 
-        // 사이드바 AI 분석 (현재 필터 기준)
         Map<String, Object> sidebarAnalysis = newsDao.getSidebarAnalysis(sector, keyword);
-        int saTotal  = (int)    sidebarAnalysis.getOrDefault("totalCount",      0);
-        double saType = (double) sidebarAnalysis.getOrDefault("avgTypeProb",    0.0);
-        double saNoise= (double) sidebarAnalysis.getOrDefault("avgClickbaitProb",0.0);
-        int saPos    = (int)    sidebarAnalysis.getOrDefault("positiveCount",   0);
-        int saPosRatio = saTotal > 0 ? (int)Math.round((double)saPos/saTotal*100) : 50;
+        int saTotal = (int) sidebarAnalysis.getOrDefault("totalCount", 0);
+        double saType = (double) sidebarAnalysis.getOrDefault("avgTypeProb", 0.0);
+        double saNoise = (double) sidebarAnalysis.getOrDefault("avgClickbaitProb", 0.0);
+        int saPos = (int) sidebarAnalysis.getOrDefault("positiveCount", 0);
+        int saNeg = (int) sidebarAnalysis.getOrDefault("negativeCount", 0);
+        int saPosRatio = saTotal > 0 ? (int) Math.round((double) saPos / saTotal * 100) : 50;
 
-        model.addAttribute("newsList",     newsList);
-        model.addAttribute("sectorMap",    sectorMap);
-        model.addAttribute("totalCount",   totalCount);
-        model.addAttribute("totalPages",   totalPages);
-        model.addAttribute("currentPage",  page);
-        model.addAttribute("sector",       sector);
-        model.addAttribute("keyword",      keyword);
+        model.addAttribute("newsList", newsList);
+        model.addAttribute("sectorMap", sectorMap);
+        model.addAttribute("totalCount", totalCount);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("currentPage", page);
+        model.addAttribute("sector", sector);
+        model.addAttribute("keyword", keyword);
 
-        // 사이드바 분석 원형 게이지용
-        model.addAttribute("saTotal",    saTotal);
-        model.addAttribute("saType",     String.format("%.1f", saType));
-        model.addAttribute("saNoise",    String.format("%.1f", saNoise));
+        model.addAttribute("saTotal", saTotal);
+        model.addAttribute("saType", String.format("%.1f", saType));
+        model.addAttribute("saNoise", String.format("%.1f", saNoise));
         model.addAttribute("saPosRatio", saPosRatio);
-        model.addAttribute("currentMenu","news");
+        model.addAttribute("saNegRatio", saTotal > 0 ? (int) Math.round((double) saNeg / saTotal * 100) : 50);
+        model.addAttribute("currentMenu", "news");
 
         return "news/list";
     }
 
+    private void enrichPredictionSignals(List<NewsDto> newsList) {
+        if (newsList == null || newsList.isEmpty()) {
+            return;
+        }
+
+        applyStoredImpactSignals(newsList);
+        applyArticleImpactFallback(newsList);
+        applyStockPredictions(newsList);
+    }
+
+    // 이미 저장된 기사 영향도와 연결 종목이 있으면 그 값을 먼저 사용한다.
+    private void applyStoredImpactSignals(List<NewsDto> newsList) {
+        List<String> links = new ArrayList<>();
+        for (NewsDto dto : newsList) {
+            if (dto.getLink() != null && !dto.getLink().isBlank()) {
+                links.add(dto.getLink());
+            }
+        }
+
+        Map<String, Map<String, Object>> signalMap = newsDao.getNewsSignalMap(links);
+        for (NewsDto dto : newsList) {
+            Map<String, Object> signal = signalMap.get(dto.getLink());
+            if (signal == null) {
+                continue;
+            }
+
+            Object stockCode = signal.get("stockCode");
+            if (stockCode != null) {
+                dto.setStockCode(stockCode.toString());
+            }
+
+            Object impact30m = signal.get("impact30m");
+            if (impact30m instanceof Number number) {
+                dto.setStockImpactPercent(number.doubleValue());
+                dto.setStockImpactSource("기사 영향 DB");
+            }
+        }
+    }
+
+    // 저장된 값이 없을 때만 기사 단위 모델을 돌리고, 계산 결과는 다시 저장해 다음 조회를 빠르게 만든다.
+    private void applyArticleImpactFallback(List<NewsDto> newsList) {
+        for (NewsDto dto : newsList) {
+            if (dto.hasStockImpactPrediction()) {
+                continue;
+            }
+
+            String stockCode = dto.getStockCode();
+            if (stockCode == null || stockCode.isBlank()) {
+                continue;
+            }
+
+            Double modelImpact = stockAiService.predictArticleImpact(dto);
+            if (modelImpact == null) {
+                continue;
+            }
+
+            dto.setStockImpactPercent(modelImpact);
+            dto.setStockImpactSource("기사 영향 모델");
+            newsDao.saveNewsImpact(dto.getLink(), stockCode, modelImpact);
+        }
+    }
+
+    // 익일 상승 확률은 종목 단위 예측이므로 종목코드별로 한 번만 호출해서 재사용한다.
+    private void applyStockPredictions(List<NewsDto> newsList) {
+        Map<String, AiPredictionDto> stockPredictions = new HashMap<>();
+
+        for (NewsDto dto : newsList) {
+            String stockCode = dto.getStockCode();
+            if (stockCode == null || stockCode.isBlank() || stockPredictions.containsKey(stockCode)) {
+                continue;
+            }
+
+            try {
+                stockPredictions.put(stockCode, stockAiService.predict(stockCode));
+            } catch (Exception ignored) {
+                stockPredictions.put(stockCode, null);
+            }
+        }
+
+        for (NewsDto dto : newsList) {
+            AiPredictionDto prediction = stockPredictions.get(dto.getStockCode());
+            if (prediction == null || !prediction.isValid()) {
+                continue;
+            }
+
+            dto.setRiseProbability(prediction.getProbability());
+            dto.setRisePrediction(prediction.getPrediction());
+            dto.setRiseConfidence(prediction.getConfidence());
+        }
+    }
+
     @PostMapping("/like")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> toggleLike(
-            @RequestParam("link") String link, HttpSession session) {
+    public ResponseEntity<Map<String, Object>> toggleLike(@RequestParam("link") String link, HttpSession session) {
         Integer userNum = (Integer) session.getAttribute("loginNum");
-        if (userNum == null) return ResponseEntity.status(401).body(Map.of("error","로그인이 필요합니다"));
+        if (userNum == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+
         int newCount = newsDao.toggleLike(link, userNum);
         Map<String, Object> info = newsDao.getLikeInfo(link, userNum);
         Map<String, Object> resp = new HashMap<>();
@@ -96,35 +193,40 @@ public class NewsController {
 
     @GetMapping("/comments")
     @ResponseBody
-    public ResponseEntity<List<Map<String, Object>>> getComments(
-            @RequestParam("link") String link, HttpSession session) {
-        if (session.getAttribute("loginUser") == null)
+    public ResponseEntity<List<Map<String, Object>>> getComments(@RequestParam("link") String link, HttpSession session) {
+        if (session.getAttribute("loginUser") == null) {
             return ResponseEntity.status(401).build();
-
+        }
         return ResponseEntity.ok(newsDao.getComments(link));
     }
 
     @PostMapping("/comments")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> addComment(
-            @RequestParam("link") String link,
-            @RequestParam("content") String content,
-            HttpSession session) {
+    public ResponseEntity<Map<String, Object>> addComment(@RequestParam("link") String link,
+                                                          @RequestParam("content") String content,
+                                                          HttpSession session) {
         Integer userNum = (Integer) session.getAttribute("loginNum");
-        if (userNum == null) return ResponseEntity.status(401).body(Map.of("error","로그인이 필요합니다"));
-        if (content == null || content.trim().isEmpty())
-            return ResponseEntity.badRequest().body(Map.of("error","내용을 입력해주세요"));
+        if (userNum == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "로그인이 필요합니다."));
+        }
+        if (content == null || content.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "내용을 입력해주세요"));
+        }
+
         int result = newsDao.insertComment(link, userNum, content.trim());
-        if (result > 0) return ResponseEntity.ok(Map.of("success", true, "comments", newsDao.getComments(link)));
-        return ResponseEntity.internalServerError().body(Map.of("error","등록 실패"));
+        if (result > 0) {
+            return ResponseEntity.ok(Map.of("success", true, "comments", newsDao.getComments(link)));
+        }
+        return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패"));
     }
 
     @DeleteMapping("/comments/{commentId}")
     @ResponseBody
-    public ResponseEntity<Map<String, Object>> deleteComment(
-            @PathVariable int commentId, HttpSession session) {
+    public ResponseEntity<Map<String, Object>> deleteComment(@PathVariable int commentId, HttpSession session) {
         Integer userNum = (Integer) session.getAttribute("loginNum");
-        if (userNum == null) return ResponseEntity.status(401).build();
+        if (userNum == null) {
+            return ResponseEntity.status(401).build();
+        }
         return ResponseEntity.ok(Map.of("success", newsDao.deleteComment(commentId, userNum) > 0));
     }
 }

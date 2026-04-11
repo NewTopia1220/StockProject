@@ -328,7 +328,8 @@ public class UserDao {
                     dto.setRole(rs.getString("role"));
                     dto.setPhone(rs.getString("phone"));
                     dto.setNotifyStock(rs.getInt("notify_stock"));
-                    // 비밀번호는 보안상 보통 마이페이지 조회시엔 잘 안 담지만 필요시 추가
+                    dto.setNotifyComment(rs.getInt("notify_comment"));
+//                     비밀번호는 보안상 보통 마이페이지 조회시엔 잘 안 담지만 필요시 추가
                 }
             }
         } catch (SQLException e) { e.printStackTrace(); }
@@ -412,27 +413,53 @@ public class UserDao {
     }
 
 
-    // ---------------------------------- 민경추가-----------------
+    // 관심종목 알림 온/오프 상태값 여뷰
     public int findNotifyStockStatusByNum(int userNum) {
         String sql = "SELECT notify_stock FROM users WHERE num = ?";
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, userNum);
             try (ResultSet rs = pstmt.executeQuery()) {
-                if (rs.next()) return rs.getInt("notify_stock");
+                if (rs.next()) {
+                    int status = rs.getInt("notify_stock");
+                    System.out.println("DAO DEBUG: DB에서 가져온 값 -> " + status);
+                    return status;
+                } else {
+                    System.out.println("DAO DEBUG: 유저를 찾을 수 없음 (num=" + userNum + ")");
+                }
             }
-        } catch (SQLException e) { e.printStackTrace(); }
-        return 1; // 에러 나거나 데이터 없으면 기본값으로 알림 켬(1) 반환
+        } catch (SQLException e) {
+            System.out.println("DAO DEBUG: SQL 에러 발생!");
+            e.printStackTrace();
+        }
+        return 0;
     }
 
-    public void updateNotifySetting(int userNum, int status) {
-        String sql = "UPDATE users SET notify_stock = ? WHERE num = ?";
+    // 댓글 알림 온/오프 상태값 여부 가져오기
+    public int findNotifyCommentStatusByNum(int userNum) {
+        String sql = "SELECT notify_comment FROM users WHERE num = ?";
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, userNum);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) return rs.getInt("notify_comment");
+            }
+        } catch (SQLException e) { e.printStackTrace(); }
+        return 0;
+    }
+
+    // 통합 알림 설정 업데이트 (토글 클릭 시 호출)
+    public void updateNotifySetting(int userNum, String type, int status) {
+        // 타입에 따라 컬럼명을 결정
+        String columnName = "stock".equals(type) ? "notify_stock" : "notify_comment";
+        String sql = "UPDATE users SET " + columnName + " = ? WHERE num = ?";
+
         try (Connection conn = connect();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
             pstmt.setInt(1, status);
             pstmt.setInt(2, userNum);
             pstmt.executeUpdate();
-            System.out.println("유저 " + userNum + " 알림 설정 변경 -> " + status);
+            System.out.println("유저 " + userNum + " [" + type + "] 알림 설정 변경 -> " + status);
         } catch (SQLException e) { e.printStackTrace(); }
     }
 }

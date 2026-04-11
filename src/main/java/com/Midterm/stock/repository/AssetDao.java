@@ -18,8 +18,6 @@ public class AssetDao {
     private String id = "ADMIN";
     private String pw = "Heeyoun1220!";
 
-    // 스프링 빈은 싱글톤이므로, 필드에 변수를 두기보다 메서드 안에서 로컬로 사용하는 것이 안전하지만
-    // 기존 코드 스타일을 유지하며 수정해 드립니다.
     private Connection conn = null;
     private PreparedStatement pstmt = null;
     private ResultSet rs = null;
@@ -29,7 +27,7 @@ public class AssetDao {
         System.out.println("AssetDao 생성자 호출 - 클라우드 설정 시작");
         try {
             Class.forName(driver);
-            // ⭐️ 핵심: 자바 시스템에 지갑(Wallet) 위치를 강제로 입력합니다.
+            // 자바 시스템에 지갑(Wallet) 위치를 입력
             System.setProperty("oracle.net.wallet_location", "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
             System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");
         } catch (ClassNotFoundException e) {
@@ -61,7 +59,8 @@ public class AssetDao {
             String sql = "SELECT month, transaction_date, amount, vendor, category " +
                     "FROM spending_data " +
                     "where month = ? and user_id = ? and year = ? " +
-                    "ORDER BY spend_id DESC FETCH FIRST 10 ROWS ONLY";
+                    "ORDER BY transaction_date DESC, spend_id DESC " +
+                    "FETCH FIRST 10 ROWS ONLY";
 
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, month);
@@ -360,24 +359,81 @@ public class AssetDao {
 
 
     // 최근 5개월 월별 지출 가져오기
-    public List<Map<String, Object>> getLast5MonthsSpending(int loginNum) {
+    public List<Map<String, Object>> getLast5MonthsSpending(int year, int month, int loginNum)  {
         List<Map<String, Object>> trend = new ArrayList<>();
 
-        YearMonth now = YearMonth.now(); // 오늘 기준
-        for (int i = 4; i >= 0; i--) { // 5개월
-            YearMonth target = now.minusMonths(i);
+        // 파라미터로 받은 날짜를 기준으로 설정
+        YearMonth targetDate = YearMonth.of(year, month);
+
+        for (int i = 4; i >= 0; i--) { // 선택한 달 포함 과거 5개월
+            YearMonth target = targetDate.minusMonths(i);
             int m = target.getMonthValue();
             int y = target.getYear();
 
-            int total = getMonthSpending(m, y, loginNum); // 기존 메서드 그대로 사용
+            int total = getMonthSpending(m, y, loginNum);
             Map<String, Object> map = new HashMap<>();
             map.put("year", y);
             map.put("month", m);
-            map.put("total", Math.max(total, 0)); // null이나 음수 방지
+            map.put("total", Math.max(total, 0));
             trend.add(map);
         }
 
         return trend;
+    }
+
+// --------------- 추가 -----------------------------------------------------------------
+    //현재 선택된 날짜보다 이전 중 데이터가 있는 가장 최근 날짜 가져오기
+    public Map<String, Integer> getNearestPrevDate(int month, int year, int loginNum) {
+        // transaction_date < 기준일 (과거 데이터 찾기) -> 가장 최근 순(DESC)으로 1개
+        String sql = "SELECT * FROM (" +
+                "  SELECT TO_CHAR(transaction_date, 'YYYY') as yr, TO_CHAR(transaction_date, 'MM') as mon " +
+                "  FROM SPENDING_DATA " +
+                "  WHERE user_id = ? AND transaction_date < TO_DATE(?, 'YY/MM/DD') " +
+                "  ORDER BY transaction_date DESC" +
+                ") WHERE ROWNUM = 1";
+
+        // 2026을 26으로 자르고 / 기호를 넣음
+        String yearStr = String.valueOf(year).substring(2); // "2026" -> "26"
+        String currentDate = yearStr + "/" + String.format("%02d", month) + "/01"; // "26/04/01"
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, loginNum);
+            pstmt.setString(2, currentDate); // 이제 "26/04/01"이 전달됨
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return Map.of("year", rs.getInt("yr"), "month", rs.getInt("mon"));
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return null;
+    }
+
+    // 현재 선택된 날짜보다 이후 중 데이터가 있는 가장 가까운 날짜 가져오기
+    public Map<String, Integer> getNearestNextDate(int month, int year, int loginNum) {
+        // transaction_date >= 기준월 마지막날+1 (미래 데이터 찾기) -> 가장 가까운 순(ASC)으로 1개
+        String sql = "SELECT * FROM (" +
+                "  SELECT TO_CHAR(transaction_date, 'YYYY') as yr, TO_CHAR(transaction_date, 'MM') as mon " +
+                "  FROM SPENDING_DATA " +
+                "  WHERE user_id = ? AND transaction_date >= LAST_DAY(TO_DATE(?, 'YY/MM/DD')) + 1 " +
+                "  ORDER BY transaction_date ASC" +
+                ") WHERE ROWNUM = 1";
+
+        // 위와 동일하게 포맷 맞추기
+        String yearStr = String.valueOf(year).substring(2);
+        String currentDate = yearStr + "/" + String.format("%02d", month) + "/01";
+
+        try (Connection conn = connect();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, loginNum);
+            pstmt.setString(2, currentDate);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return Map.of("year", rs.getInt("yr"), "month", rs.getInt("mon"));
+                }
+            }
+        } catch (Exception e) { e.printStackTrace(); }
+        return null;
     }
 
 
