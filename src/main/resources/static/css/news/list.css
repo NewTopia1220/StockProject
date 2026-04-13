@@ -497,8 +497,8 @@
     margin-bottom: 16px;
 }
 
-.communityMain.right-empty.newsMainLayout {
-    grid-template-columns: 260px minmax(0, 1fr);
+.newsMainLayout {
+    grid-template-columns: 260px minmax(0, 1fr) 320px;
 }
 
 .newsContentWide {
@@ -542,37 +542,40 @@
     display: inline-flex;
     align-items: center;
     gap: 5px;
-    padding: 2px 7px;
+    padding: 3px 10px;
     border-radius: 999px;
     background: #f8fafc;
     border: 1px solid #dbe3ef;
+    min-height: 24px;
 }
 
 .impactPillLabel {
-    font-size: 9px;
+    font-size: 12px;
     font-weight: 700;
-    color: #64748b;
+    color: inherit;
+    line-height: 1;
 }
 
 .impactPill strong {
-    font-size: 10px;
-    font-weight: 800;
-    color: #0f172a;
+    font-size: 12px;
+    font-weight: 700;
+    color: inherit;
+    line-height: 1;
 }
 
 .impactPill.tone-positive {
     background: #fef2f2;
-    border-color: #fecaca;
+    border-color: transparent;
 }
 
 .impactPill.tone-positive .impactPillLabel,
 .impactPill.tone-positive strong {
-    color: #b91c1c;
+    color: #dc2626;
 }
 
 .impactPill.tone-negative {
     background: #eff6ff;
-    border-color: #bfdbfe;
+    border-color: transparent;
 }
 
 .impactPill.tone-negative .impactPillLabel,
@@ -582,7 +585,7 @@
 
 .impactPill.tone-neutral {
     background: #f3f4f6;
-    border-color: #e5e7eb;
+    border-color: transparent;
 }
 
 .impactPill.tone-neutral .impactPillLabel,

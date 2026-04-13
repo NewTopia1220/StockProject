@@ -62,6 +62,7 @@ async function loadMarketData(type) {
             filterStockList(keyword);
         } else {
             renderStockList(body, stocks);
+            syncDefaultPanelSelection(stocks);
         }
 
     } catch (e) {
@@ -178,6 +179,34 @@ function renderStockList(container, stocks) {
             toggleWatch(btn.dataset.code, btn.dataset.name, btn);
         });
     });
+}
+
+function syncDefaultPanelSelection(stocks) {
+    if (!Array.isArray(stocks) || stocks.length === 0) {
+        return;
+    }
+
+    const selectedRow = selectedCode
+        ? document.querySelector(`.stockRow[data-code="${selectedCode}"]`)
+        : null;
+
+    if (selectedRow) {
+        selectedRow.classList.add('selected');
+        return;
+    }
+
+    const firstStock = stocks[0];
+    const code = String(firstStock?.stockCode || firstStock?.code || '').trim();
+    const name = String(firstStock?.stockName || firstStock?.name || code).trim();
+    const firstRow = code
+        ? document.querySelector(`.stockRow[data-code="${code}"]`)
+        : document.querySelector('.stockRow');
+
+    if (!code || !firstRow) {
+        return;
+    }
+
+    selectStock(code, name, firstRow);
 }
 
 // ── 검색 드롭다운 ────────────────────────────────────────

@@ -222,27 +222,6 @@ public class NewsDao {
             return result;
         }
 
-        String stockMapSql =
-            "SELECT link, stock_code FROM ( " +
-            "    SELECT link, stock_code, " +
-            "           ROW_NUMBER() OVER (PARTITION BY link ORDER BY NVL(match_score, 0) DESC, id DESC) AS rn " +
-            "    FROM NEWS_STOCK_MAP " +
-            "    WHERE link IN (" + placeholders + ") " +
-            ") WHERE rn = 1";
-
-        try (PreparedStatement ps = conn.prepareStatement(stockMapSql)) {
-            bindLinkParams(ps, uniqueLinks);
-            try (ResultSet rs = ps.executeQuery()) {
-                while (rs.next()) {
-                    String link = rs.getString("link");
-                    Map<String, Object> row = result.computeIfAbsent(link, key -> new HashMap<>());
-                    row.put("stockCode", rs.getString("stock_code"));
-                }
-            }
-        } catch (SQLException e) {
-            System.err.println("getNewsSignalMap(stock): " + e.getMessage());
-        }
-
         String impactSql =
             "SELECT link, impact_30m FROM ( " +
             "    SELECT link, impact_30m, " +
