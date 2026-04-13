@@ -716,7 +716,3 @@ a.t-item:hover span { color: var(--primary); }
 .scTrendBox .scStatDiv {
     height: 24px;
 }
-
-.highcharts-series-0 {
-    transform: translateY(30px) !important;
-}

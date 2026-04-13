@@ -596,16 +596,35 @@ async function initMainChart() {
     });
 
     mainChart = Highcharts.stockChart('mainChart', {
-        time: {
-            useUTC: false
-        },
+        time: { useUTC: false }, // 성공 케이스와 동일하게 설정
         chart: {
             backgroundColor: '#ffffff',
             spacing: [14, 14, 14, 14],
             animation: false,
             height: 360,
-            style: {
-                fontFamily: 'inherit'
+            style: { fontFamily: 'inherit' },
+            events: {
+                // 줌 유지 로직 추가
+                afterSetExtremes: function(e) {
+                    if (['navigator', 'rangeSelectorButton', 'zoom'].includes(e.trigger)) {
+                        localStorage.setItem('chart_zoom_min', e.min);
+                        localStorage.setItem('chart_zoom_max', e.max);
+                    }
+                }
+            }
+        },
+        rangeSelector: isIntraday ? { enabled: false } : {
+            // selected: 1, // <--- 줌 유지를 위해 이 줄을 삭제하거나 주석 처리하세요!
+            inputEnabled: false,
+            buttons: [
+                { type: 'month', count: 1, text: '1M' },
+                { type: 'month', count: 3, text: '3M' },
+                { type: 'all', text: 'All' }
+            ],
+            buttonTheme: {
+                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
+                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
+                states: { select: { fill: '#0E0F37', style: { color: '#ffffff' } } }
             }
         },
         credits: {
@@ -665,23 +684,40 @@ async function initMainChart() {
         xAxis: (() => {
             const _base = {
                 type: 'datetime',
-                ordinal: !isIntraday,
                 lineColor: '#e5e7eb',
                 tickColor: '#e5e7eb',
                 crosshair: { color: '#cbd5e1', dashStyle: 'ShortDot' }
             };
+            const savedMin = localStorage.getItem('chart_zoom_min');
+            const savedMax = localStorage.getItem('chart_zoom_max');
+            const zoomMin = savedMin ? parseFloat(savedMin) : undefined;
+            const zoomMax = savedMax ? parseFloat(savedMax) : undefined;
+
             if (currentTab === 'time' || currentTab === 'minute') {
-                const _n     = new Date();
-                const _at9   = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0, 0, 0).getTime();
-                const _at1530= new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30, 0, 0).getTime();
-                const _nowTs = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes(), 0, 0).getTime();
-                const _xMax  = _nowTs < _at1530 ? _nowTs : _at1530;
-                return { ..._base, ordinal: false,
-                    min: _at9, max: _xMax,
+                // 성공 케이스의 시간 계산 방식 적용 (Date.UTC 및 한국시간 보정)
+                const _n = new Date();
+                // UTC 기준으로 생성 후 한국 시간(+9) 차이만큼 보정
+                const _at9 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 9, 0) - 9 * 3600000;
+                const _at1530 = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30) - 9 * 3600000;
+                const _nowTs = Date.UTC(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes()) - 9 * 3600000;
+                const _xMax = _nowTs < _at1530 ? _nowTs : _at1530;
+
+                return {
+                    ..._base,
+                    ordinal: false,
+                    min: zoomMin || _at9, // 저장된 줌이 있으면 우선순위
+                    max: zoomMax || _xMax,
                     tickInterval: currentTab === 'time' ? 3600000 : undefined,
-                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
+                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' }
+                };
             }
-            return { ..._base, dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
+            return {
+                ..._base,
+                ordinal: true,
+                min: zoomMin,
+                max: zoomMax,
+                dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' }
+            };
         })(),
         yAxis: [{
             top: 0,
