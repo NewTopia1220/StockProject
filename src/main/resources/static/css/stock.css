@@ -21,43 +21,8 @@
     --shadow:         0 4px 16px rgba(14,15,55,0.07);
 }
 
-body.dark {
-    --primary:      #6366f1;
-    --primary-navy: #6366f1;
-    --bg-page:      #0f1117;
-    --bg-light:     #0f1117;
-    --bg-card:      #1a1d27;
-    --border:       #2d3142;
-    --border-color: #2d3142;
-    --text-main:    #f1f5f9;
-    --text-sub:     #94a3b8;
-    --text-muted:   #64748b;
-    --shadow:       0 4px 16px rgba(0,0,0,0.4);
-}
-
 * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Pretendard', sans-serif; }
 body { background: var(--bg-page); color: var(--text-main); transition: background 0.3s, color 0.3s; }
-
-/* ── 다크모드 버튼 ── */
-.darkModeBtn {
-    position: fixed;
-    bottom: 28px;
-    right: 28px;
-    z-index: 999;
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    border: 2px solid var(--border);
-    background: var(--bg-card);
-    font-size: 20px;
-    cursor: pointer;
-    box-shadow: var(--shadow);
-    transition: transform 0.2s, background 0.3s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-.darkModeBtn:hover { transform: scale(1.12); }
 
 /* ── 페이지 래퍼 ── */
 .stockMainPage {
@@ -434,7 +399,6 @@ a.t-item:hover span { color: var(--primary); }
     border-radius: 999px;
     white-space: nowrap;
 }
-body.dark .scSectorName { background: rgba(99,102,241,0.15); }
 .scSectorRow { display: flex; align-items: center; gap: 6px; }
 .scIcon { font-size: 20px; line-height: 1; }
 .scBadge { font-size: 11px; font-weight: 700; padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
@@ -483,22 +447,6 @@ body.dark .scSectorName { background: rgba(99,102,241,0.15); }
 /* ── 공통 색상 ── */
 .up   { color: var(--up-red);   font-weight: 600; }
 .down { color: var(--down-blue); font-weight: 600; }
-
-/* ══════════════════════════════════════
-   다크 모드 오버라이드
-══════════════════════════════════════ */
-body.dark.withMainHeader  { background: var(--bg-page) !important; }
-body.dark .scIcon         { filter: brightness(0.9); }
-body.dark .sc-pos         { background: rgba(16,185,129,0.15); color: #34d399; }
-body.dark .sc-neg         { background: rgba(239,68,68,0.15);  color: #f87171; }
-body.dark .sc-neu         { background: rgba(100,116,139,0.15); color: #94a3b8; }
-body.dark .live-badge     { background: rgba(16,185,129,0.15); color: #34d399; }
-body.dark .badge-bull     { background: rgba(16,185,129,0.15); color: #34d399; }
-body.dark .badge-bear     { background: rgba(239,68,68,0.15);  color: #f87171; }
-body.dark .badge-warn     { background: rgba(217,119,6,0.15);  color: #fbbf24; }
-body.dark .statusBadge    { background: rgba(100,116,139,0.15); color: #94a3b8; }
-body.dark .sectorCard:hover { box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
-body.dark .sectorCard::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
 
 /* ══════════════════════════════════════
    반응형
@@ -768,11 +716,3 @@ body.dark .sectorCard::before { background: linear-gradient(90deg, #6366f1, #818
 .scTrendBox .scStatDiv {
     height: 24px;
 }
-
-body.dark .trend-up { background: rgba(239, 68, 68, 0.15); color: #f87171; }
-body.dark .trend-down { background: rgba(37, 99, 235, 0.18); color: #93c5fd; }
-body.dark .trend-neutral { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
-body.dark .scTrendToggle { background: #141720; border-color: #2d3142; color: #cbd5e1; }
-body.dark .scTrendPreviewScore { background: rgba(99, 102, 241, 0.16); color: #c7d2fe; }
-body.dark .scTrendConfidence,
-body.dark .scTrendNoise { color: #cbd5e1; }

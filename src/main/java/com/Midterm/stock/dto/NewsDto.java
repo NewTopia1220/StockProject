@@ -459,7 +459,6 @@ public class NewsDto {
             this.companyName = category.substring(0, openIdx).trim();
             this.sectorName = category.substring(openIdx + 1, closeIdx).trim();
         } else {
-            this.companyName = category.trim();
             this.sectorName = category.trim();
         }
     }

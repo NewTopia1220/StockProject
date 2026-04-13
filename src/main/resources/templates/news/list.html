@@ -125,7 +125,7 @@
                         <div class="newsTopRow">
                             <div class="newsMetaTags">
                                 <span class="boardCategory" th:text="${dto.sectorName}">섹터</span>
-                                <span class="companyTag" th:text="${dto.companyName}">종목</span>
+                                <span class="companyTag" th:if="${dto.companyName != null and dto.companyName != ''}" th:text="${dto.companyName}">종목</span>
                                 <span class="sentimentTag"
                                       th:class="${dto.sentiment == '호재' ? 'sentimentTag sent-positive' : (dto.sentiment == '악재' ? 'sentimentTag sent-negative' : 'sentimentTag sent-neutral')}"
                                       th:text="${dto.sentiment}">중립</span>
