@@ -142,10 +142,10 @@
                                 </div>
                                 <div class="impactHoverCard" th:classappend="${dto.impactToneClass}">
                                     <div class="impactHoverHead">
-                                        <strong th:text="${dto.impactHoverTitle}">기사 영향</strong>
+                                        <strong th:text="${dto.impactHoverTitle}">주가 영향 추정치</strong>
                                         <span th:text="${dto.impactSourceText}">모델</span>
                                     </div>
-                                    <p class="impactHoverBody" th:text="${dto.impactHoverBody}">기사 영향 설명</p>
+                                    <p class="impactHoverBody" th:text="${dto.impactHoverBody}">주가 영향 추정 설명</p>
                                     <div class="impactHoverMeta">
                                         <span>익일 상승 확률</span>
                                         <strong th:text="${dto.riseProbabilityDisplay}">0%</strong>
@@ -229,24 +229,26 @@
             </div>
 
             <div class="pagination" th:if="${totalPages != null and totalPages > 1}">
-                <a class="pageBtn"
+                <a class="pageBtn pageBtnArrow"
                    th:if="${currentPageNum > 1}"
-                   th:href="@{/news(page=${currentPageNum - 1}, sector=${sector}, keyword=${keyword})}">
-                    &lt;
+                   th:href="@{/news(page=${currentPageNum - 1}, sector=${sector}, keyword=${keyword})}"
+                   aria-label="이전 페이지">
+                    <span aria-hidden="true">‹</span>
                 </a>
 
                 <a class="pageBtn"
-                   th:each="i : ${#numbers.sequence(1, totalPages)}"
+                   th:each="i : ${#numbers.sequence(startPage, endPage)}"
                    th:href="@{/news(page=${i}, sector=${sector}, keyword=${keyword})}"
                    th:text="${i}"
                    th:classappend="${i == currentPageNum} ? ' active' : ''">
                     1
                 </a>
 
-                <a class="pageBtn"
+                <a class="pageBtn pageBtnArrow"
                    th:if="${currentPageNum < totalPages}"
-                   th:href="@{/news(page=${currentPageNum + 1}, sector=${sector}, keyword=${keyword})}">
-                    &gt;
+                   th:href="@{/news(page=${currentPageNum + 1}, sector=${sector}, keyword=${keyword})}"
+                   aria-label="다음 페이지">
+                    <span aria-hidden="true">›</span>
                 </a>
             </div>
         </section>

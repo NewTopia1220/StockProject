@@ -1152,6 +1152,7 @@ async function updateTopStocks() {
 
 // AI 브리핑 로테이터 데이터를 준비하고 자동 순환을 시작
 function initAiRotator() {
+    bindAiRotatorControls();
     rebuildAiRotatorItems(true);
     startAiRotator();
 }
@@ -1162,6 +1163,54 @@ function stopAiRotator() {
         clearInterval(aiRotatorTimer);
         aiRotatorTimer = null;
     }
+}
+
+// AI 브리핑 카드의 좌우 이동 버튼을 연결
+function bindAiRotatorControls() {
+    const panel = document.getElementById('aiRotatorPanel');
+    const prevButton = document.getElementById('aiRotatorPrev');
+    const nextButton = document.getElementById('aiRotatorNext');
+    if (!panel || !prevButton || !nextButton || panel.dataset.rotatorBound === 'true') {
+        return;
+    }
+
+    panel.dataset.rotatorBound = 'true';
+    prevButton.addEventListener('click', () => moveAiRotator(-1));
+    nextButton.addEventListener('click', () => moveAiRotator(1));
+}
+
+// 좌우 화살표 클릭으로 원하는 브리핑 카드로 즉시 이동
+function moveAiRotator(step) {
+    if (aiRotatorItems.length <= 1) {
+        updateAiRotatorControls();
+        return;
+    }
+
+    aiRotatorIndex = (aiRotatorIndex + step + aiRotatorItems.length) % aiRotatorItems.length;
+    renderAiRotatorItem(aiRotatorItems[aiRotatorIndex]);
+    startAiRotator();
+}
+
+// 현재 브리핑 순번과 버튼 활성 상태를 갱신
+function updateAiRotatorControls() {
+    const prevButton = document.getElementById('aiRotatorPrev');
+    const nextButton = document.getElementById('aiRotatorNext');
+    const pageLabel = document.getElementById('aiRotatorPage');
+    const total = aiRotatorItems.length;
+    const current = total > 0 ? aiRotatorIndex + 1 : 0;
+    const disabled = total <= 1;
+
+    if (pageLabel) {
+        pageLabel.textContent = total > 0 ? `${current} / ${total}` : '- / -';
+    }
+
+    [prevButton, nextButton].forEach((button) => {
+        if (!button) {
+            return;
+        }
+        button.disabled = disabled;
+        button.setAttribute('aria-disabled', String(disabled));
+    });
 }
 
 // 종목을 새로 검색했을 때는 기존 섹터 로테이션을 잠깐 멈추고, 해당 종목 확률 카드를 먼저 보여준다.
@@ -1486,6 +1535,8 @@ function renderAiRotatorItem(item) {
     if (!panel) {
         return;
     }
+
+    updateAiRotatorControls();
 
     if (!item) {
         setText('aiRotatorTitle', 'AI 시장 흐름 브리핑');

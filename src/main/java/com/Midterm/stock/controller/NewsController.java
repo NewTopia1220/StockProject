@@ -48,15 +48,19 @@ public class NewsController {
         Integer userNum = (Integer) session.getAttribute("loginNum");
         int uid = userNum != null ? userNum : 0;
 
+        int totalCount = newsDao.getNewsCount(sector, keyword);
         int pageSize = 7;
-        int start = (page - 1) * pageSize + 1;
-        int end = page * pageSize;
+        int pageBlockSize = 7;
+        int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
+        int currentPage = Math.max(1, Math.min(page, totalPages));
+        int start = (currentPage - 1) * pageSize + 1;
+        int end = currentPage * pageSize;
+        int startPage = ((currentPage - 1) / pageBlockSize) * pageBlockSize + 1;
+        int endPage = Math.min(startPage + pageBlockSize - 1, totalPages);
 
         List<NewsDto> newsList = newsDao.getNewsList(sector, keyword, start, end, uid);
         enrichPredictionSignals(newsList);
 
-        int totalCount = newsDao.getNewsCount(sector, keyword);
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
         LinkedHashMap<String, List<String>> sectorMap = newsDao.getSidebarSectorMap();
 
         Map<String, Object> sidebarAnalysis = newsDao.getSidebarAnalysis(sector, keyword);
@@ -71,8 +75,10 @@ public class NewsController {
         model.addAttribute("sectorMap", sectorMap);
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("totalPages", totalPages);
-        model.addAttribute("currentPage", page);
-        model.addAttribute("currentPageNum", page);
+        model.addAttribute("currentPage", currentPage);
+        model.addAttribute("currentPageNum", currentPage);
+        model.addAttribute("startPage", startPage);
+        model.addAttribute("endPage", endPage);
         model.addAttribute("sector", sector);
         model.addAttribute("keyword", keyword);
 
@@ -122,7 +128,7 @@ public class NewsController {
             Object impact30m = signal.get("impact30m");
             if (impact30m instanceof Number number) {
                 dto.setStockImpactPercent(number.doubleValue());
-                dto.setStockImpactSource("기사 영향 DB");
+                dto.setStockImpactSource("모델 추정값");
             }
         }
     }
@@ -146,7 +152,7 @@ public class NewsController {
             }
 
             dto.setStockImpactPercent(modelImpact);
-            dto.setStockImpactSource("기사 영향 모델");
+            dto.setStockImpactSource("기사 영향 추정 모델");
             newsDao.saveNewsImpact(dto.getLink(), stockCode, modelImpact);
         }
     }

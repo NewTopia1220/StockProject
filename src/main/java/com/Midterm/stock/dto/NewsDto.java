@@ -239,15 +239,12 @@ public class NewsDto {
     }
 
     public String getImpactHoverTitle() {
-        if (hasStockImpactPrediction()) {
-            return "기사 직후 주가 영향";
-        }
         return "주가 영향 추정치";
     }
 
     public String getImpactSourceText() {
         if (hasStockImpactPrediction()) {
-            return isBlank(stockImpactSource) ? "기사 영향 모델" : stockImpactSource;
+            return isBlank(stockImpactSource) ? "기사 영향 추정 모델" : stockImpactSource;
         }
         return "휴리스틱";
     }
@@ -256,14 +253,14 @@ public class NewsDto {
         if (hasStockImpactPrediction()) {
             double value = normalizeImpactPercent(stockImpactPercent);
             if (value > 0.0) {
-                return "기사 공개 직후 단기적으로 상승 압력이 나타날 가능성이 큽니다.";
+                return "기사 공개 직후 단기적으로 상승 압력으로 이어질 가능성을 추정합니다.";
             }
             if (value < 0.0) {
-                return "기사 공개 직후 단기적으로 하락 압력이 나타날 가능성이 큽니다.";
+                return "기사 공개 직후 단기적으로 하락 압력으로 이어질 가능성을 추정합니다.";
             }
-            return "기사 공개 직후 가격 반응은 중립에 가깝습니다.";
+            return "기사 공개 직후 가격 반응이 크지 않을 가능성을 추정합니다.";
         }
-        return "기사 영향 모델값이 없어 감성·신뢰도·기사유형 기반의 추정값을 표시합니다.";
+        return "기사 영향 추정 모델값이 없어 감성·신뢰도·기사유형 기반의 추정값을 표시합니다.";
     }
 
     public String getRiseProbabilityDisplay() {

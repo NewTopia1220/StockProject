@@ -322,6 +322,18 @@
 .pageBtn.active {
     color: #d74b5a;
 }
+
+.pageBtnArrow {
+    padding: 0 10px;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.pageBtnArrow span {
+    display: inline-block;
+    transform: translateY(-1px);
+}
 .communitySidebar {
     top: 120px;
     align-self: start;

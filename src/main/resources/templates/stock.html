@@ -161,7 +161,11 @@
                     <div class="aiPredictPanel aiRotatorPanel" id="aiRotatorPanel">
                         <div class="aiPredictHeader">
                             <span class="aiPredictTitle" id="aiRotatorTitle">AI 시장 흐름 브리핑</span>
-                            <span class="aiPredictBadge" id="aiRotatorBadge">NEW</span>
+                            <div class="aiRotatorNavGroup" aria-label="브리핑 이동">
+                                <button type="button" class="aiRotatorNav" id="aiRotatorPrev" aria-label="이전 브리핑" title="이전 브리핑">‹</button>
+                                <span class="aiRotatorPage" id="aiRotatorPage">1 / 1</span>
+                                <button type="button" class="aiRotatorNav" id="aiRotatorNext" aria-label="다음 브리핑" title="다음 브리핑">›</button>
+                            </div>
                         </div>
 
                         <div class="aiPredictSubject" id="aiRotatorSubject"

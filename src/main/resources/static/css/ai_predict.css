@@ -28,7 +28,7 @@
 .aiPredictHeader {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: 12px;
     margin-bottom: 12px;
 }
 
@@ -36,6 +36,49 @@
     font-size: 13px;
     font-weight: 800;
     color: var(--text-primary, #222);
+}
+
+.aiRotatorNavGroup {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.aiRotatorNav {
+    width: 28px;
+    height: 28px;
+    border: 1px solid var(--border-color, #e5e7eb);
+    border-radius: 999px;
+    background: var(--bg-card, #fff);
+    color: var(--text-primary, #222);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease, opacity 0.2s ease;
+}
+
+.aiRotatorNav:hover:not(:disabled) {
+    border-color: #1D4F91;
+    color: #1D4F91;
+}
+
+.aiRotatorNav:disabled {
+    opacity: 0.45;
+    cursor: default;
+}
+
+.aiRotatorPage {
+    min-width: 42px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-secondary, #888);
 }
 
 .aiPredictSubject {
@@ -229,6 +272,8 @@ body.dark .aiPredictBadge.badge-down { background: #2e1010; color: #F09595; }
 body.dark .aiPredictBadge.badge-info { background: rgba(59,130,246,0.18); color: #93c5fd; }
 body.dark .aiPredictBadge.badge-neutral { background: #2a2a2a; color: #aaa; }
 body.dark .aiRotatorPanel            { background: var(--bg-card, #141720); border-color: var(--border-color, #2d3142); box-shadow: var(--shadow, 0 4px 16px rgba(0,0,0,0.4)); }
+body.dark .aiRotatorNav              { background: var(--bg-card, #141720); border-color: var(--border-color, #2d3142); color: var(--text-primary, #f1f5f9); }
+body.dark .aiRotatorNav:hover:not(:disabled) { border-color: #93c5fd; color: #93c5fd; }
 body.dark .aiPredictArrow.arrow-up   { background: #1a2e10; color: #9FE1CB; }
 body.dark .aiPredictArrow.arrow-down { background: #2e1010; color: #F09595; }
 body.dark .aiPredictArrow.arrow-neutral { background: #2a2a2a; color: #aaa; }
@@ -240,3 +285,18 @@ body.dark .aiPredictDivider          { background: rgba(255,255,255,0.08); }
 body.dark .factorVal.positive        { color: #9FE1CB; }
 body.dark .factorVal.negative        { color: #F09595; }
 body.dark .factorVal.neutral         { color: #aaa; }
+
+@media (max-width: 480px) {
+    .aiPredictHeader {
+        align-items: flex-start;
+    }
+
+    .aiRotatorNavGroup {
+        gap: 4px;
+    }
+
+    .aiRotatorPage {
+        min-width: 36px;
+        font-size: 10px;
+    }
+}
