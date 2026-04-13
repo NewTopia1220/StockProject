@@ -8,9 +8,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -21,12 +19,12 @@ public class StockPriceService {
     private static final String KOSPI_CODE = "0001";
     private static final String KOSDAQ_CODE = "1001";
 
-    private static final String CURRENT_PRICE_TR_ID = "FHKST01010100";
-    private static final String DAILY_PRICE_TR_ID = "FHKST01010400";
-    private static final String STOCK_INTRADAY_TR_ID = "FHKST03010200";
-    private static final String INDEX_PRICE_TR_ID = "FHPUP02100000";
-    private static final String INDEX_DAILY_TR_ID = "FHPUP02120000";
-    private static final String INDEX_INTRADAY_TR_ID = "FHKUP03500200";
+    private static final String CURRENT_PRICE_TR_ID  = "FHKST01010100";
+    private static final String DAILY_PRICE_TR_ID     = "FHKST01010400";
+    private static final String STOCK_INTRADAY_TR_ID  = "FHKST03010200";
+    private static final String INDEX_PRICE_TR_ID     = "FHPUP02100000";
+    private static final String INDEX_DAILY_TR_ID     = "FHPUP02120000";
+    private static final String INDEX_INTRADAY_TR_ID  = "FHKUP03500200";
     private static final String INDEX_HOURLY_INTERVAL = "3600";
     private static final String INDEX_MINUTE_INTERVAL = "60";
 
@@ -35,13 +33,14 @@ public class StockPriceService {
 
     private final KisApiService kisApi;
 
+    // ─────────────────────────────────────────────────────────────
+    //  현재가
+    // ─────────────────────────────────────────────────────────────
     public StockResponseDto getCurrentPrice(String stockCode) {
         kisApi.issueToken();
-
         StockResponseDto dto = emptyResponseDto();
         dto.setStockCode(stockCode);
         dto.setStockName(stockCode);
-
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/inquire-price")
@@ -50,14 +49,10 @@ public class StockPriceService {
                     .build(), CURRENT_PRICE_TR_ID);
 
             JsonNode output = response == null ? null : response.get("output");
-            if (output == null || output.isNull()) {
-                return dto;
-            }
+            if (output == null || output.isNull()) return dto;
 
             String stockName = text(output, "hts_kor_isnm");
-            if (!stockName.isBlank()) {
-                dto.setStockName(stockName);
-            }
+            if (!stockName.isBlank()) dto.setStockName(stockName);
 
             dto.setCurrentPrice(defaultZero(text(output, "stck_prpr")));
             dto.setOpenPrice(defaultZero(text(output, "stck_oprc")));
@@ -66,7 +61,7 @@ public class StockPriceService {
             dto.setVolume(defaultZero(text(output, "acml_vol")));
             dto.setChangeRate(defaultZero(text(output, "prdy_ctrt")));
 
-            String sign = text(output, "prdy_vrss_sign");
+            String sign    = text(output, "prdy_vrss_sign");
             String rawDiff = defaultZero(text(output, "prdy_vrss"));
             if ("4".equals(sign) || "5".equals(sign)) {
                 dto.setPriceChange("-" + rawDiff.replace("-", ""));
@@ -76,13 +71,14 @@ public class StockPriceService {
         } catch (Exception e) {
             System.out.println("Current price lookup failed [" + stockCode + "]: " + e.getMessage());
         }
-
         return dto;
     }
 
+    // ─────────────────────────────────────────────────────────────
+    //  일봉 차트
+    // ─────────────────────────────────────────────────────────────
     public StockChartDto getDailyPrice(String stockCode) {
         kisApi.issueToken();
-
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/inquire-daily-price")
@@ -93,10 +89,7 @@ public class StockPriceService {
                     .build(), DAILY_PRICE_TR_ID);
 
             JsonNode output = response == null ? null : response.get("output");
-            if (output == null || output.isNull()) {
-                return emptyChart();
-            }
-
+            if (output == null || output.isNull()) return emptyChart();
             return parseChartFromArray(output, "stck_bsop_date", "stck_clpr", "acml_vol");
         } catch (Exception e) {
             System.out.println("Daily price lookup failed [" + stockCode + "]: " + e.getMessage());
@@ -104,50 +97,152 @@ public class StockPriceService {
         }
     }
 
+    // ─────────────────────────────────────────────────────────────
+    //  시간별 차트 (1시간 봉 집계)
+    //  - 현재 시간부터 09:00까지 루프로 수집 → 1시간 버킷 집계
+    // ─────────────────────────────────────────────────────────────
     public StockChartDto getTimePrice(String stockCode) {
-        return getStockIntradayPrice(stockCode, "Y");
+        kisApi.issueToken();
+        List<JsonNode> allItems = new ArrayList<>();
+
+        String realNowTime = java.time.LocalTime.now().format(TIME_FORMAT);
+        String hourParam   = realNowTime.compareTo("153000") > 0 ? "153000" : realNowTime;
+
+        try {
+            int callCount  = 0;
+            int retryCount = 0;
+
+            while (callCount < 10 && retryCount < 5) {
+                final String hp = hourParam;
+                JsonNode response = kisApi.get(uriBuilder -> uriBuilder
+                        .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
+                        .queryParam("FID_ETC_CLS_CODE", "")
+                        .queryParam("FID_COND_MRKT_DIV_CODE", DOMESTIC_MARKET_CODE)
+                        .queryParam("FID_INPUT_ISCD", stockCode)
+                        .queryParam("FID_INPUT_HOUR_1", hp)
+                        .queryParam("FID_PW_DATA_INCU_YN", "Y")
+                        .build(), STOCK_INTRADAY_TR_ID);
+
+                if (response != null && "1".equals(response.path("rt_cd").asText())) {
+                    Thread.sleep(100);
+                    retryCount++;
+                    continue;
+                }
+
+                if (response == null || response.get("output2") == null) break;
+                JsonNode output2 = response.get("output2");
+                if (!output2.isArray() || output2.size() == 0) break;
+
+                List<JsonNode> batch = new ArrayList<>();
+                for (JsonNode item : output2) {
+                    String itemTime = item.path("stck_cntg_hour").asText();
+                    if (itemTime.compareTo(realNowTime) <= 0) {
+                        batch.add(item);
+                    }
+                }
+
+                if (batch.isEmpty()) {
+                    String oldest = output2.get(output2.size() - 1).path("stck_cntg_hour").asText("090000");
+                    if (oldest.compareTo("090000") <= 0) break;
+                    hourParam = oldest;
+                    callCount++;
+                    continue;
+                }
+
+                allItems.addAll(batch);
+
+                String oldestTime = output2.get(output2.size() - 1).path("stck_cntg_hour").asText("090000");
+                if (oldestTime.compareTo("090000") <= 0) break;
+                hourParam = oldestTime;
+                callCount++;
+                Thread.sleep(100);
+            }
+        } catch (Exception e) {
+            System.out.println("시간별 차트 실패 [" + stockCode + "]: " + e.getMessage());
+        }
+
+        if (allItems.isEmpty()) return emptyChart();
+        Collections.reverse(allItems);          // 오래된 것 → 최신 순
+        return parseHourlyChart(allItems);       // 1시간 버킷 집계
     }
 
+    // ─────────────────────────────────────────────────────────────
+    //  분별 차트 (1분 봉 집계)
+    //  - 시간별과 동일한 루프 방식, 최대 5번 호출(약 150분)
+    // ─────────────────────────────────────────────────────────────
     public StockChartDto getMinutePrice(String stockCode) {
-        return getStockIntradayPrice(stockCode, "N");
+        kisApi.issueToken();
+        List<JsonNode> allItems = new ArrayList<>();
+
+        String realNowTime = java.time.LocalTime.now().format(TIME_FORMAT);
+        String hourParam   = realNowTime.compareTo("153000") > 0 ? "153000" : realNowTime;
+
+        try {
+            int callCount  = 0;
+            int retryCount = 0;
+
+            while (callCount < 5 && retryCount < 3) {
+                final String hp = hourParam;
+                JsonNode response = kisApi.get(uriBuilder -> uriBuilder
+                        .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
+                        .queryParam("FID_ETC_CLS_CODE", "")
+                        .queryParam("FID_COND_MRKT_DIV_CODE", DOMESTIC_MARKET_CODE)
+                        .queryParam("FID_INPUT_ISCD", stockCode)
+                        .queryParam("FID_INPUT_HOUR_1", hp)
+                        .queryParam("FID_PW_DATA_INCU_YN", "Y")
+                        .build(), STOCK_INTRADAY_TR_ID);
+
+                if (response != null && "1".equals(response.path("rt_cd").asText())) {
+                    Thread.sleep(100);
+                    retryCount++;
+                    continue;
+                }
+
+                if (response == null || response.get("output2") == null) break;
+                JsonNode output2 = response.get("output2");
+                if (!output2.isArray() || output2.size() == 0) break;
+
+                for (JsonNode item : output2) {
+                    String itemTime = item.path("stck_cntg_hour").asText();
+                    if (itemTime.compareTo(realNowTime) <= 0) {
+                        allItems.add(item);
+                    }
+                }
+
+                String oldestTime = output2.get(output2.size() - 1).path("stck_cntg_hour").asText("090000");
+                if (oldestTime.compareTo("090000") <= 0) break;
+                hourParam = oldestTime;
+                callCount++;
+                Thread.sleep(100);
+            }
+        } catch (Exception e) {
+            System.out.println("분별 차트 실패 [" + stockCode + "]: " + e.getMessage());
+        }
+
+        if (allItems.isEmpty()) return emptyChart();
+        Collections.reverse(allItems);
+        return parseMinuteChart(allItems);
     }
 
-    public StockResponseDto getKospiIndex() {
-        return getIndexQuote(KOSPI_CODE, "KOSPI");
-    }
+    // ─────────────────────────────────────────────────────────────
+    //  KOSPI / KOSDAQ
+    // ─────────────────────────────────────────────────────────────
+    public StockResponseDto getKospiIndex()        { return getIndexQuote(KOSPI_CODE, "KOSPI"); }
+    public StockChartDto    getKospiChart()         { return getIndexDailyChart(KOSPI_CODE); }
+    public StockChartDto    getKospiTimeChart()     { return getIndexIntradayChart(KOSPI_CODE,  INDEX_HOURLY_INTERVAL); }
+    public StockChartDto    getKospiMinuteChart()   { return getIndexIntradayChart(KOSPI_CODE,  INDEX_MINUTE_INTERVAL); }
 
-    public StockChartDto getKospiChart() {
-        return getIndexDailyChart(KOSPI_CODE);
-    }
+    public StockResponseDto getKosdaqIndex()       { return getIndexQuote(KOSDAQ_CODE, "KOSDAQ"); }
+    public StockChartDto    getKosdaqChart()        { return getIndexDailyChart(KOSDAQ_CODE); }
+    public StockChartDto    getKosdaqTimeChart()    { return getIndexIntradayChart(KOSDAQ_CODE, INDEX_HOURLY_INTERVAL); }
+    public StockChartDto    getKosdaqMinuteChart()  { return getIndexIntradayChart(KOSDAQ_CODE, INDEX_MINUTE_INTERVAL); }
 
-    public StockChartDto getKospiTimeChart() {
-        return getIndexIntradayChart(KOSPI_CODE, INDEX_HOURLY_INTERVAL);
-    }
-
-    public StockChartDto getKospiMinuteChart() {
-        return getIndexIntradayChart(KOSPI_CODE, INDEX_MINUTE_INTERVAL);
-    }
-
-    public StockResponseDto getKosdaqIndex() {
-        return getIndexQuote(KOSDAQ_CODE, "KOSDAQ");
-    }
-
-    public StockChartDto getKosdaqChart() {
-        return getIndexDailyChart(KOSDAQ_CODE);
-    }
-
-    public StockChartDto getKosdaqTimeChart() {
-        return getIndexIntradayChart(KOSDAQ_CODE, INDEX_HOURLY_INTERVAL);
-    }
-
-    public StockChartDto getKosdaqMinuteChart() {
-        return getIndexIntradayChart(KOSDAQ_CODE, INDEX_MINUTE_INTERVAL);
-    }
-
+    // ─────────────────────────────────────────────────────────────
+    //  등락률 / 거래대금 순위
+    // ─────────────────────────────────────────────────────────────
     public List<StockResponseDto> getTopFluctuation() {
         kisApi.issueToken();
         List<StockResponseDto> result = new ArrayList<>();
-
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/ranking/fluctuation")
@@ -168,32 +263,17 @@ public class StockPriceService {
                     .build(), "FHPST01700000");
 
             JsonNode output = response == null ? null : response.get("output");
-            if (output == null || output.isNull()) {
-                return result;
-            }
-
-            for (JsonNode item : output) {
-                StockResponseDto dto = emptyResponseDto();
-                dto.setStockCode(defaultZero(text(item, "mksc_shrn_iscd", "stck_shrn_iscd", "iscd")));
-                dto.setStockName(text(item, "hts_kor_isnm"));
-                dto.setCurrentPrice(defaultZero(text(item, "stck_prpr")));
-                dto.setChangeRate(defaultZero(text(item, "prdy_ctrt")));
-                dto.setPriceChange(defaultZero(text(item, "prdy_vrss")));
-                dto.setVolume(defaultZero(text(item, "acml_vol")));
-                dto.setTradeAmount(defaultZero(text(item, "acml_tr_pbmn")));
-                result.add(dto);
-            }
+            if (output == null || output.isNull()) return result;
+            for (JsonNode item : output) result.add(toStockDto(item));
         } catch (Exception e) {
             System.out.println("Top fluctuation lookup failed: " + e.getMessage());
         }
-
         return result;
     }
 
     public List<StockResponseDto> getTopByTradeAmount() {
         kisApi.issueToken();
         List<StockResponseDto> result = new ArrayList<>();
-
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/volume-rank")
@@ -211,60 +291,21 @@ public class StockPriceService {
                     .build(), "FHPST01710000");
 
             JsonNode output = response == null ? null : response.get("output");
-            if (output == null || output.isNull()) {
-                return result;
-            }
-
-            for (JsonNode item : output) {
-                StockResponseDto dto = emptyResponseDto();
-                dto.setStockCode(defaultZero(text(item, "mksc_shrn_iscd", "stck_shrn_iscd", "iscd")));
-                dto.setStockName(text(item, "hts_kor_isnm"));
-                dto.setCurrentPrice(defaultZero(text(item, "stck_prpr")));
-                dto.setChangeRate(defaultZero(text(item, "prdy_ctrt")));
-                dto.setPriceChange(defaultZero(text(item, "prdy_vrss")));
-                dto.setVolume(defaultZero(text(item, "acml_vol")));
-                dto.setTradeAmount(defaultZero(text(item, "acml_tr_pbmn")));
-                result.add(dto);
-            }
+            if (output == null || output.isNull()) return result;
+            for (JsonNode item : output) result.add(toStockDto(item));
         } catch (Exception e) {
             System.out.println("Top trade amount lookup failed: " + e.getMessage());
         }
-
         return result;
     }
 
-    private StockChartDto getStockIntradayPrice(String stockCode, String includePastData) {
-        kisApi.issueToken();
-
-        try {
-            String now = java.time.LocalTime.now().format(TIME_FORMAT);
-            JsonNode response = kisApi.get(uriBuilder -> uriBuilder
-                    .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
-                    .queryParam("FID_ETC_CLS_CODE", "")
-                    .queryParam("FID_COND_MRKT_DIV_CODE", DOMESTIC_MARKET_CODE)
-                    .queryParam("FID_INPUT_ISCD", stockCode)
-                    .queryParam("FID_INPUT_HOUR_1", now)
-                    .queryParam("FID_PW_DATA_INCU_YN", includePastData)
-                    .build(), STOCK_INTRADAY_TR_ID);
-
-            JsonNode output = response == null ? null : response.get("output2");
-            if (output == null || output.isNull()) {
-                return emptyChart();
-            }
-
-            return parseStockTimeChart(output);
-        } catch (Exception e) {
-            System.out.println("Stock intraday chart lookup failed [" + stockCode + "]: " + e.getMessage());
-            return emptyChart();
-        }
-    }
-
+    // ─────────────────────────────────────────────────────────────
+    //  내부 헬퍼 - 인덱스
+    // ─────────────────────────────────────────────────────────────
     private StockResponseDto getIndexQuote(String indexCode, String indexName) {
         kisApi.issueToken();
-
         StockResponseDto dto = emptyResponseDto();
         dto.setStockName(indexName);
-
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/inquire-index-price")
@@ -273,9 +314,7 @@ public class StockPriceService {
                     .build(), INDEX_PRICE_TR_ID);
 
             JsonNode output = response == null ? null : response.get("output");
-            if (output == null || output.isNull()) {
-                return dto;
-            }
+            if (output == null || output.isNull()) return dto;
 
             dto.setCurrentPrice(defaultZero(text(output, "bstp_nmix_prpr")));
             dto.setPriceChange(defaultZero(text(output, "bstp_nmix_prdy_vrss")));
@@ -287,17 +326,14 @@ public class StockPriceService {
         } catch (Exception e) {
             System.out.println("Index quote lookup failed [" + indexCode + "]: " + e.getMessage());
         }
-
         return dto;
     }
 
     private StockChartDto getIndexDailyChart(String indexCode) {
         kisApi.issueToken();
-
         try {
-            String toDate = LocalDate.now().format(DATE_FORMAT);
+            String toDate   = LocalDate.now().format(DATE_FORMAT);
             String fromDate = LocalDate.now().minusDays(30).format(DATE_FORMAT);
-
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/inquire-index-daily-price")
                     .queryParam("FID_COND_MRKT_DIV_CODE", INDEX_MARKET_CODE)
@@ -308,10 +344,7 @@ public class StockPriceService {
                     .build(), INDEX_DAILY_TR_ID);
 
             JsonNode output = response == null ? null : response.get("output2");
-            if (output == null || output.isNull()) {
-                return emptyChart();
-            }
-
+            if (output == null || output.isNull()) return emptyChart();
             return parseChartFromArray(output, "stck_bsop_date", "bstp_nmix_prpr", "acml_vol");
         } catch (Exception e) {
             System.out.println("Index daily chart lookup failed [" + indexCode + "]: " + e.getMessage());
@@ -321,7 +354,6 @@ public class StockPriceService {
 
     private StockChartDto getIndexIntradayChart(String indexCode, String intervalCode) {
         kisApi.issueToken();
-
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/inquire-time-indexchartprice")
@@ -333,10 +365,7 @@ public class StockPriceService {
                     .build(), INDEX_INTRADAY_TR_ID);
 
             JsonNode output = response == null ? null : response.get("output2");
-            if (output == null || output.isNull()) {
-                return emptyChart();
-            }
-
+            if (output == null || output.isNull()) return emptyChart();
             return parseIndexTimeChart(output);
         } catch (Exception e) {
             System.out.println("Index intraday chart lookup failed [" + indexCode + "]: " + e.getMessage());
@@ -344,13 +373,110 @@ public class StockPriceService {
         }
     }
 
-    private StockChartDto parseChartFromArray(JsonNode array, String dateField, String priceField, String volumeField) {
-        List<String> labels = new ArrayList<>();
+    // ─────────────────────────────────────────────────────────────
+    //  파싱 - 시간별 (1시간 버킷 집계)
+    // ─────────────────────────────────────────────────────────────
+    private StockChartDto parseHourlyChart(List<JsonNode> items) {
+        Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
+        Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
+
+        for (JsonNode item : items) {
+            String raw = item.path("stck_cntg_hour").asText();
+            if (raw.length() < 2) continue;
+            int hh    = parseIntSafe(raw.substring(0, 2));
+            String key = String.format("%02d:00", hh);       // 예) "09:00", "10:00"
+            int price  = parseIntSafe(item.path("stck_prpr").asText("0"));
+            int vol    = parseIntSafe(item.path("cntg_vol").asText("0"));
+            priceGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(price);
+            volGroups.computeIfAbsent(key,   k -> new ArrayList<>()).add(vol);
+        }
+        return buildOhlcvDto(priceGroups, volGroups);
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  파싱 - 분별 (1분 버킷 집계, 라인 차트용)
+    //  분당 종가(마지막 체결가) + 거래량 합계만 반환
+    //  openPrices/highPrices/lowPrices 비워서 프론트에서 라인 렌더링
+    // ─────────────────────────────────────────────────────────────
+    private StockChartDto parseMinuteChart(List<JsonNode> items) {
+        // LinkedHashMap으로 분(HH:mm) 단위 집계 (순서 유지)
+        Map<String, String> minuteClose  = new LinkedHashMap<>();
+        Map<String, Integer> minuteVol   = new LinkedHashMap<>();
+
+        for (JsonNode item : items) {
+            String raw = item.path("stck_cntg_hour").asText();
+            if (raw.length() < 4) continue;
+            String minKey = raw.substring(0, 2) + ":" + raw.substring(2, 4);
+            // 해당 분의 마지막 체결가 = 종가
+            minuteClose.put(minKey, defaultZero(item.path("stck_prpr").asText("0")));
+            // 거래량 누적
+            int vol = parseIntSafe(item.path("cntg_vol").asText("0"));
+            minuteVol.merge(minKey, vol, Integer::sum);
+        }
+
+        List<String> labels  = new ArrayList<>(minuteClose.keySet());
+        List<String> closes  = new ArrayList<>(minuteClose.values());
+        List<String> volumes = new ArrayList<>();
+        minuteVol.values().forEach(v -> volumes.add(String.valueOf(v)));
+
+        StockChartDto dto = emptyChart();   // open/high/low 비워서 라인 차트 강제
+        dto.setLabels(labels);
+        dto.setClosePrices(closes);
+        dto.setVolumes(volumes);
+        return dto;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  파싱 - 인덱스 장중 (KOSPI/KOSDAQ 시간·분봉)
+    //  ※ 인덱스 API의 고가/저가는 당일 누적값이라 캔들 불가
+    //    → 오늘 날짜 데이터만 + 종가만 반환 → 라인 차트로 렌더링
+    // ─────────────────────────────────────────────────────────────
+    private StockChartDto parseIndexTimeChart(JsonNode array) {
+        List<String> labels  = new ArrayList<>();
+        List<String> prices  = new ArrayList<>();
+        List<String> volumes = new ArrayList<>();
+
+        String nowTime = java.time.LocalTime.now().format(TIME_FORMAT);
+        String today   = java.time.LocalDate.now().format(DATE_FORMAT);  // "YYYYMMDD"
+
+        for (JsonNode item : array) {
+            String rawDate = text(item, "stck_bsop_date");
+            String rawTime = text(item, "stck_cntg_hour");
+
+            // 오늘 날짜 데이터만 포함 (이전 날짜 데이터가 섞이면 동일 HH:mm 중복 발생)
+            if (!today.equals(rawDate)) continue;
+            // 현재 시간 이후 데이터 제외
+            if (rawTime != null && !rawTime.isBlank() && rawTime.compareTo(nowTime) > 0) continue;
+
+            labels.add(formatTimeOnly(rawTime));
+            prices.add(defaultZero(text(item, "bstp_nmix_prpr")));
+            volumes.add(defaultZero(text(item, "cntg_vol")));
+        }
+
+        Collections.reverse(labels);
+        Collections.reverse(prices);
+        Collections.reverse(volumes);
+
+        StockChartDto dto = emptyChart();   // openPrices/highPrices/lowPrices → 빈 리스트 → 라인 차트
+        dto.setLabels(labels);
+        dto.setClosePrices(prices);
+        dto.setVolumes(volumes);
+        return dto;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  파싱 - 일봉 공통
+    // ─────────────────────────────────────────────────────────────
+    private StockChartDto parseChartFromArray(JsonNode array,
+                                              String dateField,
+                                              String priceField,
+                                              String volumeField) {
+        List<String> labels     = new ArrayList<>();
         List<String> openPrices = new ArrayList<>();
         List<String> highPrices = new ArrayList<>();
-        List<String> lowPrices = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
-        List<String> volumes = new ArrayList<>();
+        List<String> lowPrices  = new ArrayList<>();
+        List<String> prices     = new ArrayList<>();
+        List<String> volumes    = new ArrayList<>();
 
         for (JsonNode item : array) {
             labels.add(defaultZero(text(item, dateField)));
@@ -378,125 +504,91 @@ public class StockPriceService {
         return dto;
     }
 
-    private StockChartDto parseStockTimeChart(JsonNode array) {
-        List<String> labels = new ArrayList<>();
-        List<String> openPrices = new ArrayList<>();
-        List<String> highPrices = new ArrayList<>();
-        List<String> lowPrices = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
+    // ─────────────────────────────────────────────────────────────
+    //  OHLCV DTO 빌드 (버킷 → DTO)
+    // ─────────────────────────────────────────────────────────────
+    private StockChartDto buildOhlcvDto(Map<String, List<Integer>> priceGroups,
+                                        Map<String, List<Integer>> volGroups) {
+        List<String> labels  = new ArrayList<>();
+        List<String> opens   = new ArrayList<>();
+        List<String> highs   = new ArrayList<>();
+        List<String> lows    = new ArrayList<>();
+        List<String> closes  = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
 
-        for (JsonNode item : array) {
-            labels.add(formatTimeOnly(text(item, "stck_cntg_hour")));
-            openPrices.add(defaultZero(text(item, "stck_oprc", "stck_prpr")));
-            highPrices.add(defaultZero(text(item, "stck_hgpr", "stck_prpr")));
-            lowPrices.add(defaultZero(text(item, "stck_lwpr", "stck_prpr")));
-            prices.add(defaultZero(text(item, "stck_prpr")));
-            volumes.add(defaultZero(text(item, "cntg_vol")));
+        for (Map.Entry<String, List<Integer>> entry : priceGroups.entrySet()) {
+            List<Integer> p = entry.getValue();
+            List<Integer> v = volGroups.getOrDefault(entry.getKey(), List.of(0));
+            labels.add(entry.getKey());
+            opens.add(String.valueOf(p.get(0)));
+            closes.add(String.valueOf(p.get(p.size() - 1)));
+            highs.add(String.valueOf(p.stream().mapToInt(Integer::intValue).max().orElse(0)));
+            lows.add(String.valueOf(p.stream().mapToInt(Integer::intValue).min().orElse(0)));
+            volumes.add(String.valueOf(v.stream().mapToInt(Integer::intValue).sum()));
         }
 
-        Collections.reverse(labels);
-        Collections.reverse(openPrices);
-        Collections.reverse(highPrices);
-        Collections.reverse(lowPrices);
-        Collections.reverse(prices);
-        Collections.reverse(volumes);
-
-        StockChartDto dto = emptyChart();
+        StockChartDto dto = new StockChartDto();
         dto.setLabels(labels);
-        dto.setOpenPrices(openPrices);
-        dto.setHighPrices(highPrices);
-        dto.setLowPrices(lowPrices);
-        dto.setClosePrices(prices);
+        dto.setOpenPrices(opens);
+        dto.setHighPrices(highs);
+        dto.setLowPrices(lows);
+        dto.setClosePrices(closes);
         dto.setVolumes(volumes);
         return dto;
     }
 
-    private StockChartDto parseIndexTimeChart(JsonNode array) {
-        List<String> labels = new ArrayList<>();
-        List<String> openPrices = new ArrayList<>();
-        List<String> highPrices = new ArrayList<>();
-        List<String> lowPrices = new ArrayList<>();
-        List<String> prices = new ArrayList<>();
-        List<String> volumes = new ArrayList<>();
-
-        for (JsonNode item : array) {
-            String rawDate = text(item, "stck_bsop_date");
-            String rawTime = text(item, "stck_cntg_hour");
-            labels.add(formatDateTimeLabel(rawDate, rawTime));
-            openPrices.add(defaultZero(text(item, "bstp_nmix_oprc", "bstp_nmix_prpr")));
-            highPrices.add(defaultZero(text(item, "bstp_nmix_hgpr", "bstp_nmix_prpr")));
-            lowPrices.add(defaultZero(text(item, "bstp_nmix_lwpr", "bstp_nmix_prpr")));
-            prices.add(defaultZero(text(item, "bstp_nmix_prpr")));
-            volumes.add(defaultZero(text(item, "cntg_vol")));
-        }
-
-        Collections.reverse(labels);
-        Collections.reverse(openPrices);
-        Collections.reverse(highPrices);
-        Collections.reverse(lowPrices);
-        Collections.reverse(prices);
-        Collections.reverse(volumes);
-
-        StockChartDto dto = emptyChart();
-        dto.setLabels(labels);
-        dto.setOpenPrices(openPrices);
-        dto.setHighPrices(highPrices);
-        dto.setLowPrices(lowPrices);
-        dto.setClosePrices(prices);
-        dto.setVolumes(volumes);
+    // ─────────────────────────────────────────────────────────────
+    //  순위 DTO 변환 공통
+    // ─────────────────────────────────────────────────────────────
+    private StockResponseDto toStockDto(JsonNode item) {
+        StockResponseDto dto = emptyResponseDto();
+        dto.setStockCode(defaultZero(text(item, "mksc_shrn_iscd", "stck_shrn_iscd", "iscd")));
+        dto.setStockName(text(item, "hts_kor_isnm"));
+        dto.setCurrentPrice(defaultZero(text(item, "stck_prpr")));
+        dto.setChangeRate(defaultZero(text(item, "prdy_ctrt")));
+        dto.setPriceChange(defaultZero(text(item, "prdy_vrss")));
+        dto.setVolume(defaultZero(text(item, "acml_vol")));
+        dto.setTradeAmount(defaultZero(text(item, "acml_tr_pbmn")));
         return dto;
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    //  유틸
+    // ─────────────────────────────────────────────────────────────
+    private int parseIntSafe(String s) {
+        try { return Integer.parseInt(s.trim()); } catch (Exception e) { return 0; }
     }
 
     private StockResponseDto emptyResponseDto() {
         StockResponseDto dto = new StockResponseDto();
-        dto.setCurrentPrice("0");
-        dto.setOpenPrice("0");
-        dto.setHighPrice("0");
-        dto.setLowPrice("0");
-        dto.setVolume("0");
-        dto.setPriceChange("0");
-        dto.setChangeRate("0");
-        dto.setTradeAmount("0");
+        dto.setCurrentPrice("0"); dto.setOpenPrice("0"); dto.setHighPrice("0");
+        dto.setLowPrice("0");     dto.setVolume("0");    dto.setPriceChange("0");
+        dto.setChangeRate("0");   dto.setTradeAmount("0");
         return dto;
     }
 
     private StockChartDto emptyChart() {
         StockChartDto dto = new StockChartDto();
-        dto.setLabels(new ArrayList<>());
-        dto.setOpenPrices(new ArrayList<>());
-        dto.setHighPrices(new ArrayList<>());
-        dto.setLowPrices(new ArrayList<>());
-        dto.setClosePrices(new ArrayList<>());
-        dto.setVolumes(new ArrayList<>());
+        dto.setLabels(new ArrayList<>()); dto.setOpenPrices(new ArrayList<>());
+        dto.setHighPrices(new ArrayList<>()); dto.setLowPrices(new ArrayList<>());
+        dto.setClosePrices(new ArrayList<>()); dto.setVolumes(new ArrayList<>());
         return dto;
+    }
+
+    private String text(JsonNode node, String... fieldNames) {
+        if (node == null || fieldNames == null) return "";
+        for (String f : fieldNames) {
+            if (f == null || f.isBlank()) continue;
+            JsonNode v = node.get(f);
+            if (v == null || v.isNull()) continue;
+            String t = v.asText();
+            if (t != null && !t.trim().isEmpty()) return t.trim();
+        }
+        return "";
     }
 
     private String text(JsonNode node, String fieldName) {
         return text(node, new String[]{fieldName});
-    }
-
-    private String text(JsonNode node, String... fieldNames) {
-        if (node == null || fieldNames == null) {
-            return "";
-        }
-
-        for (String fieldName : fieldNames) {
-            if (fieldName == null || fieldName.isBlank()) {
-                continue;
-            }
-
-            JsonNode value = node.get(fieldName);
-            if (value == null || value.isNull()) {
-                continue;
-            }
-
-            String text = value.asText();
-            if (text != null && !text.trim().isEmpty()) {
-                return text.trim();
-            }
-        }
-        return "";
     }
 
     private String defaultZero(String value) {
@@ -505,17 +597,8 @@ public class StockPriceService {
 
     private String formatTimeOnly(String rawTime) {
         if (rawTime == null || rawTime.length() < 4) {
-            return rawTime == null || rawTime.isBlank() ? "-" : rawTime;
+            return (rawTime == null || rawTime.isBlank()) ? "-" : rawTime;
         }
         return rawTime.substring(0, 2) + ":" + rawTime.substring(2, 4);
-    }
-
-    private String formatDateTimeLabel(String rawDate, String rawTime) {
-        String timeText = formatTimeOnly(rawTime);
-        if (rawDate == null || rawDate.length() != 8) {
-            return timeText;
-        }
-        String dateText = rawDate.substring(4, 6) + "-" + rawDate.substring(6, 8);
-        return dateText + " " + timeText;
     }
 }

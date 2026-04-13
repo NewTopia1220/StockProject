@@ -562,6 +562,14 @@ async function initMainChart() {
     const isIntraday = currentTab === 'time' || currentTab === 'minute';
     const timeFormat = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
+    // 라인 차트(인덱스 등) 방향 색상
+    const lineColor = (() => {
+        if (showCandles || closePrices.length < 2) return '#3b82f6';
+        const firstClose = Number(closePrices[0]) || 0;
+        const lastClose  = Number(closePrices[closePrices.length - 1]) || 0;
+        return lastClose >= firstClose ? '#ef4444' : '#3b82f6';
+    })();
+
     const priceSeries = [];
     const volumeSeries = [];
 
@@ -654,24 +662,27 @@ async function initMainChart() {
         title: {
             text: ''
         },
-        xAxis: {
-            type: 'datetime',
-            ordinal: !isIntraday,
-            lineColor: '#e5e7eb',
-            tickColor: '#e5e7eb',
-            crosshair: {
-                color: '#cbd5e1',
-                dashStyle: 'ShortDot'
-            },
-            dateTimeLabelFormats: isIntraday ? {
-                hour: '%H:%M',
-                minute: '%H:%M'
-            } : {
-                day: '%m/%d',
-                week: '%m/%d',
-                month: '%y/%m'
+        xAxis: (() => {
+            const _base = {
+                type: 'datetime',
+                ordinal: !isIntraday,
+                lineColor: '#e5e7eb',
+                tickColor: '#e5e7eb',
+                crosshair: { color: '#cbd5e1', dashStyle: 'ShortDot' }
+            };
+            if (currentTab === 'time' || currentTab === 'minute') {
+                const _n     = new Date();
+                const _at9   = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0, 0, 0).getTime();
+                const _at1530= new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30, 0, 0).getTime();
+                const _nowTs = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes(), 0, 0).getTime();
+                const _xMax  = _nowTs < _at1530 ? _nowTs : _at1530;
+                return { ..._base, ordinal: false,
+                    min: _at9, max: _xMax,
+                    tickInterval: currentTab === 'time' ? 3600000 : undefined,
+                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
             }
-        },
+            return { ..._base, dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
+        })(),
         yAxis: [{
             top: 0,
             height: '72%',
@@ -758,7 +769,7 @@ async function initMainChart() {
             id: 'price',
             name: getDatasetLabel(),
             data: priceSeries,
-            color: showCandles ? '#0051ff' : '#0E0F37',
+            color: showCandles ? '#0051ff' : lineColor,
             upColor: showCandles ? '#f22e2e' : undefined,
             lineColor: showCandles ? '#0051ff' : undefined,
             upLineColor: showCandles ? '#f22e2e' : undefined,
