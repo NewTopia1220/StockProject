@@ -91,6 +91,7 @@ public class PageController {
         return "findPassword";
     }
 
+    // 주식 메인 화면에 필요한 시세, 환율, 뉴스 AI 데이터를 한 번에 구성
     @GetMapping("/stock")
     public String stockPage(@RequestParam(defaultValue = "005930") String code,
                             HttpSession session,
@@ -213,6 +214,7 @@ public class PageController {
         return "market";
     }
 
+    // 선택한 종목의 시장 상세 화면에 종목 정보와 관심종목 상태를 내려준다.
     @GetMapping("/market/{code}")
     public String marketDetailPage(@PathVariable String code,
                                    HttpSession session,
@@ -232,6 +234,7 @@ public class PageController {
         return "marketDetail";
     }
 
+    // 로그인 사용자의 마이페이지에 필요한 회원 정보를 조회한다.
     @GetMapping("/mypage")
     public String mypage(HttpSession session, Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
@@ -249,6 +252,7 @@ public class PageController {
         return "mypage";
     }
 
+    // DB 섹터명과 화면 고정 섹터명을 느슨하게 매칭해 카드 데이터를 찾는다.
     private Map<String, Object> findSectorData(LinkedHashMap<String, Map<String, Object>> dbMap, String key) {
         if (dbMap.containsKey(key)) {
             return dbMap.get(key);
@@ -264,6 +268,7 @@ public class PageController {
         return null;
     }
 
+    // 기사 수, 감성 비율, 신뢰도를 합쳐 섹터 상승 점수를 계산한다.
     private int calculateSectorTrendScore(int articleCount, int pos, int neg, int neu,
                                           double avgTypeProb, double avgClickbaitProb) {
         if (articleCount <= 0) {
@@ -280,6 +285,7 @@ public class PageController {
         return (int) Math.round(Math.max(0, Math.min(100, score)));
     }
 
+    // 계산된 점수를 차트/배지에서 쓰는 방향 값으로 변환한다.
     private String resolveTrendDirection(int trendScore) {
         if (trendScore >= 58) {
             return "up";
@@ -290,6 +296,7 @@ public class PageController {
         return "neutral";
     }
 
+    // 계산된 점수를 사용자에게 보여줄 추세 라벨로 변환한다.
     private String resolveTrendLabel(int trendScore) {
         if (trendScore >= 72) {
             return "강한 상승";

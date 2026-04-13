@@ -129,7 +129,8 @@ public class StockSearchService {
         }
     }
 
-    /** Fallback 종목으로 키워드 검색 */
+    /** Fallback 종목으로 키워드 검색
+      * DB 조회가 실패했을 때 기본 종목 목록으로 검색 결과를 대체 */
     private List<Map<String, String>> fallbackSearch(String keyword) {
         return FALLBACK_STOCKS.stream()
                 .filter(s -> s.get("name").contains(keyword) || s.get("code").contains(keyword))
@@ -137,7 +138,8 @@ public class StockSearchService {
                 .collect(Collectors.toList());
     }
 
-    /** FALLBACK_STOCKS를 DB에 저장 */
+    /** FALLBACK_STOCKS를 DB에 저장
+      * 기본 종목 목록을 DB에 저장해 최소 검색 기능을 유지*/
     private void saveFallbackToDB() {
         stockRepository.deleteAll();
         List<Stock> entities = FALLBACK_STOCKS.stream().map(m -> {

@@ -62,6 +62,13 @@ try:
 except ImportError:
     print(json.dumps({"error": "finance-datareader 미설치"}))
     sys.exit(1)
+SCRIPT_DIR = Path(__file__).resolve().parent
+MODEL_DIR = SCRIPT_DIR / "models"
+DATA_DIR = SCRIPT_DIR / "data"
+DEFAULT_MODEL_PATH = str(MODEL_DIR / "article_lgbm_model.pkl")
+DEFAULT_SQLITE_PATH = str(DATA_DIR / "news_data.db")
+DEFAULT_ORACLE_COMPANY_PATH = str(DATA_DIR / "oracle_company.csv")
+DEFAULT_ORACLE_SECTOR_PATH = str(DATA_DIR / "oracle_sector.csv")
 
 
 # ── 카테고리 → 종목코드 매핑 ─────────────────────────────────
@@ -495,6 +502,14 @@ def main() -> None:
     parser.add_argument("--oracle-company",default="oracle_company.csv",     help="기업별 뉴스 CSV")
     parser.add_argument("--oracle-sector", default="oracle_sector.csv",      help="섹터별 뉴스 CSV")
     args = parser.parse_args()
+    if args.model == "article_lgbm_model.pkl":
+        args.model = DEFAULT_MODEL_PATH
+    if args.sqlite == "news_data.db":
+        args.sqlite = DEFAULT_SQLITE_PATH
+    if args.oracle_company == "oracle_company.csv":
+        args.oracle_company = DEFAULT_ORACLE_COMPANY_PATH
+    if args.oracle_sector == "oracle_sector.csv":
+        args.oracle_sector = DEFAULT_ORACLE_SECTOR_PATH
 
     try:
         result = infer(args)

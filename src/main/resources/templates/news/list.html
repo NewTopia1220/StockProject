@@ -230,13 +230,13 @@
 
             <div class="pagination" th:if="${totalPages != null and totalPages > 1}">
                 <a class="pageBtn"
-                   th:classappend="${currentPageNum <= 1} ? ' disabled' : ''"
-                   th:href="${currentPageNum > 1} ? @{/news(page=${currentPageNum - 1}, sector=${sector}, keyword=${keyword})} : '#'">
+                   th:if="${currentPageNum > 1}"
+                   th:href="@{/news(page=${currentPageNum - 1}, sector=${sector}, keyword=${keyword})}">
                     &lt;
                 </a>
 
                 <a class="pageBtn"
-                   th:each="i : ${#numbers.sequence(currentPageNum < 4 ? 1 : currentPageNum - 3, currentPageNum + 3 > totalPages ? totalPages : currentPageNum + 3)}"
+                   th:each="i : ${#numbers.sequence(1, totalPages)}"
                    th:href="@{/news(page=${i}, sector=${sector}, keyword=${keyword})}"
                    th:text="${i}"
                    th:classappend="${i == currentPageNum} ? ' active' : ''">
@@ -244,8 +244,8 @@
                 </a>
 
                 <a class="pageBtn"
-                   th:classappend="${currentPageNum >= totalPages} ? ' disabled' : ''"
-                   th:href="${currentPageNum < totalPages} ? @{/news(page=${currentPageNum + 1}, sector=${sector}, keyword=${keyword})} : '#'">
+                   th:if="${currentPageNum < totalPages}"
+                   th:href="@{/news(page=${currentPageNum + 1}, sector=${sector}, keyword=${keyword})}">
                     &gt;
                 </a>
             </div>
@@ -258,6 +258,7 @@
 </script>
 <script>
     /* ── 원형 차트 애니메이션 ── */
+    // 원형 분석 게이지를 현재 값 기준으로 애니메이션한다.
     (function () {
         var CIRC = 201.06; // 2 * π * 32
         document.querySelectorAll('.circleFg').forEach(function (el) {
@@ -272,6 +273,7 @@
 
 
     /* ── 좋아요 토글 ── */
+    // 뉴스 좋아요 상태를 토글하고 버튼 숫자를 갱신한다.
     function toggleLike(btn) {
         var link = btn.getAttribute('data-link');
         fetch('/news/like', {
@@ -289,6 +291,7 @@
     }
 
     /* ── 댓글 토글 (열기/닫기 + 즉시 로드) ── */
+    // 댓글 영역을 열거나 닫고 최신 댓글을 다시 불러온다.
     function toggleComment(btn) {
         var link    = btn.getAttribute('data-link');
         var article = btn.closest('.newsItem'); // 부모 newsItem 찾기
@@ -306,6 +309,7 @@
     }
 
     /* ── 댓글 로드 및 배지 업데이트 ── */
+    // 특정 뉴스의 댓글 목록을 불러와 화면과 배지 숫자를 갱신한다.
     function loadComments(link, section, article) {
         fetch('/news/comments?link=' + encodeURIComponent(link))
             .then(function (r) { return r.json(); })
@@ -321,6 +325,7 @@
             });
     }
 
+    // 댓글 배열을 댓글 영역 HTML로 렌더링한다.
     function renderComments(comments, container, link) {
         container.innerHTML = '';
         if (!comments || comments.length === 0) {
@@ -343,6 +348,7 @@
     }
 
     /* ── 댓글 등록 ── */
+    // 새 댓글을 등록하고 등록 후 댓글 목록을 다시 그린다.
     function submitComment(btn) {
         var link    = btn.getAttribute('data-link');
         var section = btn.closest('.commentSection');
@@ -368,6 +374,7 @@
     }
 
     /* ── 댓글 삭제 ── */
+    // 댓글 삭제 후 서버 기준 최신 목록을 다시 불러와 반영한다.
     function deleteComment(commentId, link, btn) {
         if (!confirm('댓글을 삭제할까요?')) return;
         fetch('/news/comments/' + commentId, { method: 'DELETE' })
@@ -396,6 +403,7 @@
     }
 
     /* ── XSS 방지 ── */
+    // 댓글/이름 렌더링 시 XSS를 막기 위해 특수문자를 이스케이프한다.
     function escapeHtml(str) {
         if (!str) return '';
         return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')

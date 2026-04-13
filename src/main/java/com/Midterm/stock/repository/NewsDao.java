@@ -18,6 +18,7 @@ public class NewsDao {
     private static final String TODAY_FILTER =
         "SUBSTR(pub_date, 1, 10) = TO_CHAR(SYSDATE, 'YYYY-MM-DD')";
 
+    // Oracle 드라이버와 지갑 경로를 초기화한다.
     public NewsDao() {
         try {
             Class.forName(driver);
@@ -26,6 +27,7 @@ public class NewsDao {
         } catch (ClassNotFoundException e) { e.printStackTrace(); }
     }
 
+    // 뉴스 전용 Oracle DB 연결을 생성
     private Connection connect() {
         try { return DriverManager.getConnection(url, id, pw); }
         catch (SQLException e) { System.err.println("NewsDao 접속 실패: " + e.getMessage()); return null; }
@@ -34,6 +36,7 @@ public class NewsDao {
     // ─────────────────────────────────────────────────────────────
     // 당일 AI 종합 분석
     // ─────────────────────────────────────────────────────────────
+    // 오늘 수집된 뉴스들의 감성/신뢰도 집계 결과를 조회한다.
     public Map<String, Object> getTodayAnalysis() {
         Map<String, Object> r = new HashMap<>();
         r.put("totalCount", 0); r.put("avgTypeProb", 0.0);
@@ -65,9 +68,7 @@ public class NewsDao {
         return r;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // 전광판용 당일 종목
-    // ─────────────────────────────────────────────────────────────
+    // 오늘 뉴스에 많이 등장한 종목과 감성 요약을 전광판용으로 조회
     public List<Map<String, Object>> getTodayTickerCompanies() {
         List<Map<String, Object>> list = new ArrayList<>();
         String sql =
@@ -206,6 +207,7 @@ public class NewsDao {
         return list;
     }
 
+    // 뉴스 링크 목록에 대응하는 종목 매핑과 저장된 영향도를 한 번에 조회
     public Map<String, Map<String, Object>> getNewsSignalMap(List<String> links) {
         Map<String, Map<String, Object>> result = new HashMap<>();
         if (links == null || links.isEmpty()) {
@@ -270,6 +272,7 @@ public class NewsDao {
         return result;
     }
 
+    // 기사 영향도 예측 결과를 NEWS_IMPACT 테이블에 업데이트하거나 신규 저장
     public void saveNewsImpact(String link, String stockCode, Double impact30m) {
         if (isBlank(link) || isBlank(stockCode) || impact30m == null) {
             return;
@@ -471,6 +474,7 @@ public class NewsDao {
         }
     }
 
+    // 특정 뉴스의 좋아요 수와 현재 사용자 좋아요 여부를 조회
     public Map<String, Object> getLikeInfo(String newsLink, int userNum) {
         Map<String, Object> r = new HashMap<>();
         r.put("count", 0); r.put("liked", false);
@@ -515,6 +519,7 @@ public class NewsDao {
         return list;
     }
 
+    // 뉴스 댓글을 저장
     public int insertComment(String link, int userNum, String content) {
         Connection conn = connect(); if (conn == null) return 0;
         try (PreparedStatement ps = conn.prepareStatement(
@@ -525,6 +530,7 @@ public class NewsDao {
         finally { try { conn.close(); } catch (Exception ignore) {} }
     }
 
+    // 본인 댓글만 삭제하도록 조건을 걸어 삭제
     public int deleteComment(int commentId, int userNum) {
         Connection conn = connect(); if (conn == null) return 0;
         try (PreparedStatement ps = conn.prepareStatement(
@@ -573,6 +579,7 @@ public class NewsDao {
         }
     }
 
+    // DB에서 읽은 발행일을 화면 표시용 문자열로 정리
     private String formatPubDate(ResultSet rs, String col) {
         try {
             String raw = rs.getString(col);
@@ -587,6 +594,7 @@ public class NewsDao {
         }
     }
 
+    // 문자열이 비어 있는지 공통으로 확인
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }

@@ -33,6 +33,7 @@ public class NewsController {
     @Autowired
     private StockAiService stockAiService;
 
+    // 뉴스 목록, 필터, 사이드바 분석 데이터를 조합해 뉴스 화면을 렌더링
     @GetMapping({"", "/"})
     public String newsList(@RequestParam(required = false) String sector,
                            @RequestParam(required = false) String keyword,
@@ -85,6 +86,7 @@ public class NewsController {
         return "news/list";
     }
 
+    // 기사 목록에 영향도와 상승 예측 신호를 순서대로 보강
     private void enrichPredictionSignals(List<NewsDto> newsList) {
         if (newsList == null || newsList.isEmpty()) {
             return;
@@ -95,7 +97,8 @@ public class NewsController {
         applyStockPredictions(newsList);
     }
 
-    // 이미 저장된 기사 영향도와 연결 종목이 있으면 그 값을 먼저 사용한다.
+    // 이미 저장된 기사 영향도와 연결 종목이 있으면 그 값을 먼저 사한다.
+    // 이미 저장된 기사 영향도와 종목 매핑이 있으면 우선 적용
     private void applyStoredImpactSignals(List<NewsDto> newsList) {
         List<String> links = new ArrayList<>();
         for (NewsDto dto : newsList) {
@@ -124,7 +127,8 @@ public class NewsController {
         }
     }
 
-    // 저장된 값이 없을 때만 기사 단위 모델을 돌리고, 계산 결과는 다시 저장해 다음 조회를 빠르게 만든다.
+    // 저장된 값이 없을 때만 기사 단위 모델을 돌리고, 계산 결과는 다시 저장해 다음 조회를 빠르게 만듦
+    // 저장된 영향도가 없을 때만 기사 영향도 모델을 돌리고 결과를 캐시 테이블에 남김
     private void applyArticleImpactFallback(List<NewsDto> newsList) {
         for (NewsDto dto : newsList) {
             if (dto.hasStockImpactPrediction()) {
@@ -147,7 +151,8 @@ public class NewsController {
         }
     }
 
-    // 익일 상승 확률은 종목 단위 예측이므로 종목코드별로 한 번만 호출해서 재사용한다.
+    // 익일 상승 확률은 종목 단위 예측이므로 종목코드별로 한 번만 호출해서 재사용
+    // 종목별 AI 예측 결과를 한 번만 계산해 같은 종목 기사들에 재사용
     private void applyStockPredictions(List<NewsDto> newsList) {
         Map<String, AiPredictionDto> stockPredictions = new HashMap<>();
 
@@ -176,6 +181,7 @@ public class NewsController {
         }
     }
 
+    // 뉴스 좋아요 상태를 토글하고 최신 카운트를 반환
     @PostMapping("/like")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> toggleLike(@RequestParam("link") String link, HttpSession session) {
@@ -192,6 +198,7 @@ public class NewsController {
         return ResponseEntity.ok(resp);
     }
 
+    // 특정 뉴스의 댓글 목록을 조회
     @GetMapping("/comments")
     @ResponseBody
     public ResponseEntity<List<Map<String, Object>>> getComments(@RequestParam("link") String link, HttpSession session) {
@@ -201,6 +208,7 @@ public class NewsController {
         return ResponseEntity.ok(newsDao.getComments(link));
     }
 
+    // 특정 뉴스에 새 댓글을 등록하고 갱신된 댓글 목록을 반환
     @PostMapping("/comments")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> addComment(@RequestParam("link") String link,
@@ -221,6 +229,7 @@ public class NewsController {
         return ResponseEntity.internalServerError().body(Map.of("error", "등록 실패"));
     }
 
+    // 본인이 작성한 댓글을 삭제
     @DeleteMapping("/comments/{commentId}")
     @ResponseBody
     public ResponseEntity<Map<String, Object>> deleteComment(@PathVariable int commentId, HttpSession session) {

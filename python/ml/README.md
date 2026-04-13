@@ -5,9 +5,9 @@
 ## 서버 실행에 필요한 파일
 
 - `predict.py`
-- `lgbm_model.pkl`
+- `models/lgbm_model.pkl`
 - `article_predict.py`
-- `article_lgbm_model.pkl`
+- `models/article_lgbm_model.pkl`
 - `data/news_data.db`
 - `data/oracle_company.csv`
 - `data/oracle_sector.csv`
@@ -29,11 +29,11 @@
 
 ### 종목 단위 익일 방향 예측 모델
 
-- `lgbm_model.pkl`
+- `models/lgbm_model.pkl`
 
 ### 기사 단위 주가 영향도 모델
 
-- `article_lgbm_model.pkl`
+- `models/article_lgbm_model.pkl`
 
 ### 뉴스 입력 데이터
 

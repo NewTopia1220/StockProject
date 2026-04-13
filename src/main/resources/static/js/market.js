@@ -21,7 +21,6 @@ let allStocks         = [];       // 현재 로드된 전체 종목 (검색 필�
 // ════════════════════════════════════════════════════════
 //  종목 리스트 로딩
 // ════════════════════════════════════════════════════════
-
 async function loadMarketData(type) {
     currentType = type || 'trade';
     const body     = document.getElementById('stockListBody');
@@ -72,6 +71,7 @@ async function loadMarketData(type) {
     }
 }
 
+// 목록 로딩 중 표시할 스켈레톤 행들을 렌더링
 function renderSkeletons(container) {
     container.innerHTML = Array.from({ length: 15 }, () => `
         <div class="stockRowSkeleton">
@@ -109,6 +109,7 @@ function formatVolume(raw) {
     return v.toLocaleString() + '주';
 }
 
+// 종목 목록 배열을 좌측 리스트 UI로 렌더링하고 클릭 이벤트를 연결한다.
 function renderStockList(container, stocks) {
     if (!stocks || stocks.length === 0) {
         container.innerHTML = '';
@@ -183,11 +184,13 @@ function renderStockList(container, stocks) {
 
 let searchDebounce = null;
 
+// 검색 자동완성 드롭다운을 숨긴다.
 function hideSearchDropdown() {
     const dd = document.getElementById('searchDropdown');
     if (dd) dd.style.display = 'none';
 }
 
+// 검색 자동완성 후보 목록을 드롭다운으로 렌더링한다.
 function showSearchDropdown(items) {
     const dd = document.getElementById('searchDropdown');
     if (!dd) return;
@@ -229,6 +232,7 @@ function showSearchDropdown(items) {
     dd.style.display = 'block';
 }
 
+// 현재 목록과 전체 종목 DB를 함께 활용해 검색 결과를 만든다.
 async function runSearch(keyword) {
     if (!keyword) {
         hideSearchDropdown();
@@ -269,6 +273,7 @@ async function runSearch(keyword) {
 //  종목 선택 → 차트 패널 표시
 // ════════════════════════════════════════════════════════
 
+// 종목을 선택하고 상세 패널과 차트를 해당 종목으로 전환한다.
 async function selectStock(code, name, rowEl) {
     // 선택 하이라이트
     document.querySelectorAll('.stockRow').forEach(r => r.classList.remove('selected'));
@@ -310,6 +315,7 @@ async function selectStock(code, name, rowEl) {
 
 // ── 패널 현재가 업데이트 ─────────────────────────────────
 
+// 좌측 목록에서 선택한 종목의 현재 시세를 상세 패널에 반영한다.
 async function updatePanelPrice() {
     if (!selectedCode) return;
     try {
@@ -347,6 +353,7 @@ async function updatePanelPrice() {
 
 /** "YYYYMMDD" → UTC timestamp */
 /** "YYYYMMDD" 또는 "HH:mm" → 로컬 타임스탬프 */
+// 날짜 문자열을 Highcharts에서 쓰는 타임스탬프로 변환한다.
 function dateStrToTs(s) {
     if (!s) return 0;
 
@@ -369,6 +376,7 @@ function dateStrToTs(s) {
 }
 
 /** OHLCV 배열 빌드 */
+// 서버 차트 응답을 OHLC/거래량 시리즈 구조로 변환한다.
 function buildOhlcv(data) {
     const ohlc = [], vol = [];
     const labels = data.labels || [];
@@ -388,6 +396,7 @@ function buildOhlcv(data) {
 /** Highcharts 공통 옵션
  * @param tab 'daily' | 'time' | 'minute'
  */
+// 시장 화면 차트에서 공통으로 쓰는 Highcharts 옵션을 생성한다.
 function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
     const isIntraday = (tab === 'time' || tab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
@@ -516,6 +525,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
 }
 // ── 패널 차트 (market 페이지 오른쪽 패널) ────────────────
 
+// 상세 패널용 차트를 최초 생성한다.
 async function initPanelChart() {
     const data = await fetchPanelChartData();
     if (panelChart) { panelChart.destroy(); panelChart = null; }
@@ -526,6 +536,7 @@ async function initPanelChart() {
         hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
 }
 
+// 상세 패널용 차트 데이터를 다시 불러와 갱신한다.
 async function updatePanelChart() {
     const data = await fetchPanelChartData();
     if (panelChart) { panelChart.destroy(); panelChart = null; }
@@ -536,6 +547,7 @@ async function updatePanelChart() {
         hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
 }
 
+// 현재 선택 종목과 탭에 맞는 상세 패널 차트 데이터를 조회한다.
 async function fetchPanelChartData() {
     let tab = panelTab;
     if ((tab === 'time' || tab === 'minute') && !isMarketOpen()) tab = 'daily';
@@ -562,6 +574,7 @@ async function fetchPanelChartData() {
 //  관심종목 + 알림 토글
 // ════════════════════════════════════════════════════════
 
+// 관심종목 등록 상태를 토글하고 관련 버튼 상태를 갱신한다.
 async function toggleWatch(code, name, triggerEl) {
     if (!code) return;
     const isWatching = watchingSet.has(code);
@@ -598,12 +611,14 @@ async function toggleWatch(code, name, triggerEl) {
     refreshBadge();
 }
 
+// 상세 패널의 관심종목 버튼 텍스트와 스타일을 갱신한다.
 function setPanelWatchBtn(btn, watching) {
     btn.textContent = watching ? '♥' : '♡';
     btn.classList.toggle('watching', watching);
     btn.title = watching ? '관심종목 해제' : '관심종목 + 알림 등록';
 }
 
+// 관심종목 등록 상태에 따라 알림 안내 문구를 바꾼다.
 function updateAlertNote(watching) {
     const note = document.getElementById('panelAlertNote');
     if (!note) return;
@@ -629,6 +644,7 @@ function updateAlertNote(watching) {
 let detailChart = null;
 let detailTab   = 'daily';
 
+// 개별 종목 상세 페이지 진입 시 필요한 초기 상태를 설정한다.
 function initDetailPage(code) {
     document.querySelectorAll('.detailChartTab').forEach(btn => {
         btn.addEventListener('click', async () => {
@@ -651,6 +667,7 @@ function initDetailPage(code) {
     setInterval(() => { if (isMarketOpen()) updateDetailChart(code); }, 10000);
 }
 
+// 개별 종목 상세 페이지 차트를 최초 생성한다.
 async function initDetailChart(code) {
     const data = await fetchDetailChartData(code);
     if (detailChart) { detailChart.destroy(); detailChart = null; }
@@ -662,6 +679,7 @@ async function initDetailChart(code) {
         hcBaseOptions(name, ohlc, vol, hasOhlc, false, detailTab));
 }
 
+// 개별 종목 상세 페이지 차트를 다시 갱신한다.
 async function updateDetailChart(code) {
     const data = await fetchDetailChartData(code);
     if (detailChart) { detailChart.destroy(); detailChart = null; }
@@ -673,6 +691,7 @@ async function updateDetailChart(code) {
         hcBaseOptions(name, ohlc, vol, hasOhlc, false, detailTab));
 }
 
+// 개별 종목 상세 페이지에서 사용할 차트 데이터를 조회한다.
 async function fetchDetailChartData(code) {
     let tab = detailTab;
     if ((tab === 'time' || tab === 'minute') && !isMarketOpen()) tab = 'daily';
@@ -694,6 +713,7 @@ async function fetchDetailChartData(code) {
     }
 }
 
+// 개별 종목 상세 페이지의 현재 시세 정보를 갱신한다.
 async function updateDetailPrice(code) {
     try {
         const res  = await fetch(`/api/stock/${code}`);
@@ -722,6 +742,7 @@ async function updateDetailPrice(code) {
     } catch (e) {}
 }
 
+// 상세 페이지의 관심종목 버튼 클릭 이벤트를 연결한다.
 function initWatchBtn(code, stockName) {
     const btn = document.getElementById('watchBtn');
     if (!btn) return;
@@ -747,6 +768,7 @@ function initWatchBtn(code, stockName) {
 //  공통 유틸
 // ════════════════════════════════════════════════════════
 
+// 현재 시간이 국내 주식 정규장 시간인지 판단한다.
 function isMarketOpen() {
     const now = new Date();
     if (now.getDay() === 0 || now.getDay() === 6) return false;
@@ -754,6 +776,7 @@ function isMarketOpen() {
     return t >= 900 && t <= 1530;
 }
 
+// 요소 ID 기준으로 텍스트를 안전하게 갱신한다.
 function setEl(id, text) {
     const el = document.getElementById(id);
     if (el) el.textContent = text;
@@ -763,6 +786,7 @@ function setEl(id, text) {
 //  DOMContentLoaded
 // ════════════════════════════════════════════════════════
 
+// 시장 화면 진입 시 목록, 검색, 차트, 상세 페이지 초기화를 한 번에 수행한다.
 document.addEventListener('DOMContentLoaded', async () => {
     // 알림 패널은 bell.js 에서 자동 초기화됨
 

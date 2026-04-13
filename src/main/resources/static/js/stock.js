@@ -18,7 +18,8 @@ let aiRotatorItems = [];
 let aiRotatorIndex = 0;
 let aiRotatorTimer = null;
 let aiRefreshToken = 0;
-// 환율은 같은 통화를 반복 조회하는 경우가 많아서 브라우저 메모리에 짧게 캐시한다.
+
+// 환율은 같은 통화를 반복 조회하는 경우가 많아서 브라우저 메모리에 짧게 캐시
 const EXCHANGE_QUOTE_TTL_MS = 60 * 1000;
 const EXCHANGE_CHART_TTL_MS = 30 * 60 * 1000;
 const exchangeQuoteCache = new Map();
@@ -26,6 +27,7 @@ const exchangeChartCache = new Map();
 const exchangeQuoteRequests = new Map();
 const exchangeChartRequests = new Map();
 
+// 페이지 진입 시 게이지, 차트, 티커, AI 패널을 한 번에 초기화
 document.addEventListener('DOMContentLoaded', () => {
     currentStockName = document.getElementById('chartStockName')?.textContent.trim() || '삼성전자';
     currentCode = document.getElementById('chartStockCode')?.textContent.trim() || currentCode;
@@ -47,6 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
     startPolling();
 });
 
+// 차트 탭 클릭 이벤트를 연결하고 장중 여부에 따라 탭 사용을 제어
 function bindChartTabs() {
     document.querySelectorAll('.chartTab').forEach((button) => {
         button.addEventListener('click', async () => {
@@ -70,6 +73,7 @@ function bindChartTabs() {
     });
 }
 
+// 종목 검색 입력, 자동완성 목록, 엔터 선택 동작을 연결
 function bindSearchHandlers() {
     const searchInput = document.getElementById('stockSearch');
     const dropdown = document.getElementById('searchDropdown');
@@ -148,6 +152,7 @@ function bindSearchHandlers() {
     });
 }
 
+// 입력된 검색어를 실제 종목 코드와 이름 조합으로 해석
 async function resolveSearchSelection(keyword) {
     const parsed = parseSearchKeyword(keyword);
     if (parsed?.resolved) {
@@ -181,6 +186,7 @@ async function resolveSearchSelection(keyword) {
     }
 }
 
+// 현재 선택값이 이름 위주일 때 실제 종목 코드로 다시 보정
 async function ensureResolvedCurrentCode() {
     const rawCode = String(currentCode || '').trim();
     if (/^\d{6}$/.test(rawCode)) {
@@ -200,6 +206,7 @@ async function ensureResolvedCurrentCode() {
     );
 }
 
+// 검색창 문자열에서 종목명/종목코드 패턴을 분리
 function parseSearchKeyword(keyword) {
     const value = String(keyword || '').trim();
     if (!value) {
@@ -227,6 +234,7 @@ function parseSearchKeyword(keyword) {
     return null;
 }
 
+// 선택된 종목 정보를 전역 상태와 검색창 값에 반영
 function applySearchSelection(code, name, searchInput) {
     currentCode = String(code || '').trim();
     currentStockName = String(name || code || '').trim();
@@ -237,12 +245,14 @@ function applySearchSelection(code, name, searchInput) {
     }
 }
 
-// 검색, 전광판 클릭 등 종목 전환 진입점을 하나로 묶어 차트와 AI 브리핑이 함께 갱신되게 한다.
+// 검색, 전광판 클릭 등 종목 전환 진입점을 하나로 묶어 차트와 AI 브리핑이 함께 갱신
+// 검색 결과에서 종목을 고른 뒤 주식 차트 소스로 즉시 전환
 async function selectStockAndActivate(code, name, searchInput = document.getElementById('stockSearch')) {
     applySearchSelection(code, name, searchInput);
     await activateStockSource();
 }
 
+// 상단 KOSPI/KOSDAQ/환율 카드 클릭 이벤트를 연결
 function bindTickerCards() {
     document.querySelectorAll('.clickableTicker').forEach((card) => {
         card.addEventListener('click', async () => {
@@ -255,6 +265,7 @@ function bindTickerCards() {
     });
 }
 
+// 하단 전광판 종목 클릭 시 해당 종목 차트로 전환
 function bindTopStockTicker() {
     const handleClick = async (event) => {
         const item = event.target.closest('.topStockItem');
@@ -284,6 +295,7 @@ function bindTopStockTicker() {
     document.getElementById('tickerContent2')?.addEventListener('click', handleClick);
 }
 
+// 환율 통화 선택기의 클릭/변경 이벤트를 연결
 function bindExchangeSelector() {
     const currencySelect = document.getElementById('currencySelect');
     if (!currencySelect) {
@@ -297,6 +309,7 @@ function bindExchangeSelector() {
     currencySelect.addEventListener('change', handleExchangeCurrencyChange);
 }
 
+// 선택 통화가 바뀌면 환율 카드와 메인 차트를 다시 갱신
 async function handleExchangeCurrencyChange(event) {
     event.stopPropagation();
 
@@ -312,7 +325,8 @@ async function handleExchangeCurrencyChange(event) {
     renderExchangeSummary(quote, chartData);
 }
 
-// 환율 화면에서는 시세를 먼저 갱신하고, 차트는 같은 통화 캐시를 재사용해서 뒤이어 반영한다.
+// 환율 화면에서는 시세를 먼저 갱신하고, 차트는 같은 통화 캐시를 재사용해서 뒤이어 반영
+// 선택한 통화의 현재가와 차트 데이터를 함께 불러옴
 async function loadExchangeSelectionData(currency) {
     const quotePromise = getExchangeQuote(currency);
     const chartPromise = getExchangeChart(currency);
@@ -322,6 +336,7 @@ async function loadExchangeSelectionData(currency) {
     return { quote, chartData };
 }
 
+// 섹터 카드의 시각 효과와 링크 이동 관련 동작을 연결
 function bindSectorTrendCards() {
     const setCollapsedState = (box, collapsed) => {
         box.classList.toggle('is-collapsed', collapsed);
@@ -364,6 +379,7 @@ function bindSectorTrendCards() {
     });
 }
 
+// 주기적으로 현재 화면에 보이는 시세와 차트를 자동 갱신
 async function startPolling() {
     if (pollingStarted) {
         return;
@@ -416,6 +432,7 @@ async function startPolling() {
     }, 60000);
 }
 
+// 현재 선택 종목을 메인 차트의 활성 소스로 전환
 async function activateStockSource() {
     await ensureResolvedCurrentCode();
     currentChartSource = 'stock';
@@ -424,6 +441,7 @@ async function activateStockSource() {
     await refreshAiPredictionForCurrentCode();
 }
 
+// 메인 차트가 어떤 데이터 소스를 볼지 전환
 async function activateChartSource(source) {
     currentChartSource = source;
     if (source === 'exchange') {
@@ -432,6 +450,7 @@ async function activateChartSource(source) {
     await refreshActiveView();
 }
 
+// 현재 선택된 소스와 탭 기준으로 화면 전체를 다시 그림
 async function refreshActiveView() {
     syncChartTabs();
     applyActiveTickerState();
@@ -445,6 +464,7 @@ async function refreshActiveView() {
     await refreshActiveSummary();
 }
 
+// 현재 선택된 차트 탭 상태를 버튼 클래스와 비활성 상태에 반영
 function syncChartTabs() {
     if (currentChartSource === 'exchange') {
         currentTab = 'daily';
@@ -461,6 +481,7 @@ function syncChartTabs() {
     });
 }
 
+// 현재 활성화된 티커 카드에 선택 스타일을 반영
 function applyActiveTickerState() {
     document.querySelectorAll('.clickableTicker').forEach((card) => {
         const isActive = currentChartSource !== 'stock' && card.dataset.chartSource === currentChartSource;
@@ -468,6 +489,7 @@ function applyActiveTickerState() {
     });
 }
 
+// 현재 차트 소스와 탭에 맞는 메인 차트 데이터를 조회
 async function fetchMainChartData() {
     syncChartTabs();
 
@@ -506,6 +528,7 @@ async function fetchMainChartData() {
     }
 }
 
+// 소스와 탭 조합에 맞는 API 엔드포인트를 계산
 function getChartEndpoint(source, tab) {
     const currency = encodeURIComponent(getSelectedCurrency());
 
@@ -533,6 +556,7 @@ function getChartEndpoint(source, tab) {
     return endpoints[source]?.[tab] || null;
 }
 
+// Highcharts 메인 차트를 최초 생성
 async function initMainChart() {
     const data = await fetchMainChartData();
 
@@ -785,10 +809,12 @@ async function initMainChart() {
     });
 }
 
+// 메인 차트의 데이터를 다시 불러와 화면에 반영
 async function updateMainChart() {
     await initMainChart();
 }
 
+// 현재 차트 데이터셋의 표시 이름을 만듦
 function getDatasetLabel() {
     if (currentChartSource === 'exchange') {
         return '환율';
@@ -799,6 +825,7 @@ function getDatasetLabel() {
     return currentTab === 'daily' ? '종가' : '가격';
 }
 
+// 현재 차트 상단 제목에 사용할 문구를 만듦.
 function getChartTitle() {
     const tabLabel = currentTab === 'daily'
         ? '일봉'
@@ -809,6 +836,7 @@ function getChartTitle() {
     return `${getCurrentChartLabel()} - ${tabLabel}`;
 }
 
+// 날짜 문자열을 Highcharts 타임스탬프로 변환
 function stockDateToTs(value) {
     if (!value) {
         return Date.now();
@@ -841,6 +869,7 @@ function stockDateToTs(value) {
     return Number.isNaN(parsed.getTime()) ? Date.now() : parsed.getTime();
 }
 
+// 현재 차트 소스를 사용자용 라벨로 변환
 function getCurrentChartLabel() {
     if (currentChartSource === 'kospi') {
         return 'KOSPI';
@@ -854,6 +883,7 @@ function getCurrentChartLabel() {
     return currentStockName || currentCode;
 }
 
+// 현재 차트 소스에 맞는 요약 정보 패널을 갱신
 async function refreshActiveSummary() {
     if (currentChartSource === 'kospi') {
         await updateIndexInfo('kospi');
@@ -879,6 +909,7 @@ async function refreshActiveSummary() {
     await updateStockInfo();
 }
 
+// 선택 종목의 현재 시세와 보조 정보를 요약 패널에 반영
 async function updateStockInfo() {
     try {
         const data = await fetchJson(`/api/stock/${currentCode}`);
@@ -917,6 +948,7 @@ async function updateStockInfo() {
     }
 }
 
+// 선택한 지수의 현재가와 요약 정보를 패널에 반영
 async function updateIndexInfo(source, existingData = null) {
     try {
         const data = existingData || await fetchJson(source === 'kospi' ? '/api/kospi' : '/api/kosdaq');
@@ -926,6 +958,7 @@ async function updateIndexInfo(source, existingData = null) {
     }
 }
 
+// 지수 응답값을 화면용 요약 텍스트와 색상으로 변환해 출력
 function renderIndexSummary(source, data) {
     const currentPrice = parseNumber(data.currentPrice);
     const openPrice = parseNumber(data.openPrice);
@@ -955,6 +988,7 @@ function renderIndexSummary(source, data) {
     });
 }
 
+// 선택한 통화의 환율 정보와 메타 데이터를 패널에 반영
 async function updateExchangeInfo(existingData = null, existingChartData = null) {
     try {
         const currency = getSelectedCurrency();
@@ -966,6 +1000,7 @@ async function updateExchangeInfo(existingData = null, existingChartData = null)
     }
 }
 
+// 환율 응답과 차트 기준으로 요약 영역의 문구와 수치를 만듦
 function renderExchangeSummary(data, chartData = latestChartData) {
     const normalizedChartData = normalizeChartData(chartData);
     const metrics = resolveChangeMetrics(data, normalizedChartData);
@@ -1000,6 +1035,7 @@ function renderExchangeSummary(data, chartData = latestChartData) {
     });
 }
 
+// 공통 요약 DTO를 상단 메타 필드 UI에 출력
 function renderChartSummary(summary) {
     setText('chartStockName', summary.name);
     setText('chartStockCode', summary.code);
@@ -1017,6 +1053,7 @@ function renderChartSummary(summary) {
     setMetaField('chartVolumeLabel', 'chartVolume', summary.volumeLabel, summary.volumeValue, summary.volumeClass);
 }
 
+// 라벨/값 한 쌍으로 구성된 메타 필드를 공통 방식으로 갱신
 function setMetaField(labelId, valueId, labelText, valueText, valueClass = '') {
     setText(labelId, labelText);
     const valueEl = document.getElementById(valueId);
@@ -1028,6 +1065,7 @@ function setMetaField(labelId, valueId, labelText, valueText, valueClass = '') {
     valueEl.className = valueClass || '';
 }
 
+// 상단 지수/환율 티커 숫자를 최신 값으로 갱신
 async function updateTicker() {
     try {
         const [kospi, kosdaq] = await Promise.all([
@@ -1044,6 +1082,7 @@ async function updateTicker() {
     }
 }
 
+// 지수 티커 카드의 숫자와 등락 색상을 렌더링
 function renderIndexTicker(priceId, rateId, data) {
     const priceEl = document.getElementById(priceId);
     const rateEl = document.getElementById(rateId);
@@ -1059,6 +1098,7 @@ function renderIndexTicker(priceId, rateId, data) {
     }
 }
 
+// 환율 카드의 현재가, 등락률, 요약 차트 정보를 함께 갱신
 async function updateExchangeCard(existingData = null, existingChartData = null, currency = getSelectedCurrency()) {
     try {
         const data = existingData || await getExchangeQuote(currency);
@@ -1080,6 +1120,7 @@ async function updateExchangeCard(existingData = null, existingChartData = null,
     }
 }
 
+// 하단 전광판에 표시할 상위 종목 목록을 다시 불러옴
 async function updateTopStocks() {
     try {
         const stocks = await fetchJson('/api/stock/top-fluctuation');
@@ -1109,11 +1150,13 @@ async function updateTopStocks() {
     }
 }
 
+// AI 브리핑 로테이터 데이터를 준비하고 자동 순환을 시작
 function initAiRotator() {
     rebuildAiRotatorItems(true);
     startAiRotator();
 }
 
+// AI 브리핑 자동 순환 타이머를 중지
 function stopAiRotator() {
     if (aiRotatorTimer) {
         clearInterval(aiRotatorTimer);
@@ -1122,6 +1165,7 @@ function stopAiRotator() {
 }
 
 // 종목을 새로 검색했을 때는 기존 섹터 로테이션을 잠깐 멈추고, 해당 종목 확률 카드를 먼저 보여준다.
+// 새 종목 선택 직후 예측 대기 상태 카드를 먼저 보여준다.
 function showPendingStockAiCard(stockCode, stockName) {
     if (!stockCode) {
         return;
@@ -1134,6 +1178,7 @@ function showPendingStockAiCard(stockCode, stockName) {
     rebuildAiRotatorItems(true);
 }
 
+// 종목 예측과 섹터 카드를 합쳐 로테이터 아이템 목록을 다시 만듦
 function rebuildAiRotatorItems(resetIndex = false) {
     const seed = window.AI_ROTATOR_DATA || {};
     const sectorItems = Array.isArray(seed.sectors)
@@ -1154,6 +1199,7 @@ function rebuildAiRotatorItems(resetIndex = false) {
     renderAiRotatorItem(aiRotatorItems[aiRotatorIndex] || null);
 }
 
+// AI 브리핑 카드를 일정 주기로 순환 표시
 function startAiRotator() {
     stopAiRotator();
 
@@ -1171,6 +1217,7 @@ function startAiRotator() {
     }, 10000);
 }
 
+// 현재 선택 종목의 AI 예측 결과를 새로 받아 로테이터를 갱신
 async function refreshAiPredictionForCurrentCode() {
     if (!currentCode) {
         return;
@@ -1208,6 +1255,7 @@ async function refreshAiPredictionForCurrentCode() {
     }
 }
 
+// 종목 AI 응답을 로테이터 카드에 맞는 표시 데이터로 변환
 function buildStockAiRotatorItem(stock, allowFallbackCard = false) {
     const stockCode = stock?.stockCode || currentCode;
     const stockName = stock?.stockName || currentStockName || stockCode;
@@ -1301,6 +1349,7 @@ function buildStockAiRotatorItem(stock, allowFallbackCard = false) {
     };
 }
 
+// 예측 응답이 오기 전 임시 로딩 카드 데이터를 생성
 function createPendingStockAiSeed(code, name) {
     return {
         valid: false,
@@ -1323,6 +1372,7 @@ function createPendingStockAiSeed(code, name) {
     };
 }
 
+// 서버 응답의 필드명을 화면에서 쓰기 쉬운 형태로 정규화
 function normalizeAiPredictionResponse(stockAi, fallbackCode, fallbackName) {
     const recentArticles = Array.isArray(stockAi?.recentArticles)
         ? stockAi.recentArticles
@@ -1357,6 +1407,7 @@ function normalizeAiPredictionResponse(stockAi, fallbackCode, fallbackName) {
     };
 }
 
+// 여러 후보 값 중 가장 먼저 정의된 값을 반환
 function firstDefined(...values) {
     for (const value of values) {
         if (value !== undefined && value !== null) {
@@ -1366,6 +1417,7 @@ function firstDefined(...values) {
     return undefined;
 }
 
+// 섹터 카드 데이터를 AI 브리핑 로테이터 아이템 형태로 변환
 function buildSectorAiRotatorItem(card) {
     const articleCount = safeNumber(parseNumber(card?.articleCount));
     const trendScore = parseNumber(card?.trendScore);
@@ -1428,6 +1480,7 @@ function buildSectorAiRotatorItem(card) {
     };
 }
 
+// 현재 로테이터 아이템을 AI 브리핑 패널 UI에 그림
 function renderAiRotatorItem(item) {
     const panel = document.getElementById('aiRotatorPanel');
     if (!panel) {
@@ -1466,6 +1519,7 @@ function renderAiRotatorItem(item) {
     setText('aiRotatorMeta', item.meta || '참고용');
 }
 
+// AI 브리핑 카드의 개별 요인 바와 텍스트를 갱신
 function setAiFactor(index, factor) {
     setText(`aiFactor${index}Label`, factor.label);
     setElementClass(`aiFactor${index}Fill`, `factorFill ${factor.fillClass || 'fill-neutral'}`);
@@ -1480,10 +1534,12 @@ function setAiFactor(index, factor) {
     valueEl.className = `factorVal ${factor.valueClass || 'neutral'}`;
 }
 
+// AI 브리핑 카드에서 공통으로 쓰는 요인 객체를 만듦
 function createAiFactor(label, width, fillClass, value, valueClass) {
     return { label, width, fillClass, value, valueClass };
 }
 
+// 낚시성 확률을 사용자용 설명 문구로 변환
 function describeClickbait(clickbaitValue) {
     if (clickbaitValue <= 20) {
         return '낮음';
@@ -1494,6 +1550,7 @@ function describeClickbait(clickbaitValue) {
     return '주의';
 }
 
+// 메인 화면 게이지 바를 데이터 값에 맞춰 애니메이션
 function animateGauges() {
     const data = window.STOCK_DATA || { typeProb: 0, noiseProb: 0, sentimentScore: 50 };
 
@@ -1531,6 +1588,7 @@ function animateGauges() {
     }
 }
 
+// 메인 화면의 AI 뉴스 종합 분석 수치와 설명을 갱신
 function updateAIAnalysis(data) {
     setStyleWidth('confBar', `${data.confidence}%`);
     setText('confVal', `${data.confidence}%`);
@@ -1541,6 +1599,7 @@ function updateAIAnalysis(data) {
     setText('aiDesc', data.desc);
 }
 
+// 현재 시간이 국내 주식 정규장 시간인지 판단
 function isMarketOpen() {
     const now = new Date();
     const day = now.getDay();
@@ -1552,10 +1611,12 @@ function isMarketOpen() {
     return time >= 900 && time <= 1530;
 }
 
+// 환율 선택기에서 현재 선택된 통화 코드를 가져옴
 function getSelectedCurrency() {
     return document.getElementById('currencySelect')?.value || 'USD';
 }
 
+// 환율 선택기에서 현재 선택된 통화 표시명을 가져옴
 function getSelectedCurrencyLabel() {
     const select = document.getElementById('currencySelect');
     if (!select) {
@@ -1566,10 +1627,12 @@ function getSelectedCurrencyLabel() {
     return option ? option.text : 'USD/KRW';
 }
 
+// 화면에서 사용하는 통화 표기를 내부 표준 통화 코드로 맞춤
 function normalizeCurrency(currency) {
     return String(currency || 'USD').toUpperCase().split('(')[0].trim();
 }
 
+// 환율 응답과 차트로부터 현재가/등락/등락률 메트릭을 계산
 async function resolveExchangeMetrics(data, fallbackChartData = null, currency = getSelectedCurrency()) {
     let metrics = resolveChangeMetrics(
         data,
@@ -1589,6 +1652,7 @@ async function resolveExchangeMetrics(data, fallbackChartData = null, currency =
     return metrics;
 }
 
+// 일반 시세 응답에서 등락 금액과 등락률을 우선 계산
 function resolveChangeMetrics(data, fallbackChartData = null) {
     const current = parseNumber(data?.currentPrice);
     let change = parseNumber(data?.priceChange);
@@ -1627,6 +1691,7 @@ function resolveChangeMetrics(data, fallbackChartData = null) {
     return { current: resolvedCurrent, change, rate, direction };
 }
 
+// 직접 등락 정보가 없을 때 차트 데이터로 전일 대비 메트릭을 추정
 function deriveMetricsFromChart(current, fallbackChartData) {
     const priceSource = Array.isArray(fallbackChartData?.closePrices)
         ? fallbackChartData.closePrices
@@ -1651,10 +1716,12 @@ function deriveMetricsFromChart(current, fallbackChartData) {
     return { current: resolvedCurrent, change, rate };
 }
 
+// 등락 메트릭이 충분히 계산됐는지 확인
 function hasResolvedMetrics(metrics) {
     return !Number.isNaN(metrics?.change) || !Number.isNaN(metrics?.rate);
 }
 
+// 금액 변화와 변화율을 한 줄 텍스트로 조합
 function buildChangeDisplay(change, rate, digits, amountSuffix) {
     if (Number.isNaN(change) && Number.isNaN(rate)) {
         return { text: '-', className: '' };
@@ -1676,6 +1743,7 @@ function buildChangeDisplay(change, rate, digits, amountSuffix) {
     };
 }
 
+// 변화율만으로 방향 화살표와 표시 문자열을 만듦
 function buildRateOnly(rate, directionOverride = null) {
     if (Number.isNaN(rate)) {
         if (directionOverride == null || directionOverride === 0) {
@@ -1697,6 +1765,7 @@ function buildRateOnly(rate, directionOverride = null) {
     };
 }
 
+// 값이 없는 차트 요청에 대비한 기본 데이터 구조를 만듦
 function emptyChartData() {
     return {
         labels: [],
@@ -1708,6 +1777,7 @@ function emptyChartData() {
     };
 }
 
+// 서버 응답 차트 데이터를 필수 배열이 있는 형태로 정규화
 function normalizeChartData(data) {
     return {
         labels: Array.isArray(data?.labels) ? data.labels : [],
@@ -1719,10 +1789,12 @@ function normalizeChartData(data) {
     };
 }
 
+// 통화별 환율 캐시 키를 만듦
 function getExchangeCacheKey(currency) {
     return normalizeCurrency(currency || getSelectedCurrency());
 }
 
+// TTL이 남아 있는 환율 캐시가 있으면 반환
 function readExchangeCache(cache, key, ttlMs) {
     const entry = cache.get(key);
     if (!entry) {
@@ -1737,6 +1809,7 @@ function readExchangeCache(cache, key, ttlMs) {
     return entry.data;
 }
 
+// 환율 조회 결과를 현재 시각과 함께 캐시에 저장
 function writeExchangeCache(cache, key, data) {
     cache.set(key, {
         data,
@@ -1745,6 +1818,7 @@ function writeExchangeCache(cache, key, data) {
     return data;
 }
 
+// 환율 현재가를 캐시 우선 전략으로 조회
 async function getExchangeQuote(currency = getSelectedCurrency(), forceRefresh = false) {
     const cacheKey = getExchangeCacheKey(currency);
     if (!forceRefresh) {
@@ -1767,6 +1841,7 @@ async function getExchangeQuote(currency = getSelectedCurrency(), forceRefresh =
     return request;
 }
 
+// 환율 차트 데이터를 캐시 우선 전략으로 조회
 async function getExchangeChart(currency = getSelectedCurrency(), forceRefresh = false) {
     const cacheKey = getExchangeCacheKey(currency);
     if (!forceRefresh) {
@@ -1789,6 +1864,7 @@ async function getExchangeChart(currency = getSelectedCurrency(), forceRefresh =
     return request;
 }
 
+// 공통 fetch 래퍼로 JSON 응답을 받아 에러를 표준화
 async function fetchJson(url) {
     const response = await fetch(url);
     if (!response.ok) {
@@ -1797,6 +1873,7 @@ async function fetchJson(url) {
     return response.json();
 }
 
+// 숫자처럼 보이는 문자열을 안전하게 숫자로 변환
 function parseNumber(value) {
     if (value == null || value === '') {
         return Number.NaN;
@@ -1806,10 +1883,12 @@ function parseNumber(value) {
     return Number.isFinite(parsed) ? parsed : Number.NaN;
 }
 
+// 숫자가 아니면 0으로 처리해 후속 계산 오류를 막는다
 function safeNumber(value) {
     return Number.isNaN(value) ? 0 : value;
 }
 
+// 숫자를 지정한 소수점 자리수로 화면 표시 문자열로 변환
 function formatNumber(value, digits) {
     if (Number.isNaN(value)) {
         return '-';
@@ -1821,16 +1900,19 @@ function formatNumber(value, digits) {
     });
 }
 
+// 배열에서 최대 숫자 값을 찾는다.
 function getMaxValue(values) {
     const numbers = values.map(parseNumber).filter((value) => !Number.isNaN(value));
     return numbers.length ? Math.max(...numbers) : Number.NaN;
 }
 
+// 배열에서 최소 숫자 값을 찾는다
 function getMinValue(values) {
     const numbers = values.map(parseNumber).filter((value) => !Number.isNaN(value));
     return numbers.length ? Math.min(...numbers) : Number.NaN;
 }
 
+// DOM 요소의 텍스트를 공통 방식으로 갱신
 function setText(id, value) {
     const element = document.getElementById(id);
     if (element) {
@@ -1838,6 +1920,7 @@ function setText(id, value) {
     }
 }
 
+// DOM 요소의 HTML 내용을 공통 방식으로 갱신
 function setHtml(id, value) {
     const element = document.getElementById(id);
     if (element) {
@@ -1845,6 +1928,7 @@ function setHtml(id, value) {
     }
 }
 
+// DOM 요소의 width 스타일을 공통 방식으로 갱신한
 function setStyleWidth(id, value) {
     const element = document.getElementById(id);
     if (element) {
@@ -1852,6 +1936,7 @@ function setStyleWidth(id, value) {
     }
 }
 
+// DOM 요소의 클래스를 한 번에 교체
 function setElementClass(id, value) {
     const element = document.getElementById(id);
     if (element) {
@@ -1859,10 +1944,12 @@ function setElementClass(id, value) {
     }
 }
 
+// 숫자를 지정 범위 안으로 제한
 function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
 }
 
+// 부호를 포함한 소수점 숫자 문자열을 만듦
 function formatSignedDecimal(value, digits) {
     if (Number.isNaN(value)) {
         return '-';

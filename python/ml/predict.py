@@ -51,6 +51,14 @@ try:
 except ImportError:
     fdr = None
 
+SCRIPT_DIR = Path(__file__).resolve().parent
+MODEL_DIR = SCRIPT_DIR / "models"
+DATA_DIR = SCRIPT_DIR / "data"
+DEFAULT_MODEL_PATH = str(MODEL_DIR / "lgbm_model.pkl")
+DEFAULT_SQLITE_PATH = str(DATA_DIR / "news_data.db")
+DEFAULT_ORACLE_COMPANY_PATH = str(DATA_DIR / "oracle_company.csv")
+DEFAULT_ORACLE_SECTOR_PATH = str(DATA_DIR / "oracle_sector.csv")
+
 
 # ── 카테고리 → 종목코드 매핑 ─────────────────────────────────
 # feature_builder.py와 동일한 매핑 유지 (일관성 보장)
@@ -126,9 +134,9 @@ def load_model(model_path: str) -> dict:
 def get_news_features(
         stock_code:      str,
         target_date:     str,
-        sqlite_db:       str = "news_data.db",
-        oracle_company:  str = "oracle_company.csv",
-        oracle_sector:   str = "oracle_sector.csv",
+        sqlite_db:       str = DEFAULT_SQLITE_PATH,
+        oracle_company:  str = DEFAULT_ORACLE_COMPANY_PATH,
+        oracle_sector:   str = DEFAULT_ORACLE_SECTOR_PATH,
         days_back:       int = 3,
 ) -> dict:
     date_end   = pd.to_datetime(target_date)
@@ -420,9 +428,9 @@ def predict(
         payload:        dict | None,
         stock_code:     str,
         target_date:    str,
-        sqlite_db:      str = "news_data.db",
-        oracle_company: str = "oracle_company.csv",
-        oracle_sector:  str = "oracle_sector.csv",
+        sqlite_db:      str = DEFAULT_SQLITE_PATH,
+        oracle_company: str = DEFAULT_ORACLE_COMPANY_PATH,
+        oracle_sector:  str = DEFAULT_ORACLE_SECTOR_PATH,
         model_warning:  str = "",
 ) -> dict:
     meta = payload.get("meta", {}) if isinstance(payload, dict) else {}
@@ -531,4 +539,12 @@ if __name__ == "__main__":
     parser.add_argument("--oracle-company", default="oracle_company.csv", help="기업별 뉴스 CSV")
     parser.add_argument("--oracle-sector",  default="oracle_sector.csv",  help="섹터별 뉴스 CSV")
     args = parser.parse_args()
+    if args.model == "lgbm_model.pkl":
+        args.model = DEFAULT_MODEL_PATH
+    if args.sqlite == "news_data.db":
+        args.sqlite = DEFAULT_SQLITE_PATH
+    if args.oracle_company == "oracle_company.csv":
+        args.oracle_company = DEFAULT_ORACLE_COMPANY_PATH
+    if args.oracle_sector == "oracle_sector.csv":
+        args.oracle_sector = DEFAULT_ORACLE_SECTOR_PATH
     main(args)

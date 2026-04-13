@@ -85,6 +85,7 @@ public class ExchangeService {
         }
     }
 
+    // 공통 설정이 적용된 WebClient 인스턴스를 생성
     private WebClient createClient(String baseUrl, reactor.netty.http.client.HttpClient httpClient) {
         return WebClient.builder()
                 .baseUrl(baseUrl)
@@ -156,6 +157,7 @@ public class ExchangeService {
         return buildFallbackChart(normalizedCurrency);
     }
 
+    // 차트 데이터가 없을 때 현재가와 전일가만으로 최소 차트를 만듦
     private StockChartDto buildFallbackChart(String currency) {
         StockResponseDto quote = getExchangeRate(currency);
         double currentPrice = parseNumber(quote.getCurrentPrice());
@@ -181,6 +183,7 @@ public class ExchangeService {
         return buildChartDto(labels, prices, volumes);
     }
 
+    // EXIM API에서 환율 현재가와 전일 대비 정보를 채움
     private boolean loadFromExim(String currency, StockResponseDto dto) {
         String eximUnit = EXIM_UNITS.get(currency);
         if (eximUnit == null || eximApiKey == null || eximApiKey.isBlank()) {
@@ -214,6 +217,7 @@ public class ExchangeService {
         }
     }
 
+    // EXIM 실패 시 KIS 환율 시세로 현재가와 등락률을 보완
     private boolean loadFromKis(String currency, StockResponseDto dto) {
         String symbol = KIS_SYMBOLS.get(currency);
         if (symbol == null) {
@@ -266,6 +270,7 @@ public class ExchangeService {
         }
     }
 
+    // KIS 실패 시 Frankfurter 환율 데이터를 사용해 현재가를 계산
     private boolean loadFromFrankfurter(String currency, StockResponseDto dto) {
         try {
             ExchangeRatePoint latest = fetchFrankfurterRate(currency, null);
@@ -293,6 +298,7 @@ public class ExchangeService {
         }
     }
 
+    // 마지막 대체 수단으로 open.er-api 값을 현재가 DTO에 반영한다.
     private void loadFromErApi(String currency, StockResponseDto dto) {
         try {
             String raw = erClient.get()
@@ -325,9 +331,10 @@ public class ExchangeService {
         }
     }
 
+    // Frankfurter 시계열 응답을 차트 DTO로 변환
     private StockChartDto buildFrankfurterChart(String currency) {
         try {
-            // EXIM 차트가 비는 경우에만 외부 환율 기간 API로 일별 포인트를 보강한다.
+            // EXIM 차트가 비는 경우에만 외부 환율 기간 API로 일별 포인트를 보강
             List<ExchangeRatePoint> points = fetchFrankfurterSeries(
                     currency,
                     LocalDate.now().minusDays(EXCHANGE_LOOKBACK_DAYS),
@@ -354,6 +361,7 @@ public class ExchangeService {
         }
     }
 
+    // 라벨, 가격, 거래량 배열을 표준 차트 DTO로
     private StockChartDto buildChartDto(List<String> labels, List<String> prices, List<String> volumes) {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(labels);
@@ -362,6 +370,7 @@ public class ExchangeService {
         return dto;
     }
 
+    // 최근 며칠 범위 안에서 사용 가능한 EXIM 환율 스냅샷을 찾음
     private ExchangeSnapshot findEximSnapshot(String unit, LocalDate startDate, int maxDaysBack) {
         for (int i = 0; i < maxDaysBack; i++) {
             LocalDate date = startDate.minusDays(i);
@@ -373,6 +382,7 @@ public class ExchangeService {
         return null;
     }
 
+    // 특정 날짜의 EXIM 환율 데이터를 단건 조회
     private ExchangeSnapshot fetchEximSnapshot(String unit, LocalDate date) {
         try {
             String raw = eximClient.get()
@@ -408,6 +418,7 @@ public class ExchangeService {
         return null;
     }
 
+    // 조회 실패 시에도 화면이 깨지지 않도록 기본 환율 DTO를 만듦
     private StockResponseDto emptyResponseDto() {
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0");
@@ -416,6 +427,7 @@ public class ExchangeService {
         return dto;
     }
 
+    // 데이터가 없을 때 사용할 빈 환율 차트 DTO를 만둚
     private StockChartDto emptyChart() {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(new ArrayList<>());
@@ -424,6 +436,7 @@ public class ExchangeService {
         return dto;
     }
 
+    // 화면/외부 API에서 들어온 통화 코드를 내부 표준 코드로 정규화
     private String normalizeCurrency(String currency) {
         if (currency == null || currency.isBlank()) {
             return "USD";
@@ -437,6 +450,7 @@ public class ExchangeService {
         return normalized;
     }
 
+    // 여러 후보 필드 중 첫 번째 유효 문자열 값을 가져옴
     private String firstText(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
             JsonNode value = node.get(fieldName);
@@ -452,6 +466,7 @@ public class ExchangeService {
         return "";
     }
 
+    // 특정 날짜의 Frankfurter 환율 값을 단건 조회
     private ExchangeRatePoint fetchFrankfurterRate(String currency, LocalDate date) {
         String base = FRANKFURTER_BASES.get(currency);
         if (base == null) {
@@ -482,6 +497,7 @@ public class ExchangeService {
         return new ExchangeRatePoint(LocalDate.parse(dateText), applyDisplayMultiplier(currency, rate));
     }
 
+    // 기준일 이전 가장 가까운 Frankfurter 환율 값을 찾음
     private ExchangeRatePoint fetchFrankfurterPreviousRate(String currency, LocalDate latestDate) {
         List<ExchangeRatePoint> points = fetchFrankfurterSeries(currency, latestDate.minusDays(7), latestDate.minusDays(1));
         if (points.isEmpty()) {
@@ -490,6 +506,7 @@ public class ExchangeService {
         return points.get(points.size() - 1);
     }
 
+    // 날짜 구간의 Frankfurter 시계열 환율 데이터를 수집
     private List<ExchangeRatePoint> fetchFrankfurterSeries(String currency, LocalDate from, LocalDate to) {
         String base = FRANKFURTER_BASES.get(currency);
         if (base == null || to.isBefore(from)) {
@@ -524,6 +541,7 @@ public class ExchangeService {
         return points;
     }
 
+    // KIS 응답에 등락 정보가 없을 때 이전 종가를 추정해 보완
     private Double fetchKisPreviousClose(String symbol, double currentPrice) {
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
@@ -571,6 +589,7 @@ public class ExchangeService {
         return null;
     }
 
+    // 여러 필드 후보 중 0보다 큰 첫 번째 숫자 값을 찾음
     private double firstPositiveNumber(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
             double value = parseNumber(firstText(node, fieldName));
@@ -581,14 +600,17 @@ public class ExchangeService {
         return 0;
     }
 
+    // 문자열이 0보다 큰 숫자로 해석 가능한지 확인
     private boolean hasPositiveNumber(String value) {
         return parseNumber(value) > 0;
     }
 
+    // 비어 있는 숫자 문자열을 0으로 치환
     private String defaultZero(String value) {
         return value == null || value.isBlank() ? "0" : value;
     }
 
+    // 문자열 환율 값을 계산 가능한 숫자로 변환
     private double parseNumber(String value) {
         if (value == null || value.isBlank()) {
             return 0;
@@ -601,10 +623,12 @@ public class ExchangeService {
         }
     }
 
+    // 숫자 값을 화면과 DTO에서 공통으로 쓰는 문자열 형식으로 변환
     private String formatNumber(double value) {
         return String.format(Locale.US, "%.2f", value);
     }
 
+    // 등락 숫자를 부호가 포함된 문자열로 변환
     private String formatSignedNumber(double value) {
         return String.format(Locale.US, "%.2f", value);
     }
@@ -612,6 +636,7 @@ public class ExchangeService {
     private record ExchangeSnapshot(LocalDate date, double price) {
     }
 
+    // JPY(100) 같은 표시 단위를 맞추기 위해 통화별 배율을 적용
     private double applyDisplayMultiplier(String currency, double rate) {
         return "JPY".equals(currency) ? rate * 100 : rate;
     }

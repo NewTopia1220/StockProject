@@ -35,6 +35,7 @@ public class StockPriceService {
 
     private final KisApiService kisApi;
 
+    // 특정 종목의 현재 시세와 전일 대비 정보를 조회
     public StockResponseDto getCurrentPrice(String stockCode) {
         kisApi.issueToken();
 
@@ -80,6 +81,7 @@ public class StockPriceService {
         return dto;
     }
 
+    // 특정 종목의 일봉 차트 데이터를 조회
     public StockChartDto getDailyPrice(String stockCode) {
         kisApi.issueToken();
 
@@ -104,46 +106,57 @@ public class StockPriceService {
         }
     }
 
+    // 특정 종목의 시간봉 차트 데이터
     public StockChartDto getTimePrice(String stockCode) {
         return getStockIntradayPrice(stockCode, "Y");
     }
 
+    // 특정 종목의 분봉 차트 데이터
     public StockChartDto getMinutePrice(String stockCode) {
         return getStockIntradayPrice(stockCode, "N");
     }
 
+    // KOSPI 현재 지수
     public StockResponseDto getKospiIndex() {
         return getIndexQuote(KOSPI_CODE, "KOSPI");
     }
 
+    // KOSPI 일봉 차트
     public StockChartDto getKospiChart() {
         return getIndexDailyChart(KOSPI_CODE);
     }
 
+    // KOSPI 시간봉 차트
     public StockChartDto getKospiTimeChart() {
         return getIndexIntradayChart(KOSPI_CODE, INDEX_HOURLY_INTERVAL);
     }
 
+    // KOSPI 분봉 차트
     public StockChartDto getKospiMinuteChart() {
         return getIndexIntradayChart(KOSPI_CODE, INDEX_MINUTE_INTERVAL);
     }
 
+    // KOSDAQ 현재 지수
     public StockResponseDto getKosdaqIndex() {
         return getIndexQuote(KOSDAQ_CODE, "KOSDAQ");
     }
 
+    // KOSDAQ 일봉 차트
     public StockChartDto getKosdaqChart() {
         return getIndexDailyChart(KOSDAQ_CODE);
     }
 
+    // KOSDAQ 시간봉 차트
     public StockChartDto getKosdaqTimeChart() {
         return getIndexIntradayChart(KOSDAQ_CODE, INDEX_HOURLY_INTERVAL);
     }
 
+    // KOSDAQ 분봉 차트
     public StockChartDto getKosdaqMinuteChart() {
         return getIndexIntradayChart(KOSDAQ_CODE, INDEX_MINUTE_INTERVAL);
     }
 
+    // 등락률 상위 종목 목록
     public List<StockResponseDto> getTopFluctuation() {
         kisApi.issueToken();
         List<StockResponseDto> result = new ArrayList<>();
@@ -190,6 +203,7 @@ public class StockPriceService {
         return result;
     }
 
+    // 거래대금 상위 종목 목록
     public List<StockResponseDto> getTopByTradeAmount() {
         kisApi.issueToken();
         List<StockResponseDto> result = new ArrayList<>();
@@ -233,6 +247,7 @@ public class StockPriceService {
         return result;
     }
 
+    // 장중 체결 데이터를 이용해 종목 시간봉 또는 분봉 차트를 만든다.
     private StockChartDto getStockIntradayPrice(String stockCode, String includePastData) {
         kisApi.issueToken();
 
@@ -259,6 +274,7 @@ public class StockPriceService {
         }
     }
 
+    // 지수 코드로 현재 지수 정보를 조회
     private StockResponseDto getIndexQuote(String indexCode, String indexName) {
         kisApi.issueToken();
 
@@ -291,6 +307,7 @@ public class StockPriceService {
         return dto;
     }
 
+    // 지수 코드로 최근 일봉 차트 데이터를 조회
     private StockChartDto getIndexDailyChart(String indexCode) {
         kisApi.issueToken();
 
@@ -319,6 +336,7 @@ public class StockPriceService {
         }
     }
 
+    // 지수 코드와 간격값을 이용해 장중 차트 데이터를 조회
     private StockChartDto getIndexIntradayChart(String indexCode, String intervalCode) {
         kisApi.issueToken();
 
@@ -344,6 +362,7 @@ public class StockPriceService {
         }
     }
 
+    // 일자별 응답 배열을 공통 차트 DTO 형식으로 변환
     private StockChartDto parseChartFromArray(JsonNode array, String dateField, String priceField, String volumeField) {
         List<String> labels = new ArrayList<>();
         List<String> openPrices = new ArrayList<>();
@@ -378,6 +397,7 @@ public class StockPriceService {
         return dto;
     }
 
+    // 종목 시간 체결 배열을 캔들/거래량 차트용 데이터로 변환
     private StockChartDto parseStockTimeChart(JsonNode array) {
         List<String> labels = new ArrayList<>();
         List<String> openPrices = new ArrayList<>();
@@ -412,6 +432,7 @@ public class StockPriceService {
         return dto;
     }
 
+    // 지수 시간 체결 배열을 캔들/거래량 차트용 데이터로 변환한다.
     private StockChartDto parseIndexTimeChart(JsonNode array) {
         List<String> labels = new ArrayList<>();
         List<String> openPrices = new ArrayList<>();
@@ -448,6 +469,7 @@ public class StockPriceService {
         return dto;
     }
 
+    // 조회 실패 시에도 사용할 수 있는 기본 시세 DTO를 만듦
     private StockResponseDto emptyResponseDto() {
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0");
@@ -461,6 +483,7 @@ public class StockPriceService {
         return dto;
     }
 
+    // 차트 데이터가 없을 때 사용할 빈 차트 DTO를 만듦
     private StockChartDto emptyChart() {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(new ArrayList<>());
@@ -472,10 +495,12 @@ public class StockPriceService {
         return dto;
     }
 
+    // 단일 필드명을 공통 텍스트 추출 함수로 위임
     private String text(JsonNode node, String fieldName) {
         return text(node, new String[]{fieldName});
     }
 
+    // 여러 후보 필드 중 첫 번째 유효 값을 문자열로 추출
     private String text(JsonNode node, String... fieldNames) {
         if (node == null || fieldNames == null) {
             return "";
@@ -499,10 +524,12 @@ public class StockPriceService {
         return "";
     }
 
+    // 비어 있는 값을 차트/시세 계산용 0 문자열로 치환
     private String defaultZero(String value) {
         return value == null || value.isBlank() ? "0" : value;
     }
 
+    // HHmmss 형식 시간을 화면 표시용 HH:mm 으로 변환
     private String formatTimeOnly(String rawTime) {
         if (rawTime == null || rawTime.length() < 4) {
             return rawTime == null || rawTime.isBlank() ? "-" : rawTime;
@@ -510,6 +537,7 @@ public class StockPriceService {
         return rawTime.substring(0, 2) + ":" + rawTime.substring(2, 4);
     }
 
+    // 날짜와 시간을 차트 라벨에 맞는 MM-dd HH:mm 형식으로 합짐
     private String formatDateTimeLabel(String rawDate, String rawTime) {
         String timeText = formatTimeOnly(rawTime);
         if (rawDate == null || rawDate.length() != 8) {

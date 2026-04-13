@@ -64,11 +64,13 @@ public class StockAiService {
     private final ConcurrentHashMap<String, CacheEntry<AiPredictionDto>> stockPredictCache = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<String, CacheEntry<Double>> articleImpactCache = new ConcurrentHashMap<>();
 
+    // 오늘 날짜 기준으로 종목 상승/하락 예측을 수행
     public AiPredictionDto predict(String stockCode) {
         String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
         return predict(stockCode, today);
     }
 
+    // 지정한 날짜 기준으로 종목 예측을 수행하고 결과를 캐시
     public AiPredictionDto predict(String stockCode, String date) {
         String cacheKey = buildStockPredictCacheKey(stockCode, date);
         AiPredictionDto cached = getCached(stockPredictCache, cacheKey);
@@ -98,6 +100,7 @@ public class StockAiService {
 
     /**
      * DB 영향도 값이 없을 때 기사 단위 모델값으로 폴백.
+     * 기사 정보로 단기 주가 영향도를 계산하고 결과를 캐시
      * @return 영향도 퍼센트(-100 ~ 100) 또는 null
      */
     public Double predictArticleImpact(NewsDto dto) {
@@ -140,7 +143,8 @@ public class StockAiService {
         }
     }
 
-    // 종목 예측과 기사 영향도 예측이 같은 규칙으로 실행되도록 ProcessBuilder 생성을 분리했다.
+    // 종목 예측과 기사 영향도 예측이 같은 규칙으로 실행되도록 ProcessBuilder 생성을 분리
+    // 종목 예측용 Python 프로세스 실행 명령을 구성.
     private ProcessBuilder buildStockPredictProcess(String stockCode, String date) {
         return new ProcessBuilder(
                 resolvePythonExecutable(),
@@ -154,6 +158,7 @@ public class StockAiService {
         );
     }
 
+    // 기사 영향도 예측용 Python 프로세스 실행 명령을 구성
     private ProcessBuilder buildArticleImpactProcess(NewsDto dto) {
         return new ProcessBuilder(
                 resolvePythonExecutable(),
@@ -173,6 +178,7 @@ public class StockAiService {
         );
     }
 
+    // Python 스크립트를 실행하고 표준 출력 결과를 UTF-8 문자열로 수집
     private String runProcess(ProcessBuilder pb, String scriptLabel) throws Exception {
         // Python 쪽 stdout/stderr를 UTF-8로 고정해서 한글 깨짐과 JSON 파싱 오류를 줄인다.
         pb.redirectErrorStream(false);
@@ -223,6 +229,7 @@ public class StockAiService {
         return stdout.toString();
     }
 
+    // 예측 실패 시 화면에서 공통으로 사용할 에러 DTO를 만듦
     private AiPredictionDto errorDto(String message) {
         AiPredictionDto dto = new AiPredictionDto();
         dto.setError(message);
@@ -230,6 +237,7 @@ public class StockAiService {
         return dto;
     }
 
+    // 경로 문자열이 실제 파일로 존재하는지 확인
     private boolean existsPath(String pathText) {
         if (isBlank(pathText)) {
             return false;
@@ -241,15 +249,18 @@ public class StockAiService {
         }
     }
 
+    // null 문자열을 빈 문자열로 정규화
     private String safe(String value) {
         return value == null ? "" : value;
     }
 
+    // 문자열이 null 이거나 비어 있는지 확인
     private boolean isBlank(String value) {
         return value == null || value.isBlank();
     }
 
-    // 팀원 환경마다 PYTHON_PATH가 비어 있어도, 프로젝트 루트의 가상환경이 있으면 그쪽을 우선 사용한다.
+    // 팀원 환경마다 PYTHON_PATH가 비어 있어도, 프로젝트 루트의 가상환경이 있으면 그쪽을 우선 사용
+    // 환경 변수나 프로젝트 가상환경을 기준으로 실제 Python 실행 파일 경로를 찾음
     private String resolvePythonExecutable() {
         if (!isBlank(pythonPath) && !isGenericPythonCommand(pythonPath)) {
             return pythonPath;
@@ -272,6 +283,7 @@ public class StockAiService {
         return isBlank(pythonPath) ? "python" : pythonPath;
     }
 
+    // 단순 python 명령인지, 실제 절대/상대 경로가 지정됐는지 구분
     private boolean isGenericPythonCommand(String value) {
         if (isBlank(value)) {
             return true;
@@ -284,6 +296,7 @@ public class StockAiService {
             || normalized.equals("py.exe");
     }
 
+    // 기사 영향도 캐시용 키를 링크와 모델 파일 상태 기준으로 만듦
     private String buildArticleCacheKey(NewsDto dto) {
         if (!isBlank(dto.getLink())) {
             return "LINK|" + dto.getLink() + "|" + buildPathSignature(articleImpactModelPath, sqlitePath, oracleCompanyPath, oracleSectorPath);
@@ -292,11 +305,13 @@ public class StockAiService {
             + "|" + buildPathSignature(articleImpactModelPath, sqlitePath, oracleCompanyPath, oracleSectorPath);
     }
 
+    // 종목 예측 캐시용 키를 종목코드, 날짜, 모델 파일 상태 기준으로 만듦
     private String buildStockPredictCacheKey(String stockCode, String date) {
         return stockCode + "|" + date + "|" + buildPathSignature(modelPath, sqlitePath, oracleCompanyPath, oracleSectorPath);
     }
 
-    // 모델이나 원본 데이터가 교체되면 캐시가 즉시 무효화되도록 파일 시그니처를 키에 포함한다.
+    // 모델이나 원본 데이터가 교체되면 캐시가 즉시 무효화되도록 파일 시그니처를 키에 포함
+    // 모델 파일 변경 시 캐시가 무효화되도록 파일 상태 서명을 조합
     private String buildPathSignature(String... pathTexts) {
         StringBuilder signature = new StringBuilder();
         for (String pathText : pathTexts) {
@@ -305,6 +320,7 @@ public class StockAiService {
         return signature.toString();
     }
 
+    // 파일의 수정 시각과 크기를 캐시 무효화용 문자열로 변환
     private String resolvePathStamp(String pathText) {
         if (isBlank(pathText)) {
             return "missing";
@@ -320,6 +336,7 @@ public class StockAiService {
         }
     }
 
+    // 캐시에 값이 남아 있고 만료되지 않았으면 바로 반환
     private <T> T getCached(ConcurrentHashMap<String, CacheEntry<T>> cache, String key) {
         CacheEntry<T> entry = cache.get(key);
         if (entry == null) {
@@ -332,6 +349,7 @@ public class StockAiService {
         return entry.value;
     }
 
+    // 계산 결과를 TTL 기반 캐시에 저장
     private <T> void putCached(
         ConcurrentHashMap<String, CacheEntry<T>> cache,
         String key,
@@ -349,11 +367,13 @@ public class StockAiService {
         private final T value;
         private final long expiresAtMillis;
 
+        // 캐시 값과 만료 시각을 함께 보관
         private CacheEntry(T value, long expiresAtMillis) {
             this.value = value;
             this.expiresAtMillis = expiresAtMillis;
         }
 
+        // 현재 시각이 만료 시각을 지났는지 확인
         private boolean isExpired() {
             return System.currentTimeMillis() >= expiresAtMillis;
         }
