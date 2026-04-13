@@ -71,6 +71,7 @@ public class NewsController {
         model.addAttribute("totalCount", totalCount);
         model.addAttribute("totalPages", totalPages);
         model.addAttribute("currentPage", page);
+        model.addAttribute("currentPageNum", page);
         model.addAttribute("sector", sector);
         model.addAttribute("keyword", keyword);
 

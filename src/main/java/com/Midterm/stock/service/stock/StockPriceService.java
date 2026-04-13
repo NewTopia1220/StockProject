@@ -346,21 +346,33 @@ public class StockPriceService {
 
     private StockChartDto parseChartFromArray(JsonNode array, String dateField, String priceField, String volumeField) {
         List<String> labels = new ArrayList<>();
+        List<String> openPrices = new ArrayList<>();
+        List<String> highPrices = new ArrayList<>();
+        List<String> lowPrices = new ArrayList<>();
         List<String> prices = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
 
         for (JsonNode item : array) {
             labels.add(defaultZero(text(item, dateField)));
+            openPrices.add(defaultZero(text(item, "stck_oprc", "bstp_nmix_oprc", priceField)));
+            highPrices.add(defaultZero(text(item, "stck_hgpr", "bstp_nmix_hgpr", priceField)));
+            lowPrices.add(defaultZero(text(item, "stck_lwpr", "bstp_nmix_lwpr", priceField)));
             prices.add(defaultZero(text(item, priceField)));
             volumes.add(defaultZero(text(item, volumeField)));
         }
 
         Collections.reverse(labels);
+        Collections.reverse(openPrices);
+        Collections.reverse(highPrices);
+        Collections.reverse(lowPrices);
         Collections.reverse(prices);
         Collections.reverse(volumes);
 
         StockChartDto dto = emptyChart();
         dto.setLabels(labels);
+        dto.setOpenPrices(openPrices);
+        dto.setHighPrices(highPrices);
+        dto.setLowPrices(lowPrices);
         dto.setClosePrices(prices);
         dto.setVolumes(volumes);
         return dto;
@@ -368,21 +380,33 @@ public class StockPriceService {
 
     private StockChartDto parseStockTimeChart(JsonNode array) {
         List<String> labels = new ArrayList<>();
+        List<String> openPrices = new ArrayList<>();
+        List<String> highPrices = new ArrayList<>();
+        List<String> lowPrices = new ArrayList<>();
         List<String> prices = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
 
         for (JsonNode item : array) {
             labels.add(formatTimeOnly(text(item, "stck_cntg_hour")));
+            openPrices.add(defaultZero(text(item, "stck_oprc", "stck_prpr")));
+            highPrices.add(defaultZero(text(item, "stck_hgpr", "stck_prpr")));
+            lowPrices.add(defaultZero(text(item, "stck_lwpr", "stck_prpr")));
             prices.add(defaultZero(text(item, "stck_prpr")));
             volumes.add(defaultZero(text(item, "cntg_vol")));
         }
 
         Collections.reverse(labels);
+        Collections.reverse(openPrices);
+        Collections.reverse(highPrices);
+        Collections.reverse(lowPrices);
         Collections.reverse(prices);
         Collections.reverse(volumes);
 
         StockChartDto dto = emptyChart();
         dto.setLabels(labels);
+        dto.setOpenPrices(openPrices);
+        dto.setHighPrices(highPrices);
+        dto.setLowPrices(lowPrices);
         dto.setClosePrices(prices);
         dto.setVolumes(volumes);
         return dto;
@@ -390,6 +414,9 @@ public class StockPriceService {
 
     private StockChartDto parseIndexTimeChart(JsonNode array) {
         List<String> labels = new ArrayList<>();
+        List<String> openPrices = new ArrayList<>();
+        List<String> highPrices = new ArrayList<>();
+        List<String> lowPrices = new ArrayList<>();
         List<String> prices = new ArrayList<>();
         List<String> volumes = new ArrayList<>();
 
@@ -397,16 +424,25 @@ public class StockPriceService {
             String rawDate = text(item, "stck_bsop_date");
             String rawTime = text(item, "stck_cntg_hour");
             labels.add(formatDateTimeLabel(rawDate, rawTime));
+            openPrices.add(defaultZero(text(item, "bstp_nmix_oprc", "bstp_nmix_prpr")));
+            highPrices.add(defaultZero(text(item, "bstp_nmix_hgpr", "bstp_nmix_prpr")));
+            lowPrices.add(defaultZero(text(item, "bstp_nmix_lwpr", "bstp_nmix_prpr")));
             prices.add(defaultZero(text(item, "bstp_nmix_prpr")));
             volumes.add(defaultZero(text(item, "cntg_vol")));
         }
 
         Collections.reverse(labels);
+        Collections.reverse(openPrices);
+        Collections.reverse(highPrices);
+        Collections.reverse(lowPrices);
         Collections.reverse(prices);
         Collections.reverse(volumes);
 
         StockChartDto dto = emptyChart();
         dto.setLabels(labels);
+        dto.setOpenPrices(openPrices);
+        dto.setHighPrices(highPrices);
+        dto.setLowPrices(lowPrices);
         dto.setClosePrices(prices);
         dto.setVolumes(volumes);
         return dto;

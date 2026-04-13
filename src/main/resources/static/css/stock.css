@@ -85,75 +85,23 @@ body { background: var(--bg-page); color: var(--text-main); transition: backgrou
     padding: 20px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    gap: 10px;
-    min-height: 102px;
-}
-.clickableTicker {
-    cursor: pointer;
-    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-.clickableTicker:hover {
-    transform: translateY(-2px);
-    border-color: var(--primary);
-}
-.activeTicker {
-    border-color: var(--primary);
-    box-shadow: 0 12px 28px rgba(14, 15, 55, 0.14);
-}
-.activeTicker .label,
-.activeTicker .valueGroup strong {
-    color: var(--primary);
-}
-.tickerHead {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    min-height: 18px;
 }
 .label {
     display: inline-block;
+    margin-bottom: 10px;
     font-size: 13px;
     font-weight: 700;
     color: var(--text-muted);
-    line-height: 1;
 }
 .valueGroup {
     display: flex;
-    align-items: flex-end;
+    align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    min-height: 28px;
 }
 .valueGroup strong {
     font-size: 22px;
     font-weight: 800;
     color: var(--text-main);
-    line-height: 1;
-}
-.valueGroup span {
-    line-height: 1;
-}
-.tickerSelect {
-    border: none;
-    background: transparent;
-    color: var(--text-sub);
-    font-size: 13px;
-    font-weight: 700;
-    padding: 0 16px 0 0;
-    cursor: pointer;
-    outline: none;
-    width: fit-content;
-    margin-left: auto;
-}
-.exchangeTicker #exchangeRate {
-    font-size: 14px;
-    font-weight: 700;
-    white-space: nowrap;
-    text-align: right;
 }
 
 /* ══════════════════════════════════════
@@ -170,21 +118,15 @@ body { background: var(--bg-page); color: var(--text-main); transition: backgrou
     min-height: 450px;
     box-shadow: var(--shadow);
 }
-.chartContainer { height: 320px; position: relative; width: 100%; }
+.chartContainer { position: relative; width: 100%; }
 
-.analysisBox {
-    flex: 3;
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
+.analysisBox { flex: 3; }
 .combinedAnalysis {
     background: var(--bg-card);
     padding: 24px;
     border-radius: 24px;
     border: 1px solid var(--border);
-    height: auto;
-    flex: 1 1 auto;
+    height: 100%;
     display: flex;
     flex-direction: column;
     gap: 20px;
@@ -414,15 +356,6 @@ a.t-item:hover span { color: var(--primary); }
 }
 .chartTab.active { background: var(--primary); color: white; border-color: var(--primary); }
 .chartTab:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
-.chartTab:disabled {
-    cursor: not-allowed;
-    opacity: 0.45;
-    border-style: dashed;
-}
-.chartTab:disabled:hover {
-    border-color: var(--border);
-    color: var(--text-muted);
-}
 
 /* ══════════════════════════════════════
    섹터 헤더 + 섹터 카드 그리드
@@ -462,7 +395,6 @@ a.t-item:hover span { color: var(--primary); }
     grid-template-columns: repeat(4, 1fr);
     gap: 18px;
     margin-top: 16px;
-    align-items: start;
 }
 .sectorCard {
     background: var(--bg-card);
@@ -479,7 +411,6 @@ a.t-item:hover span { color: var(--primary); }
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
-    align-self: start;
 }
 .sectorCard::before {
     content: '';
@@ -523,159 +454,7 @@ body.dark .scSectorName { background: rgba(99,102,241,0.15); }
 .fill-pos { background: linear-gradient(90deg, #34d399, #10b981); }
 .fill-neg { background: linear-gradient(90deg, #f87171, #ef4444); }
 .scGaugeLabel { display: flex; justify-content: space-between; font-size: 11px; font-weight: 700; }
-.scTrendBox {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    background: var(--bg-page);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px 14px;
-}
-.scTrendBox.is-collapsed {
-    gap: 0;
-}
-.scTrendTop {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-}
-.scTrendTools {
-    margin-left: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-.scTrendTitle {
-    font-size: 11px;
-    font-weight: 800;
-    color: var(--text-sub);
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-}
-.scTrendPreviewScore {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 46px;
-    padding: 4px 10px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-    color: var(--primary);
-    font-size: 12px;
-    font-weight: 900;
-    line-height: 1;
-}
-.scTrendBox:not(.is-collapsed) .scTrendPreviewScore {
-    display: none;
-}
-.scTrendToggle {
-    width: 22px;
-    height: 22px;
-    border-radius: 999px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    color: var(--text-sub);
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    padding: 0;
-    transition: border-color 0.2s ease, background 0.2s ease;
-}
-.scTrendToggle:hover {
-    border-color: var(--primary);
-}
-.scTrendToggleIcon {
-    display: inline-block;
-    font-size: 12px;
-    line-height: 1;
-    transition: transform 0.2s ease;
-}
-.scTrendBody {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    max-height: 260px;
-    opacity: 1;
-    overflow: hidden;
-    transition: max-height 0.22s ease, opacity 0.18s ease;
-}
-.scTrendBox.is-collapsed .scTrendBody {
-    max-height: 0;
-    opacity: 0;
-    pointer-events: none;
-}
-.scTrendBox.is-collapsed .scTrendToggleIcon {
-    transform: rotate(-90deg);
-}
-.scTrendScoreRow {
-    display: flex;
-    justify-content: space-between;
-    align-items: baseline;
-    gap: 10px;
-}
-.scTrendScore {
-    font-size: 24px;
-    font-weight: 900;
-    color: var(--text-main);
-    line-height: 1;
-}
-.scTrendState {
-    font-size: 12px;
-    font-weight: 800;
-    padding: 4px 10px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-.trend-up { background: #ecfdf5; color: #059669; }
-.trend-down { background: #eff6ff; color: #2563eb; }
-.trend-neutral { background: #f3f4f6; color: #6b7280; }
-.scTrendBar {
-    width: 100%;
-    height: 8px;
-    background: var(--border);
-    border-radius: 999px;
-    overflow: hidden;
-}
-.scTrendFill {
-    height: 100%;
-    border-radius: 999px;
-    transition: width 0.8s ease;
-}
-.fill-trend-up { background: linear-gradient(90deg, #fca5a5, #ef4444); }
-.fill-trend-down { background: linear-gradient(90deg, #93c5fd, #2563eb); }
-.fill-trend-neutral { background: linear-gradient(90deg, #d1d5db, #9ca3af); }
-.scTrendMeta {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    font-size: 11px;
-    color: var(--text-muted);
-}
-.scTrendConfidence {
-    font-weight: 500;
-    color: var(--text-muted);
-}
-.scTrendNoise {
-    text-align: right;
-    font-weight: 500;
-    color: var(--text-muted);
-}
-.scTrendBox .scStats {
-    margin-top: 4px;
-    padding: 10px 0 0;
-    background: transparent;
-    border: none;
-    border-top: 1px solid var(--border);
-    border-radius: 0;
-}
-.scTrendBox .scStatDiv {
-    height: 24px;
-}
-.scNoData { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; background: var(--bg-page); border-radius: 8px; border: 1px dashed var(--border); }
+.scNoData { font-size: 12px; color: var(--text-muted); text-align: center; padding: 8px 0; background: var(--bg-page); border-radius: 8px; border: 1px dashed var(--border); height: 100%; display: flex; justify-content: center; align-items: center; }
 
 .scStats { display: flex; align-items: center; gap: 0; background: var(--bg-page); border-radius: 12px; padding: 10px 14px; border: 1px solid var(--border); }
 .scStat { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
@@ -720,12 +499,6 @@ body.dark .badge-warn     { background: rgba(217,119,6,0.15);  color: #fbbf24; }
 body.dark .statusBadge    { background: rgba(100,116,139,0.15); color: #94a3b8; }
 body.dark .sectorCard:hover { box-shadow: 0 12px 32px rgba(0,0,0,0.4); }
 body.dark .sectorCard::before { background: linear-gradient(90deg, #6366f1, #818cf8); }
-body.dark .trend-up       { background: rgba(16,185,129,0.15); color: #34d399; }
-body.dark .trend-down     { background: rgba(59,130,246,0.15); color: #93c5fd; }
-body.dark .trend-neutral  { background: rgba(100,116,139,0.15); color: #94a3b8; }
-body.dark .scTrendToggle  { background: #141720; border-color: #2d3142; color: #cbd5e1; }
-body.dark .scTrendPreviewScore { background: rgba(99,102,241,0.16); color: #c7d2fe; }
-body.dark .scTrendConfidence { color: #cbd5e1; }
 
 /* ══════════════════════════════════════
    반응형
@@ -737,7 +510,269 @@ body.dark .scTrendConfidence { color: #cbd5e1; }
     .stockTop       { flex-direction: column; }
     .sectorCardGrid { grid-template-columns: repeat(2, 1fr); }
 }
-@media (max-width: 480px)  {
-    .sectorCardGrid { grid-template-columns: 1fr; }
-    .chartContainer { height: 280px; }
+@media (max-width: 480px)  { .sectorCardGrid { grid-template-columns: 1fr; } }
+
+/* feature/ml-news-impact compatibility */
+.tickerItem {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 10px;
+    min-height: 102px;
 }
+
+.clickableTicker {
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.clickableTicker:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary);
+}
+
+.activeTicker {
+    border-color: var(--primary);
+    box-shadow: 0 12px 28px rgba(14, 15, 55, 0.14);
+}
+
+.activeTicker .label,
+.activeTicker .valueGroup strong {
+    color: var(--primary);
+}
+
+.tickerHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 18px;
+}
+
+.tickerSelect {
+    border: none;
+    background: transparent;
+    color: var(--text-sub);
+    font-size: 13px;
+    font-weight: 700;
+    padding: 0 16px 0 0;
+    cursor: pointer;
+    outline: none;
+    width: fit-content;
+    margin-left: auto;
+}
+
+.exchangeTicker #exchangeRate {
+    font-size: 14px;
+    font-weight: 700;
+    white-space: nowrap;
+    text-align: right;
+}
+
+#mainChart {
+    width: 100%;
+    height: 100%;
+}
+
+.analysisBox {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.scTrendBox {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--bg-page);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 16px;
+}
+
+.scTrendBox.is-collapsed {
+    gap: 0;
+}
+
+.scTrendTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+
+.scTrendTools {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.scTrendTitle {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+
+.scTrendPreviewScore {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 46px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(14, 15, 55, 0.08);
+    color: var(--primary);
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.scTrendBox:not(.is-collapsed) .scTrendPreviewScore {
+    display: none;
+}
+
+.scTrendToggle {
+    width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background: var(--bg-card);
+    color: var(--text-sub);
+    cursor: pointer;
+}
+
+.scTrendToggle:hover {
+    border-color: var(--primary);
+}
+
+.scTrendToggleIcon {
+    display: inline-block;
+    font-size: 12px;
+    line-height: 1;
+    transition: transform 0.2s ease;
+}
+
+.scTrendBody {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 260px;
+    opacity: 1;
+    overflow: hidden;
+    transition: max-height 0.25s ease, opacity 0.2s ease;
+}
+
+.scTrendBox.is-collapsed .scTrendBody {
+    max-height: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.scTrendBox.is-collapsed .scTrendToggleIcon {
+    transform: rotate(-90deg);
+}
+
+.scTrendScoreRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 10px;
+}
+
+.scTrendScore {
+    font-size: 24px;
+    font-weight: 900;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.scTrendState {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.trend-up {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.trend-down {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.trend-neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.scTrendBar {
+    width: 100%;
+    height: 8px;
+    background: var(--border);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.scTrendFill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 0.8s ease;
+}
+
+.fill-trend-up {
+    background: linear-gradient(90deg, #fca5a5, #ef4444);
+}
+
+.fill-trend-down {
+    background: linear-gradient(90deg, #93c5fd, #2563eb);
+}
+
+.fill-trend-neutral {
+    background: linear-gradient(90deg, #d1d5db, #9ca3af);
+}
+
+.scTrendMeta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.scTrendConfidence,
+.scTrendNoise {
+    font-weight: 500;
+    color: var(--text-muted);
+}
+
+.scTrendNoise {
+    text-align: right;
+}
+
+.scTrendBox .scStats {
+    margin-top: 4px;
+    padding: 10px 0 0;
+    background: transparent;
+    border: none;
+    border-top: 1px solid var(--border);
+    border-radius: 0;
+}
+
+.scTrendBox .scStatDiv {
+    height: 24px;
+}
+
+body.dark .trend-up { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+body.dark .trend-down { background: rgba(37, 99, 235, 0.18); color: #93c5fd; }
+body.dark .trend-neutral { background: rgba(100, 116, 139, 0.15); color: #94a3b8; }
+body.dark .scTrendToggle { background: #141720; border-color: #2d3142; color: #cbd5e1; }
+body.dark .scTrendPreviewScore { background: rgba(99, 102, 241, 0.16); color: #c7d2fe; }
+body.dark .scTrendConfidence,
+body.dark .scTrendNoise { color: #cbd5e1; }

@@ -1,3 +1,11 @@
+if (typeof Highcharts !== 'undefined') {
+    Highcharts.setOptions({
+        time: {
+            useUTC: false
+        }
+    });
+}
+
 let mainChart = null;
 let currentCode = '005930';
 let currentStockName = '';
@@ -46,7 +54,16 @@ function bindChartTabs() {
                 return;
             }
 
-            currentTab = button.dataset.tab;
+            const nextTab = button.dataset.tab;
+            if ((nextTab === 'time' || nextTab === 'minute') && !isMarketOpen() && currentChartSource !== 'exchange') {
+                alert('시간별/분별 차트는 장 운영시간(09:00~15:30)에만 제공됩니다.');
+                currentTab = 'daily';
+                syncChartTabs();
+                await updateMainChart();
+                return;
+            }
+
+            currentTab = nextTab;
             syncChartTabs();
             await updateMainChart();
         });
@@ -523,68 +540,253 @@ async function initMainChart() {
         mainChart.destroy();
     }
 
-    mainChart = new Chart(document.getElementById('mainChart'), {
-        type: 'line',
-        data: {
-            labels: data.labels,
-            datasets: [{
-                label: getDatasetLabel(),
-                data: data.closePrices,
-                borderColor: '#0E0F37',
-                backgroundColor: 'rgba(14, 15, 55, 0.1)',
-                tension: 0.35,
-                fill: true,
-                pointRadius: 0,
-                pointHoverRadius: 4
-            }]
+    const labels = Array.isArray(data.labels) ? data.labels : [];
+    const closePrices = Array.isArray(data.closePrices) ? data.closePrices : [];
+    const openPrices = Array.isArray(data.openPrices) ? data.openPrices : [];
+    const highPrices = Array.isArray(data.highPrices) ? data.highPrices : [];
+    const lowPrices = Array.isArray(data.lowPrices) ? data.lowPrices : [];
+    const volumes = Array.isArray(data.volumes) ? data.volumes : [];
+    const hasOhlc = currentChartSource !== 'exchange'
+        && labels.length > 0
+        && openPrices.length === labels.length
+        && highPrices.length === labels.length
+        && lowPrices.length === labels.length
+        && openPrices.some((value, index) => {
+            const open = Number(value);
+            const high = Number(highPrices[index]);
+            const low = Number(lowPrices[index]);
+            const close = Number(closePrices[index]);
+            return open !== 0 || high !== 0 || low !== 0 || close !== 0;
+        });
+    const showCandles = hasOhlc;
+    const isIntraday = currentTab === 'time' || currentTab === 'minute';
+    const timeFormat = isIntraday ? '%H:%M' : '%Y-%m-%d';
+
+    const priceSeries = [];
+    const volumeSeries = [];
+
+    labels.forEach((label, index) => {
+        const ts = stockDateToTs(label);
+        const closeValue = Number(closePrices[index]);
+        const volumeValue = Number(volumes[index]);
+
+        if (showCandles) {
+            priceSeries.push([
+                ts,
+                Number(openPrices[index]),
+                Number(highPrices[index]),
+                Number(lowPrices[index]),
+                closeValue
+            ]);
+        } else {
+            priceSeries.push([ts, closeValue]);
+        }
+
+        if (Number.isFinite(volumeValue)) {
+            volumeSeries.push([ts, volumeValue]);
+        }
+    });
+
+    mainChart = Highcharts.stockChart('mainChart', {
+        time: {
+            useUTC: false
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false
-            },
-            plugins: {
-                legend: {
-                    display: false
+        chart: {
+            backgroundColor: '#ffffff',
+            spacing: [14, 14, 14, 14],
+            animation: false,
+            height: 360,
+            style: {
+                fontFamily: 'inherit'
+            }
+        },
+        credits: {
+            enabled: false
+        },
+        legend: {
+            enabled: false
+        },
+        rangeSelector: isIntraday ? {
+            enabled: false
+        } : {
+            selected: 1,
+            inputEnabled: false,
+            buttons: [{
+                type: 'month',
+                count: 1,
+                text: '1M'
+            }, {
+                type: 'month',
+                count: 3,
+                text: '3M'
+            }, {
+                type: 'all',
+                text: 'All'
+            }],
+            buttonTheme: {
+                fill: '#f9fafb',
+                stroke: '#e5e7eb',
+                r: 6,
+                style: {
+                    color: '#374151',
+                    fontWeight: '600',
+                    fontSize: '11px'
                 },
-                title: {
-                    display: true,
-                    text: getChartTitle()
-                }
-            },
-            scales: {
-                x: {
-                    grid: {
-                        display: false
-                    }
-                },
-                y: {
-                    grid: {
-                        color: '#f3f4f6'
-                    },
-                    ticks: {
-                        callback: (value) => Number(value).toLocaleString()
+                states: {
+                    select: {
+                        fill: '#0E0F37',
+                        style: {
+                            color: '#ffffff'
+                        }
                     }
                 }
             }
-        }
+        },
+        navigator: {
+            enabled: !isIntraday
+        },
+        scrollbar: {
+            enabled: !isIntraday
+        },
+        exporting: {
+            enabled: false
+        },
+        title: {
+            text: ''
+        },
+        xAxis: {
+            type: 'datetime',
+            ordinal: !isIntraday,
+            lineColor: '#e5e7eb',
+            tickColor: '#e5e7eb',
+            crosshair: {
+                color: '#cbd5e1',
+                dashStyle: 'ShortDot'
+            },
+            dateTimeLabelFormats: isIntraday ? {
+                hour: '%H:%M',
+                minute: '%H:%M'
+            } : {
+                day: '%m/%d',
+                week: '%m/%d',
+                month: '%y/%m'
+            }
+        },
+        yAxis: [{
+            top: 0,
+            height: '72%',
+            lineWidth: 0,
+            gridLineColor: '#f3f4f6',
+            tickAmount: 5,
+            labels: {
+                align: 'left',
+                x: 0,
+                style: {
+                    color: '#374151',
+                    fontSize: '11px'
+                },
+                formatter: function () {
+                    return Number(this.value).toLocaleString();
+                }
+            },
+            resize: {
+                enabled: true
+            },
+            plotLines: []
+        }, {
+            top: '72%',
+            height: '28%',
+            offset: 0,
+            lineWidth: 0,
+            gridLineColor: '#f9fafb',
+            labels: {
+                align: 'left',
+                x: 0,
+                style: {
+                    color: '#9ca3af',
+                    fontSize: '11px'
+                },
+                formatter: function () {
+                    return Number(this.value).toLocaleString();
+                }
+            }
+        }],
+        tooltip: {
+            split: false,
+            shared: true,
+            formatter: function () {
+                const points = this.points || [];
+                let content = `<b>${Highcharts.dateFormat(timeFormat, this.x)}</b><br/>`;
+                points.forEach((point) => {
+                    if (point.series.type === 'candlestick') {
+                        content += `O ${point.point.open?.toLocaleString()} H ${point.point.high?.toLocaleString()} L ${point.point.low?.toLocaleString()} C <b>${point.point.close?.toLocaleString()}</b><br/>`;
+                    } else if (point.series.type === 'column') {
+                        content += `V ${point.y?.toLocaleString()}<br/>`;
+                    } else {
+                        content += `${point.y?.toLocaleString()}<br/>`;
+                    }
+                });
+                return content;
+            }
+        },
+        plotOptions: {
+            series: {
+                dataGrouping: {
+                    enabled: false
+                }
+            },
+            candlestick: {
+                color: '#0051ff',
+                upColor: '#f22e2e',
+                lineColor: '#0051ff',
+                upLineColor: '#f22e2e',
+                lineWidth: 2,
+                pointPadding: 0.12,
+                groupPadding: 0.08,
+                pointWidth: isIntraday ? 10 : undefined
+            },
+            column: {
+                borderWidth: 0,
+                color: '#e5e7eb',
+                pointPadding: 0.08,
+                groupPadding: 0.12,
+                pointWidth: isIntraday ? 8 : undefined
+            }
+        },
+        series: [{
+            type: showCandles ? 'candlestick' : 'line',
+            id: 'price',
+            name: getDatasetLabel(),
+            data: priceSeries,
+            color: showCandles ? '#0051ff' : '#0E0F37',
+            upColor: showCandles ? '#f22e2e' : undefined,
+            lineColor: showCandles ? '#0051ff' : undefined,
+            upLineColor: showCandles ? '#f22e2e' : undefined,
+            lineWidth: showCandles ? 2 : 3,
+            turboThreshold: 0,
+            marker: {
+                enabled: !showCandles && isIntraday,
+                radius: 3
+            },
+            tooltip: {
+                valueDecimals: 2
+            }
+        }, {
+            type: 'column',
+            id: 'volume',
+            name: 'Volume',
+            data: volumeSeries,
+            yAxis: 1,
+            turboThreshold: 0,
+            tooltip: {
+                valueDecimals: 0
+            }
+        }]
     });
 }
 
 async function updateMainChart() {
-    if (!mainChart) {
-        await initMainChart();
-        return;
-    }
-
-    const data = await fetchMainChartData();
-    mainChart.data.labels = data.labels;
-    mainChart.data.datasets[0].data = data.closePrices;
-    mainChart.data.datasets[0].label = getDatasetLabel();
-    mainChart.options.plugins.title.text = getChartTitle();
-    mainChart.update();
+    await initMainChart();
 }
 
 function getDatasetLabel() {
@@ -605,6 +807,38 @@ function getChartTitle() {
             : '분 차트';
 
     return `${getCurrentChartLabel()} - ${tabLabel}`;
+}
+
+function stockDateToTs(value) {
+    if (!value) {
+        return Date.now();
+    }
+
+    const text = String(value).trim();
+
+    if (/^\d{8}$/.test(text)) {
+        const year = Number(text.slice(0, 4));
+        const month = Number(text.slice(4, 6)) - 1;
+        const day = Number(text.slice(6, 8));
+        return new Date(year, month, day, 0, 0, 0, 0).getTime();
+    }
+
+    if (/^\d{2}:\d{2}$/.test(text)) {
+        const now = new Date();
+        const [hours, minutes] = text.split(':').map(Number);
+        return new Date(
+            now.getFullYear(),
+            now.getMonth(),
+            now.getDate(),
+            hours,
+            minutes,
+            0,
+            0
+        ).getTime();
+    }
+
+    const parsed = new Date(text);
+    return Number.isNaN(parsed.getTime()) ? Date.now() : parsed.getTime();
 }
 
 function getCurrentChartLabel() {
@@ -1467,6 +1701,9 @@ function emptyChartData() {
     return {
         labels: [],
         closePrices: [],
+        openPrices: [],
+        highPrices: [],
+        lowPrices: [],
         volumes: []
     };
 }
@@ -1475,6 +1712,9 @@ function normalizeChartData(data) {
     return {
         labels: Array.isArray(data?.labels) ? data.labels : [],
         closePrices: Array.isArray(data?.closePrices) ? data.closePrices : [],
+        openPrices: Array.isArray(data?.openPrices) ? data.openPrices : [],
+        highPrices: Array.isArray(data?.highPrices) ? data.highPrices : [],
+        lowPrices: Array.isArray(data?.lowPrices) ? data.lowPrices : [],
         volumes: Array.isArray(data?.volumes) ? data.volumes : []
     };
 }
