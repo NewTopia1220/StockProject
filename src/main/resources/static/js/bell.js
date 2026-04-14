@@ -1,4 +1,11 @@
 let badgeRefreshTimer = null;
+let alertToastHost = null;
+let alertToastInitialized = false;
+let latestSeenAlertId = null;
+
+const ALERT_TOAST_LIMIT = 3;
+const ALERT_TOAST_DURATION = 5000;
+const ALERT_POLL_INTERVAL = 5000;
 
 function createAlertPollingTask(task) {
     let running = false;
@@ -22,6 +29,9 @@ function initAlertPanel() {
     const alertPanel = document.getElementById('alertPanel');
     if (!bellBtn || !alertPanel) return;
 
+    ensureAlertToastHost();
+    const refreshBadgeTask = createAlertPollingTask(refreshBadge);
+
     bellBtn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const isOpen = alertPanel.classList.contains('open');
@@ -36,6 +46,16 @@ function initAlertPanel() {
                 await loadWatchlistPanel();
             }
         }
+    });
+
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+            refreshBadgeTask();
+        }
+    });
+
+    window.addEventListener('focus', () => {
+        refreshBadgeTask();
     });
 
     document.addEventListener('click', (e) => {
@@ -65,11 +85,10 @@ function initAlertPanel() {
         document.getElementById('bellBadge')?.classList.remove('show');
     });
 
-    const refreshBadgeTask = createAlertPollingTask(refreshBadge);
     refreshBadgeTask();
 
     if (badgeRefreshTimer) clearInterval(badgeRefreshTimer);
-    badgeRefreshTimer = setInterval(refreshBadgeTask, 60000);
+    badgeRefreshTimer = setInterval(refreshBadgeTask, ALERT_POLL_INTERVAL);
 }
 
 async function refreshBadge() {
@@ -78,6 +97,9 @@ async function refreshBadge() {
         const data  = await res.json();
         const badge = document.getElementById('bellBadge');
         if (!badge) return;
+
+        handleAlertToasts(data.alerts || []);
+
         if (data.unreadCount > 0) {
             badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
             badge.classList.add('show');
@@ -85,6 +107,125 @@ async function refreshBadge() {
             badge.classList.remove('show');
         }
     } catch (e) {}
+}
+
+function ensureAlertToastHost() {
+    if (alertToastHost) {
+        return alertToastHost;
+    }
+
+    alertToastHost = document.createElement('div');
+    alertToastHost.id = 'alertToastHost';
+    alertToastHost.className = 'alertToastHost';
+    document.body.appendChild(alertToastHost);
+    return alertToastHost;
+}
+
+function handleAlertToasts(alerts) {
+    if (!Array.isArray(alerts) || alerts.length === 0) {
+        return;
+    }
+
+    const sortedAlerts = alerts
+        .filter(alert => alert && alert.id != null)
+        .slice()
+        .sort((a, b) => Number(a.id) - Number(b.id));
+
+    if (sortedAlerts.length === 0) {
+        return;
+    }
+
+    if (!alertToastInitialized) {
+        latestSeenAlertId = Number(sortedAlerts[sortedAlerts.length - 1].id);
+        alertToastInitialized = true;
+        return;
+    }
+
+    const newAlerts = sortedAlerts.filter(alert =>
+        !alert.read && Number(alert.id) > Number(latestSeenAlertId || 0)
+    );
+
+    if (newAlerts.length > 0) {
+        newAlerts.forEach(showAlertToast);
+        latestSeenAlertId = Number(newAlerts[newAlerts.length - 1].id);
+        return;
+    }
+
+    latestSeenAlertId = Math.max(
+        Number(latestSeenAlertId || 0),
+        Number(sortedAlerts[sortedAlerts.length - 1].id)
+    );
+}
+
+function showAlertToast(alert) {
+    const host = ensureAlertToastHost();
+    while (host.children.length >= ALERT_TOAST_LIMIT) {
+        host.firstElementChild?.remove();
+    }
+
+    const toast = document.createElement('button');
+    toast.type = 'button';
+    toast.className = 'alertToast';
+
+    const variantClass = alert.alertType === '상승' ? 'up' : (alert.alertType === '하락' ? 'down' : 'comment');
+    const title = escapeHtml(alert.title || alert.stockName || '새 알림');
+    const message = escapeHtml(alert.message || '');
+    const time = escapeHtml(formatAlertTime(alert.createdAt));
+    const badgeLabel = alert.alertType === '댓글' ? '댓' : (alert.alertType === '상승' ? '상' : '하');
+    const eyebrow = alert.alertType === '댓글' ? '새 댓글 알림' : '주가 변동 알림';
+
+    toast.innerHTML = `
+        <span class="alertToastAccent ${variantClass}"></span>
+        <span class="alertToastAvatar ${variantClass}">${badgeLabel}</span>
+        <span class="alertToastBody">
+            <span class="alertToastMeta">
+                <span class="alertToastEyebrow">${eyebrow}</span>
+            </span>
+            <span class="alertToastTitle">${title}</span>
+            <span class="alertToastMessage">${message}</span>
+            <span class="alertToastTime">${time}</span>
+        </span>
+        <span class="alertToastClose" aria-hidden="true">×</span>
+    `;
+
+    toast.addEventListener('click', () => {
+        removeAlertToast(toast);
+        if (alert.link) {
+            location.href = alert.link;
+        }
+    });
+
+    toast.querySelector('.alertToastClose')?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        removeAlertToast(toast);
+    });
+
+    host.appendChild(toast);
+
+    requestAnimationFrame(() => toast.classList.add('show'));
+    window.setTimeout(() => removeAlertToast(toast), ALERT_TOAST_DURATION);
+}
+
+function removeAlertToast(toast) {
+    if (!toast || !toast.isConnected) {
+        return;
+    }
+
+    toast.classList.remove('show');
+    window.setTimeout(() => {
+        if (toast.isConnected) {
+            toast.remove();
+        }
+    }, 220);
+}
+
+function escapeHtml(value) {
+    return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
 }
 
 async function loadAlertPanel() {
