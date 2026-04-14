@@ -20,8 +20,8 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Python 모델 호출 서비스
- * - predict.py: 종목 단위 익일 상승 확률
- * - article_predict.py: 기사 단위 영향도(모델 폴백)
+ * - StockTrend.py: 종목 단위 익일 상승 확률
+ * - ArticleImpact.py: 기사 단위 영향도(모델 폴백)
  */
 @Slf4j
 @Service
@@ -30,7 +30,7 @@ public class StockAiService {
     @Value("${python.path:python}")
     private String pythonPath;
 
-    @Value("${ai.predict.script:predict.py}")
+    @Value("${ai.predict.script:StockTrend.py}")
     private String predictScript;
 
     @Value("${ai.predict.model:lgbm_model.pkl}")
@@ -45,7 +45,7 @@ public class StockAiService {
     @Value("${ai.predict.oracle-sector:oracle_sector.csv}")
     private String oracleSectorPath;
 
-    @Value("${ai.article-impact.script:article_predict.py}")
+    @Value("${ai.article-impact.script:ArticleImpact.py}")
     private String articleImpactScript;
 
     @Value("${ai.article-impact.model:article_lgbm_model.pkl}")
@@ -79,21 +79,21 @@ public class StockAiService {
         }
 
         try {
-            String stdout = runProcess(buildStockPredictProcess(stockCode, date), "predict.py");
+            String stdout = runProcess(buildStockPredictProcess(stockCode, date), "StockTrend.py");
             if (stdout == null) {
                 return errorDto("AI prediction result is empty");
             }
 
             AiPredictionDto dto = objectMapper.readValue(stdout, AiPredictionDto.class);
             if (dto.getError() != null) {
-                log.warn("[AI] predict.py error: {}", dto.getError());
+                log.warn("[AI] StockTrend.py error: {}", dto.getError());
             } else {
                 putCached(stockPredictCache, cacheKey, dto, stockPredictCacheSeconds);
             }
             return dto;
 
         } catch (Exception e) {
-            log.error("[AI] predict.py failed: {}", e.getMessage(), e);
+            log.error("[AI] StockTrend.py failed: {}", e.getMessage(), e);
             return errorDto("AI prediction error: " + e.getMessage());
         }
     }
@@ -119,14 +119,14 @@ public class StockAiService {
         }
 
         try {
-            String stdout = runProcess(buildArticleImpactProcess(dto), "article_predict.py");
+            String stdout = runProcess(buildArticleImpactProcess(dto), "ArticleImpact.py");
             if (stdout == null) {
                 return null;
             }
 
             JsonNode root = objectMapper.readTree(stdout);
             if (root.hasNonNull("error")) {
-                log.warn("[AI] article_predict.py error: {}", root.path("error").asText());
+                log.warn("[AI] ArticleImpact.py error: {}", root.path("error").asText());
                 return null;
             }
 
@@ -138,7 +138,7 @@ public class StockAiService {
             putCached(articleImpactCache, cacheKey, impact, articleImpactCacheSeconds);
             return impact;
         } catch (Exception e) {
-            log.warn("[AI] article_predict.py failed: {}", e.getMessage());
+            log.warn("[AI] ArticleImpact.py failed: {}", e.getMessage());
             return null;
         }
     }

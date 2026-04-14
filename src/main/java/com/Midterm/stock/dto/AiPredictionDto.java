@@ -9,9 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * predict.py stdout JSON → Java DTO
+ * StockTrend.py stdout JSON → Java DTO
  *
- * predict.py 출력 예시:
+ * StockTrend.py 출력 예시:
  * {
  *   "stock_code": "005930",
  *   "stock_name": "삼성전자",
@@ -83,7 +83,7 @@ public class AiPredictionDto {
     @JsonProperty("model_meta")
     private Map<String, Object> modelMeta;
 
-    /** 오류 메시지 (predict.py에서 error 반환 시) */
+    /** 오류 메시지 (StockTrend.py에서 error 반환 시) */
     @JsonProperty("error")
     private String error;
 

@@ -1,5 +1,5 @@
 """
-predict.py
+StockTrend.py
 ───────────────────────────────────────────────────────────────
 【역할】 학습된 lgbm_model.pkl을 로드하여 특정 종목의
         내일 주가 방향(상승/하락)을 예측하고 JSON으로 출력.
@@ -26,12 +26,12 @@ predict.py
   stdout 출력을 파싱하는 방식으로 연동하기 위함.
 
 【사용법】
-    python predict.py --code 005930
-    python predict.py --code 005930 --date 2026-04-09
-    python predict.py --code 005930 --model lgbm_model.pkl
+python StockTrend.py --code 005930
+python StockTrend.py --code 005930 --date 2026-04-09
+python StockTrend.py --code 005930 --model lgbm_model.pkl
 
 【Spring에서 호출 예시 (Java)】
-    ProcessBuilder pb = new ProcessBuilder(pythonPath, "predict.py", "--code", stockCode);
+ProcessBuilder pb = new ProcessBuilder(pythonPath, "StockTrend.py", "--code", stockCode);
     // stdout에서 JSON 파싱
 """
 
