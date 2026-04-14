@@ -533,7 +533,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             }
         },
         xAxis: (() => {
-            const base = { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' };
+            const base = { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb', offset: -23, zIndex: 5};
             if (tab === 'daily') {
                 return { ...base, ordinal: true,
                     dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
@@ -562,14 +562,26 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                 dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
         })(),
         yAxis: [{
-            labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
-                      formatter: function() { return this.value.toLocaleString(); } },
-            height: '72%', gridLineColor: '#f3f4f6',
+            // 메인 차트 (위)
+            labels: {
+                align: 'left',
+                style: { color: '#374151', fontSize: '10px' },
+                formatter: function() { return this.value.toLocaleString(); }
+            },
+            height: '72%',
+            top: '-12%',
+            gridLineColor: '#f3f4f6',
             resize: { enabled: !compact },
             plotLines: []
         }, {
-            labels: { align: 'left', style: { color: '#9ca3af', fontSize: '10px' } },
-            top: '72%', height: '28%', offset: 0,
+            // 거래량 차트 (아래)
+            labels: {
+                align: 'left',
+                style: { color: '#9ca3af', fontSize: '10px' }
+            },
+            top: '60%',    // 메인 차트 끝나는 지점과 거의 붙도록 조정 (기존 72%)
+            height: '28%', // 전체 합이 100% 근처가 되도록 조정 (기존 28%)
+            offset: 0,
             gridLineColor: '#f9fafb'
         }],
         series: [

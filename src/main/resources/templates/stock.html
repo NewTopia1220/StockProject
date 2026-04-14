@@ -80,7 +80,7 @@
                     <div class="stockInfoPanel">
                         <div class="stockNameRow">
                             <span id="chartStockName"
-                                  th:text="${aiPrediction != null and aiPrediction.stockName != null ? aiPrediction.stockName : stockCode}">005930</span>
+                                  th:text="${stockInfo != null and stockInfo.stockName != null ? stockInfo.stockName : stockCode}">005930</span>
                             <span id="chartStockCode" class="stockCodeBadge" th:text="${stockCode}">005930</span>
                         </div>
                         <div class="stockPriceRow">

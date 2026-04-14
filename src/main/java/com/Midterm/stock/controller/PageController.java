@@ -191,6 +191,8 @@ public class PageController {
 
         AiPredictionDto cachedAiPrediction = stockAiService.getCachedPrediction(code);
         model.addAttribute("aiPrediction", cachedAiPrediction);
+        StockResponseDto stockInfo = stockPriceService.getCurrentPrice(code);
+        model.addAttribute("stockInfo", stockInfo);
 
         return "stock";
     }

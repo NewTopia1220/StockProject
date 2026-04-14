@@ -278,6 +278,11 @@ function bindTickerCards() {
             if (!source) {
                 return;
             }
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('mainChart_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
             await activateChartSource(source);
         });
     });
@@ -426,7 +431,7 @@ async function startPolling() {
             return;
         }
 
-        if (isMarketOpen()) {
+        if (isMarketOpen()&&currentTab !== 'daily') {
             await updateMainChart();
         }
     });
@@ -582,6 +587,22 @@ async function initMainChart() {
         mainChart.destroy();
     }
 
+    // 1. 현재 차트의 고유 식별자 (종목코드 등)
+    const chartId = (currentChartSource === 'exchange') ? 'fx_' + getSelectedCurrency() : (currentCode || currentChartSource);
+    const storageKey = `mainChart_${chartId}_${currentTab}`;
+
+    // 2. [추가] 다른 종목/소스의 흔적 지우기
+    // sessionStorage 전체를 뒤져서 'mainChart_'로 시작하지만, 현재 chartId가 아닌 것들은 삭제
+    Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('mainChart_') && !key.includes(`_${chartId}_`)) {
+            sessionStorage.removeItem(key);
+        }
+    });
+
+    // 3. 현재 종목/탭의 범위만 불러오기
+    const savedMin = sessionStorage.getItem(storageKey + '_min');
+    const savedMax = sessionStorage.getItem(storageKey + '_max');
+
     const labels = Array.isArray(data.labels) ? data.labels : [];
     const closePrices = Array.isArray(data.closePrices) ? data.closePrices : [];
     const openPrices = Array.isArray(data.openPrices) ? data.openPrices : [];
@@ -703,10 +724,16 @@ async function initMainChart() {
             }
         },
         navigator: {
-            enabled: !isIntraday
+            enabled: !isIntraday,
+            top: 280,    // [수정] 내비게이터를 위로 올림 (기존은 보통 차트 하단 자동배치)
+            height: 30,  // 내비게이터 높이
+            margin: 0
         },
         scrollbar: {
-            enabled: !isIntraday
+            enabled: !isIntraday,
+            top: 310,    // [수정] 내비게이터(280) + 높이(30) 값을 더해 바로 밑에 붙임
+            height: 8,   // 스크롤바를 얇게 하면 더 세련되어 보입니다
+            buttonsEnabled: false // 버튼을 없애면 더 깔끔합니다
         },
         exporting: {
             enabled: false
@@ -715,31 +742,57 @@ async function initMainChart() {
             text: ''
         },
         xAxis: (() => {
+            // 현재 종목/소스의 저장된 범위만 불러오기 (키 형식 통일)
+            const savedMin = sessionStorage.getItem(storageKey + '_min');
+            const savedMax = sessionStorage.getItem(storageKey + '_max');
+
+            const firstDataTs = priceSeries.length > 0 ? priceSeries[0][0] : null;
+            const baseDate = firstDataTs ? new Date(firstDataTs) : new Date();
+
             const _base = {
                 type: 'datetime',
                 lineColor: '#e5e7eb',
                 tickColor: '#e5e7eb',
-                crosshair: { color: '#cbd5e1', dashStyle: 'ShortDot' }
+                crosshair: { color: '#cbd5e1', dashStyle: 'ShortDot' },
+                offset: -50,
+                zIndex: 5,
+                // 저장된 값이 있을 때만 적용, 없으면 undefined (기본값 사용)
+                min: savedMin ? parseFloat(savedMin) : undefined,
+                max: savedMax ? parseFloat(savedMax) : undefined,
+                events: {
+                    afterSetExtremes: function(e) {
+                        if (e.trigger !== undefined) {
+                            sessionStorage.setItem(storageKey + '_min', e.min);
+                            sessionStorage.setItem(storageKey + '_max', e.max);
+                        }
+                    }
+                }
             };
 
             if (currentTab === 'time' || currentTab === 'minute') {
-                // 성공 케이스의 시간 계산 방식 적용 (Date.UTC 및 한국시간 보정)
-                const _n     = new Date();
-                const _at9   = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0, 0, 0).getTime();
-                const _at1530= new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30, 0, 0).getTime();
+                const _n = new Date();
+                const _at9 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 9, 0, 0, 0).getTime();
+                const _at1530 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 15, 30, 0, 0).getTime();
                 const _nowTs = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes(), 0, 0).getTime();
-                const _xMax  = _nowTs < _at1530 ? _nowTs : _at1530;
-                return { ..._base, ordinal: false,
-                    min: _at9, max: _xMax,
+                const _xMax = _nowTs < _at1530 ? _nowTs : _at1530;
+
+                return {
+                    ..._base,
+                    ordinal: false,
+                    // 저장값이 유효하면 사용, 아니면 기본 시간 범위
+                    min: (savedMin && parseFloat(savedMin) >= _at9 - 3600000) ? parseFloat(savedMin) : _at9,
+                    max: savedMax ? parseFloat(savedMax) : _xMax,
                     tickInterval: currentTab === 'time' ? 3600000 : undefined,
                     dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' }
                 };
             }
-            return { ..._base, dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
+
+            return { ..._base, ordinal: true, dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
         })(),
+
         yAxis: [{
-            top: 0,
             height: '72%',
+            top: '-12%',
             lineWidth: 0,
             gridLineColor: '#f3f4f6',
             tickAmount: 5,
@@ -759,8 +812,8 @@ async function initMainChart() {
             },
             plotLines: []
         }, {
-            top: '72%',
-            height: '28%',
+            top: '50%',    // 메인 차트 끝나는 지점과 거의 붙도록 조정 (기존 72%)
+            height: '28%', // 전체 합이 100% 근처가 되도록 조정 (기존 28%)
             offset: 0,
             lineWidth: 0,
             gridLineColor: '#f9fafb',
@@ -848,6 +901,17 @@ async function initMainChart() {
             }
         }]
     });
+    if (savedMin || savedMax) {
+        const min = savedMin ? parseFloat(savedMin) : undefined;
+        const max = savedMax ? parseFloat(savedMax) : undefined;
+
+        // 데이터가 완전히 렌더링된 후 실행되도록 0ms 타임아웃 부여
+        setTimeout(() => {
+            if (mainChart && mainChart.xAxis[0]) {
+                mainChart.xAxis[0].setExtremes(min, max, true, false);
+            }
+        }, 0);
+    }
 }
 
 // 메인 차트의 데이터를 다시 불러와 화면에 반영
@@ -1692,7 +1756,7 @@ function updateAIAnalysis(data) {
 }
 
 // 현재 시간이 국내 주식 정규장 시간인지 판단
-function isMarketOpen() {
+function isMarketOMarketOpen() {
     const now = new Date();
     const day = now.getDay();
     if (day === 0 || day === 6) {
