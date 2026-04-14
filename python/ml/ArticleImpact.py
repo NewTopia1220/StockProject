@@ -1,12 +1,12 @@
 """
-article_predict.py
+ArticleImpact.py
 ───────────────────────────────────────────────────────────────
 【역할】 article_lgbm_model.pkl을 로드하여 기사 1건의 주가 영향 점수를
         계산하고 JSON으로 출력.
 
-【predict.py와의 차이점】
-  predict.py         : "오늘 기사 전체 집계" → 내일 종목 방향 예측
-  article_predict.py : "기사 1건의 내용" → 해당 기사가 주가에 미칠 영향 점수 계산
+【StockTrend.py와의 차이점】
+  StockTrend.py    : "오늘 기사 전체 집계" → 내일 종목 방향 예측
+  ArticleImpact.py : "기사 1건의 내용" → 해당 기사가 주가에 미칠 영향 점수 계산
                        → 기사 발행 시 실시간으로 호출하여 영향도 즉시 표시 가능
 
 【입력 (커맨드라인 인자)】
@@ -39,7 +39,7 @@ article_predict.py
 【왜 필요한가?】
   뉴스 기사를 분석한 직후 "이 기사가 주가에 얼마나 영향을 줄까?"를
   실시간으로 점수화하여 사용자에게 즉각 피드백 제공.
-  Spring 백엔드에서 뉴스 저장 → article_predict.py 호출 → 결과 DB 저장
+  Spring 백엔드에서 뉴스 저장 → ArticleImpact.py 호출 → 결과 DB 저장
   → 프론트엔드 화면에 영향도 표시 하는 파이프라인.
 """
 
@@ -369,7 +369,7 @@ def get_price_features(stock_code: str, pub_dt: pd.Timestamp) -> tuple[dict, int
 # 역할: 커맨드라인으로 받은 기사 정보 + 맥락 피처 + 주가 피처를
 #       모델이 요구하는 형태의 피처 딕셔너리로 조합.
 #
-# predict.py의 predict()와 다른 점:
+# StockTrend.py와 다른 점:
 #   여기서는 기사 1건의 원시 정보(제목, 요약, 감성 등)를
 #   커맨드라인 인자로 직접 받아 피처로 변환.
 # ================================================================
