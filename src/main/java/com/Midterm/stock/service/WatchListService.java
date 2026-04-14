@@ -19,145 +19,129 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class WatchListService {
 
+    private static final String ALERT_TYPE_COMMENT = "\uB313\uAE00";
+    private static final String ALERT_TYPE_RISE = "\uC0C1\uC2B9";
+    private static final String COMMENT_TITLE = "\uB0B4 \uAC8C\uC2DC\uAE00\uC5D0 \uC0C8 \uB313\uAE00";
+    private static final String COMMENT_MESSAGE_SUFFIX = "\uAC8C\uC2DC\uAE00\uC5D0 \uB313\uAE00\uC744 \uB0A8\uACBC\uC2B5\uB2C8\uB2E4.";
+
     private final WatchListRepository watchListRepository;
     private final StockAlertRepository stockAlertRepository;
     private final UserDao userDao;
 
-    // ── 관심종목 ─────────────────────────────────────────────
-
-    /** 관심종목 추가 */
     @Transactional
     public boolean addWatch(Integer userNum, String stockCode, String stockName) {
         if (watchListRepository.existsByUserNumAndStockCode(userNum, stockCode)) {
-            return false; // 이미 등록됨
+            return false;
         }
-        WatchList w = new WatchList();
-        w.setUserNum(userNum);
-        w.setStockCode(stockCode);
-        w.setStockName(stockName);
-        watchListRepository.save(w);
+
+        WatchList watch = new WatchList();
+        watch.setUserNum(userNum);
+        watch.setStockCode(stockCode);
+        watch.setStockName(stockName);
+        watchListRepository.save(watch);
         return true;
     }
 
-    /** 관심종목 제거 */
     @Transactional
     public void removeWatch(Integer userNum, String stockCode) {
         watchListRepository.deleteByUserNumAndStockCode(userNum, stockCode);
     }
 
-    /** 관심종목 여부 확인 */
     public boolean isWatching(Integer userNum, String stockCode) {
         return watchListRepository.existsByUserNumAndStockCode(userNum, stockCode);
     }
 
-    /** 사용자 관심종목 목록 */
     public List<WatchList> getWatchList(Integer userNum) {
         return watchListRepository.findByUserNumOrderByCreatedAtDesc(userNum);
     }
 
-    // ── 알림 ─────────────────────────────────────────────────
-
-    /** 사용자 알림 목록 (7일 이내) */
     public List<StockAlert> getAlerts(Integer userNum) {
         LocalDateTime since = LocalDateTime.now().minusDays(7);
         return stockAlertRepository.findByUserNumAndCreatedAtAfterOrderByCreatedAtDesc(userNum, since);
     }
 
-    /** 미읽음 알림 개수 */
     public long getUnreadCount(Integer userNum) {
         return stockAlertRepository.countByUserNumAndAlertReadFalse(userNum);
     }
 
-    /** 전체 읽음 처리 */
     @Transactional
     public void markAllRead(Integer userNum) {
         stockAlertRepository.markAllRead(userNum);
     }
 
-    /** 알림 패널용 응답 DTO 빌드 */
     public Map<String, Object> buildAlertPanel(Integer userNum) {
-        // 최근 알림 목록
         List<StockAlert> alerts = getAlerts(userNum);
-        // 읽지 않은 알림 개수
-        long unread = getUnreadCount(userNum);
+        long unreadCount = getUnreadCount(userNum);
 
-        List<Map<String, Object>> items = alerts.stream().map(a -> {
-            Map<String, Object> m = new HashMap<>();
-
-            // 현재 알림이 커뮤니티 댓글 알림인지
-            boolean isCommunityComment = "댓글".equals(a.getAlertType());
-
-            m.put("id", a.getId());
-            m.put("stockCode", a.getStockCode());
-            m.put("stockName", a.getStockName());
-            m.put("alertType", a.getAlertType());
-            m.put("changeRate", a.getChangeRate());
-            m.put("price", a.getPrice());
-            m.put("read", a.isAlertRead());
-            m.put("createdAt", a.getCreatedAt().toString());
-
-            // 댓글 알림이면 커뮤니티 상세 페이지로
-            if (isCommunityComment) {
-                m.put("link", "/community/detail?board_id=" + a.getStockCode());
-                // 알림 제목 -> 댓글 알림용으로 따로
-                m.put("title", "내 게시글에 새 댓글");
-                // 벨 UI에 보여줄 설명 문구
-                m.put("message", a.getChangeRate() + "님이 '" + a.getStockName() + "' 게시글에 댓글을 남겼습니다.");
-            } else {
-                // 기존 주식 알림 -> 종목 상세 페이지로
-                m.put("link", "/market/" + a.getStockCode());
-                // 주식 알림 제목은 종목명으로
-                m.put("title", a.getStockName());
-                m.put("message", (("상승".equals(a.getAlertType()) ? "▲ " : "▼ ")
-                        + a.getChangeRate() + "% " + a.getAlertType() + " · "
-                        + NumberFormatHelper.formatPrice(a.getPrice()) + "원"));
-            }
-
-            // 가공된 알림 한 건 반환
-            return m;
-        }).collect(Collectors.toList());
+        List<Map<String, Object>> items = alerts.stream()
+            .map(this::toAlertItem)
+            .collect(Collectors.toList());
 
         Map<String, Object> result = new HashMap<>();
-        result.put("unreadCount", unread);
+        result.put("unreadCount", unreadCount);
         result.put("alerts", items);
         return result;
+    }
+
+    public boolean isNotifyEnabled(Integer userNum) {
+        Integer status = userDao.findNotifyStockStatusByNum(userNum);
+        return status != null && status == 1;
+    }
+
+    public boolean isCommentNotifyEnabled(Integer userNum) {
+        Integer status = userDao.findNotifyCommentStatusByNum(userNum);
+        return status != null && status == 1;
+    }
+
+    @Transactional
+    public void updateNotifySetting(Integer userNum, String type, int status) {
+        userDao.updateNotifySetting(userNum, type, status);
+    }
+
+    private Map<String, Object> toAlertItem(StockAlert alert) {
+        Map<String, Object> item = new HashMap<>();
+        boolean isCommunityComment = ALERT_TYPE_COMMENT.equals(alert.getAlertType());
+
+        item.put("id", alert.getId());
+        item.put("stockCode", alert.getStockCode());
+        item.put("stockName", alert.getStockName());
+        item.put("alertType", alert.getAlertType());
+        item.put("changeRate", alert.getChangeRate());
+        item.put("price", alert.getPrice());
+        item.put("read", alert.isAlertRead());
+        item.put("createdAt", alert.getCreatedAt().toString());
+
+        if (isCommunityComment) {
+            item.put("link", "/community/detail?board_id=" + alert.getStockCode());
+            item.put("title", COMMENT_TITLE);
+            item.put("message", alert.getChangeRate() + "\uB2D8\uC774 '" + alert.getStockName() + "' " + COMMENT_MESSAGE_SUFFIX);
+            return item;
+        }
+
+        item.put("link", "/market/" + alert.getStockCode());
+        item.put("title", alert.getStockName());
+        item.put("message", buildStockAlertMessage(alert));
+        return item;
+    }
+
+    private String buildStockAlertMessage(StockAlert alert) {
+        String prefix = ALERT_TYPE_RISE.equals(alert.getAlertType()) ? "\u25B2 " : "\u25BC ";
+        return prefix
+            + alert.getChangeRate()
+            + "% "
+            + alert.getAlertType()
+            + " - "
+            + NumberFormatHelper.formatPrice(alert.getPrice())
+            + "\uC6D0";
     }
 
     static class NumberFormatHelper {
         static String formatPrice(String price) {
             try {
                 return String.format("%,d", Long.parseLong(price));
-            } catch (Exception e) {
+            } catch (Exception exception) {
                 return price == null ? "0" : price;
             }
         }
     }
-
-    // 마이페이지 알림
-    // 주가 등락 알림 설정 여부 확인 (스케줄러에서 사용)
-    public boolean isNotifyEnabled(Integer userNum) {
-        // 유저dao에서 해당 유저의 notifyStock 값을 가져옴
-        Integer status = userDao.findNotifyStockStatusByNum(userNum);
-        // [로그 추가] DB에서 실제로 꺼내온 값이 뭔지 확인
-        System.out.println("DEBUG: 유저 " + userNum + "의 DB상 알림 상태값 -> " + status);
-
-        boolean result = (status != null && status == 1);
-        System.out.println("DEBUG: 최종 판단 결과 (true면 알림 보냄) -> " + result);
-
-        return result;
-    }
-    // 댓글 알림 설정 여부 확인 (댓글 작성 로직에서 호출)
-    public boolean isCommentNotifyEnabled(Integer userNum) {
-        Integer status = userDao.findNotifyCommentStatusByNum(userNum);
-        return (status != null && status == 1);
-    }
-
-
-    // 알림 설정 변경 (토글 클릭 시 사용)
-    @Transactional
-    public void updateNotifySetting(Integer userNum, String type, int status) {
-        // 다오(UserDao)에서 이미 type을 받아 분기 처리를 하므로, 서비스의 if문은 생략 가능합니다.
-        userDao.updateNotifySetting(userNum, type, status);
-    }
-
 }

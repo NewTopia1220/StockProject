@@ -1,5 +1,21 @@
+let badgeRefreshTimer = null;
 
+function createAlertPollingTask(task) {
+    let running = false;
 
+    return async () => {
+        if (running || document.hidden) {
+            return;
+        }
+
+        running = true;
+        try {
+            await task();
+        } finally {
+            running = false;
+        }
+    };
+}
 
 function initAlertPanel() {
     const bellBtn    = document.getElementById('bellBtn');
@@ -49,8 +65,11 @@ function initAlertPanel() {
         document.getElementById('bellBadge')?.classList.remove('show');
     });
 
-    refreshBadge();
-    setInterval(refreshBadge, 60000);
+    const refreshBadgeTask = createAlertPollingTask(refreshBadge);
+    refreshBadgeTask();
+
+    if (badgeRefreshTimer) clearInterval(badgeRefreshTimer);
+    badgeRefreshTimer = setInterval(refreshBadgeTask, 60000);
 }
 
 async function refreshBadge() {

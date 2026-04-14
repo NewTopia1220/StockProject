@@ -10,7 +10,6 @@ import com.Midterm.stock.service.stock.ExchangeService;
 import com.Midterm.stock.service.stock.StockAiService;
 import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -25,7 +24,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-@Slf4j
 @Controller
 public class PageController {
 
@@ -101,8 +99,6 @@ public class PageController {
             return "redirect:/login";
         }
 
-        model.addAttribute("stockInfo", stockPriceService.getCurrentPrice(code));
-        model.addAttribute("chartData", stockPriceService.getDailyPrice(code));
         model.addAttribute("kospiInfo", stockPriceService.getKospiIndex());
         model.addAttribute("kosdaqInfo", stockPriceService.getKosdaqIndex());
         model.addAttribute("exchangeInfo", exchangeService.getExchangeRate("USD"));
@@ -193,13 +189,8 @@ public class PageController {
         model.addAttribute("sectorCards", sectorCards);
         model.addAttribute("currentPage", "stock");
 
-        try {
-            AiPredictionDto aiResult = stockAiService.predict(code);
-            model.addAttribute("aiPrediction", aiResult);
-        } catch (Exception e) {
-            log.warn("[PageController] AI prediction failed: {}", e.getMessage());
-            model.addAttribute("aiPrediction", null);
-        }
+        AiPredictionDto cachedAiPrediction = stockAiService.getCachedPrediction(code);
+        model.addAttribute("aiPrediction", cachedAiPrediction);
 
         return "stock";
     }

@@ -18,9 +18,9 @@ import java.util.Locale;
 import java.util.Map;
 
 /**
- * 환율 시세 서비스.
- * EXIM 일별 환율을 우선 사용해서 차트와 요약 값의 기준을 맞추고,
- * 부족한 데이터만 KIS / Frankfurter / open.er-api 순서로 보완한다.
+ * ?섏쑉 ?쒖꽭 ?쒕퉬??
+ * EXIM ?쇰퀎 ?섏쑉???곗꽑 ?ъ슜?댁꽌 李⑦듃? ?붿빟 媛믪쓽 湲곗???留욎텛怨?
+ * 遺議깊븳 ?곗씠?곕쭔 KIS / Frankfurter / open.er-api ?쒖꽌濡?蹂댁셿?쒕떎.
  */
 @Service
 public class ExchangeService {
@@ -85,7 +85,7 @@ public class ExchangeService {
         }
     }
 
-    // 공통 설정이 적용된 WebClient 인스턴스를 생성
+    // 怨듯넻 ?ㅼ젙???곸슜??WebClient ?몄뒪?댁뒪瑜??앹꽦
     private WebClient createClient(String baseUrl, reactor.netty.http.client.HttpClient httpClient) {
         return WebClient.builder()
                 .baseUrl(baseUrl)
@@ -94,8 +94,8 @@ public class ExchangeService {
     }
 
     /**
-     * 환율 시세 요약은 EXIM -> KIS -> Frankfurter -> open.er-api 순서로 조회한다.
-     * 앞 단계에서 충분한 값이 나오면 다음 단계는 호출하지 않는다.
+     * ?섏쑉 ?쒖꽭 ?붿빟? EXIM -> KIS -> Frankfurter -> open.er-api ?쒖꽌濡?議고쉶?쒕떎.
+     * ???④퀎?먯꽌 異⑸텇??媛믪씠 ?섏삤硫??ㅼ쓬 ?④퀎???몄텧?섏? ?딅뒗??
      */
     public StockResponseDto getExchangeRate(String currency) {
         String normalizedCurrency = normalizeCurrency(currency);
@@ -118,8 +118,8 @@ public class ExchangeService {
     }
 
     /**
-     * 환율 차트는 최근 60일을 훑어서 확보한 최대 30개 포인트를 사용한다.
-     * EXIM 차트가 비면 Frankfurter, 마지막으로 2포인트 폴백 차트를 만든다.
+     * ?섏쑉 李⑦듃??理쒓렐 60?쇱쓣 ?묒뼱???뺣낫??理쒕? 30媛??ъ씤?몃? ?ъ슜?쒕떎.
+     * EXIM 李⑦듃媛 鍮꾨㈃ Frankfurter, 留덉?留됱쑝濡?2?ъ씤???대갚 李⑦듃瑜?留뚮뱺??
      */
     public StockChartDto getExchangeChart(String currency) {
         String normalizedCurrency = normalizeCurrency(currency);
@@ -157,7 +157,7 @@ public class ExchangeService {
         return buildFallbackChart(normalizedCurrency);
     }
 
-    // 차트 데이터가 없을 때 현재가와 전일가만으로 최소 차트를 만듦
+    // 李⑦듃 ?곗씠?곌? ?놁쓣 ???꾩옱媛? ?꾩씪媛留뚯쑝濡?理쒖냼 李⑦듃瑜?留뚮벀
     private StockChartDto buildFallbackChart(String currency) {
         StockResponseDto quote = getExchangeRate(currency);
         double currentPrice = parseNumber(quote.getCurrentPrice());
@@ -183,7 +183,7 @@ public class ExchangeService {
         return buildChartDto(labels, prices, volumes);
     }
 
-    // EXIM API에서 환율 현재가와 전일 대비 정보를 채움
+    // EXIM API?먯꽌 ?섏쑉 ?꾩옱媛? ?꾩씪 ?鍮??뺣낫瑜?梨꾩?
     private boolean loadFromExim(String currency, StockResponseDto dto) {
         String eximUnit = EXIM_UNITS.get(currency);
         if (eximUnit == null || eximApiKey == null || eximApiKey.isBlank()) {
@@ -212,12 +212,12 @@ public class ExchangeService {
             dto.setChangeRate(formatSignedNumber(changeRate));
             return true;
         } catch (Exception e) {
-            System.out.println("Exim exchange quote failed [" + currency + "]: " + e.getMessage());
+            // System.out.println("Exim exchange quote failed [" + currency + "]: " + e.getMessage());
             return false;
         }
     }
 
-    // EXIM 실패 시 KIS 환율 시세로 현재가와 등락률을 보완
+    // EXIM ?ㅽ뙣 ??KIS ?섏쑉 ?쒖꽭濡??꾩옱媛? ?깅씫瑜좎쓣 蹂댁셿
     private boolean loadFromKis(String currency, StockResponseDto dto) {
         String symbol = KIS_SYMBOLS.get(currency);
         if (symbol == null) {
@@ -265,12 +265,12 @@ public class ExchangeService {
             dto.setChangeRate(defaultZero(changeRateText));
             return true;
         } catch (Exception e) {
-            System.out.println("KIS exchange quote failed [" + currency + "]: " + e.getMessage());
+            // System.out.println("KIS exchange quote failed [" + currency + "]: " + e.getMessage());
             return false;
         }
     }
 
-    // KIS 실패 시 Frankfurter 환율 데이터를 사용해 현재가를 계산
+    // KIS ?ㅽ뙣 ??Frankfurter ?섏쑉 ?곗씠?곕? ?ъ슜???꾩옱媛瑜?怨꾩궛
     private boolean loadFromFrankfurter(String currency, StockResponseDto dto) {
         try {
             ExchangeRatePoint latest = fetchFrankfurterRate(currency, null);
@@ -293,12 +293,12 @@ public class ExchangeService {
             dto.setChangeRate(formatSignedNumber(changeRate));
             return true;
         } catch (Exception e) {
-            System.out.println("Frankfurter exchange quote failed [" + currency + "]: " + e.getMessage());
+            // System.out.println("Frankfurter exchange quote failed [" + currency + "]: " + e.getMessage());
             return false;
         }
     }
 
-    // 마지막 대체 수단으로 open.er-api 값을 현재가 DTO에 반영한다.
+    // 留덉?留??泥??섎떒?쇰줈 open.er-api 媛믪쓣 ?꾩옱媛 DTO??諛섏쁺?쒕떎.
     private void loadFromErApi(String currency, StockResponseDto dto) {
         try {
             String raw = erClient.get()
@@ -327,14 +327,14 @@ public class ExchangeService {
 
             dto.setCurrentPrice(String.format(Locale.US, "%.2f", krw));
         } catch (Exception e) {
-            System.out.println("Fallback exchange quote failed [" + currency + "]: " + e.getMessage());
+            // System.out.println("Fallback exchange quote failed [" + currency + "]: " + e.getMessage());
         }
     }
 
-    // Frankfurter 시계열 응답을 차트 DTO로 변환
+    // Frankfurter ?쒓퀎???묐떟??李⑦듃 DTO濡?蹂??
     private StockChartDto buildFrankfurterChart(String currency) {
         try {
-            // EXIM 차트가 비는 경우에만 외부 환율 기간 API로 일별 포인트를 보강
+            // EXIM 李⑦듃媛 鍮꾨뒗 寃쎌슦?먮쭔 ?몃? ?섏쑉 湲곌컙 API濡??쇰퀎 ?ъ씤?몃? 蹂닿컯
             List<ExchangeRatePoint> points = fetchFrankfurterSeries(
                     currency,
                     LocalDate.now().minusDays(EXCHANGE_LOOKBACK_DAYS),
@@ -356,12 +356,12 @@ public class ExchangeService {
             }
             return buildChartDto(labels, prices, volumes);
         } catch (Exception e) {
-            System.out.println("Frankfurter exchange chart failed [" + currency + "]: " + e.getMessage());
+            // System.out.println("Frankfurter exchange chart failed [" + currency + "]: " + e.getMessage());
             return emptyChart();
         }
     }
 
-    // 라벨, 가격, 거래량 배열을 표준 차트 DTO로
+    // ?쇰꺼, 媛寃? 嫄곕옒??諛곗뿴???쒖? 李⑦듃 DTO濡?
     private StockChartDto buildChartDto(List<String> labels, List<String> prices, List<String> volumes) {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(labels);
@@ -370,7 +370,7 @@ public class ExchangeService {
         return dto;
     }
 
-    // 최근 며칠 범위 안에서 사용 가능한 EXIM 환율 스냅샷을 찾음
+    // 理쒓렐 硫곗튌 踰붿쐞 ?덉뿉???ъ슜 媛?ν븳 EXIM ?섏쑉 ?ㅻ깄?룹쓣 李얠쓬
     private ExchangeSnapshot findEximSnapshot(String unit, LocalDate startDate, int maxDaysBack) {
         for (int i = 0; i < maxDaysBack; i++) {
             LocalDate date = startDate.minusDays(i);
@@ -382,7 +382,7 @@ public class ExchangeService {
         return null;
     }
 
-    // 특정 날짜의 EXIM 환율 데이터를 단건 조회
+    // ?뱀젙 ?좎쭨??EXIM ?섏쑉 ?곗씠?곕? ?④굔 議고쉶
     private ExchangeSnapshot fetchEximSnapshot(String unit, LocalDate date) {
         try {
             String raw = eximClient.get()
@@ -418,7 +418,7 @@ public class ExchangeService {
         return null;
     }
 
-    // 조회 실패 시에도 화면이 깨지지 않도록 기본 환율 DTO를 만듦
+    // 議고쉶 ?ㅽ뙣 ?쒖뿉???붾㈃??源⑥?吏 ?딅룄濡?湲곕낯 ?섏쑉 DTO瑜?留뚮벀
     private StockResponseDto emptyResponseDto() {
         StockResponseDto dto = new StockResponseDto();
         dto.setCurrentPrice("0");
@@ -427,7 +427,7 @@ public class ExchangeService {
         return dto;
     }
 
-    // 데이터가 없을 때 사용할 빈 환율 차트 DTO를 만둚
+    // ?곗씠?곌? ?놁쓣 ???ъ슜??鍮??섏쑉 李⑦듃 DTO瑜?留뚮몱
     private StockChartDto emptyChart() {
         StockChartDto dto = new StockChartDto();
         dto.setLabels(new ArrayList<>());
@@ -436,7 +436,7 @@ public class ExchangeService {
         return dto;
     }
 
-    // 화면/외부 API에서 들어온 통화 코드를 내부 표준 코드로 정규화
+    // ?붾㈃/?몃? API?먯꽌 ?ㅼ뼱???듯솕 肄붾뱶瑜??대? ?쒖? 肄붾뱶濡??뺢퇋??
     private String normalizeCurrency(String currency) {
         if (currency == null || currency.isBlank()) {
             return "USD";
@@ -450,7 +450,7 @@ public class ExchangeService {
         return normalized;
     }
 
-    // 여러 후보 필드 중 첫 번째 유효 문자열 값을 가져옴
+    // ?щ윭 ?꾨낫 ?꾨뱶 以?泥?踰덉㎏ ?좏슚 臾몄옄??媛믪쓣 媛?몄샂
     private String firstText(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
             JsonNode value = node.get(fieldName);
@@ -466,7 +466,7 @@ public class ExchangeService {
         return "";
     }
 
-    // 특정 날짜의 Frankfurter 환율 값을 단건 조회
+    // ?뱀젙 ?좎쭨??Frankfurter ?섏쑉 媛믪쓣 ?④굔 議고쉶
     private ExchangeRatePoint fetchFrankfurterRate(String currency, LocalDate date) {
         String base = FRANKFURTER_BASES.get(currency);
         if (base == null) {
@@ -497,7 +497,7 @@ public class ExchangeService {
         return new ExchangeRatePoint(LocalDate.parse(dateText), applyDisplayMultiplier(currency, rate));
     }
 
-    // 기준일 이전 가장 가까운 Frankfurter 환율 값을 찾음
+    // 湲곗????댁쟾 媛??媛源뚯슫 Frankfurter ?섏쑉 媛믪쓣 李얠쓬
     private ExchangeRatePoint fetchFrankfurterPreviousRate(String currency, LocalDate latestDate) {
         List<ExchangeRatePoint> points = fetchFrankfurterSeries(currency, latestDate.minusDays(7), latestDate.minusDays(1));
         if (points.isEmpty()) {
@@ -506,7 +506,7 @@ public class ExchangeService {
         return points.get(points.size() - 1);
     }
 
-    // 날짜 구간의 Frankfurter 시계열 환율 데이터를 수집
+    // ?좎쭨 援ш컙??Frankfurter ?쒓퀎???섏쑉 ?곗씠?곕? ?섏쭛
     private List<ExchangeRatePoint> fetchFrankfurterSeries(String currency, LocalDate from, LocalDate to) {
         String base = FRANKFURTER_BASES.get(currency);
         if (base == null || to.isBefore(from)) {
@@ -541,7 +541,7 @@ public class ExchangeService {
         return points;
     }
 
-    // KIS 응답에 등락 정보가 없을 때 이전 종가를 추정해 보완
+    // KIS ?묐떟???깅씫 ?뺣낫媛 ?놁쓣 ???댁쟾 醫낃?瑜?異붿젙??蹂댁셿
     private Double fetchKisPreviousClose(String symbol, double currentPrice) {
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
@@ -584,12 +584,12 @@ public class ExchangeService {
                 return latestClose;
             }
         } catch (Exception e) {
-            System.out.println("KIS exchange dailyprice fallback failed [" + symbol + "]: " + e.getMessage());
+            // System.out.println("KIS exchange dailyprice fallback failed [" + symbol + "]: " + e.getMessage());
         }
         return null;
     }
 
-    // 여러 필드 후보 중 0보다 큰 첫 번째 숫자 값을 찾음
+    // ?щ윭 ?꾨뱶 ?꾨낫 以?0蹂대떎 ??泥?踰덉㎏ ?レ옄 媛믪쓣 李얠쓬
     private double firstPositiveNumber(JsonNode node, String... fieldNames) {
         for (String fieldName : fieldNames) {
             double value = parseNumber(firstText(node, fieldName));
@@ -600,17 +600,17 @@ public class ExchangeService {
         return 0;
     }
 
-    // 문자열이 0보다 큰 숫자로 해석 가능한지 확인
+    // 臾몄옄?댁씠 0蹂대떎 ???レ옄濡??댁꽍 媛?ν븳吏 ?뺤씤
     private boolean hasPositiveNumber(String value) {
         return parseNumber(value) > 0;
     }
 
-    // 비어 있는 숫자 문자열을 0으로 치환
+    // 鍮꾩뼱 ?덈뒗 ?レ옄 臾몄옄?댁쓣 0?쇰줈 移섑솚
     private String defaultZero(String value) {
         return value == null || value.isBlank() ? "0" : value;
     }
 
-    // 문자열 환율 값을 계산 가능한 숫자로 변환
+    // 臾몄옄???섏쑉 媛믪쓣 怨꾩궛 媛?ν븳 ?レ옄濡?蹂??
     private double parseNumber(String value) {
         if (value == null || value.isBlank()) {
             return 0;
@@ -623,12 +623,12 @@ public class ExchangeService {
         }
     }
 
-    // 숫자 값을 화면과 DTO에서 공통으로 쓰는 문자열 형식으로 변환
+    // ?レ옄 媛믪쓣 ?붾㈃怨?DTO?먯꽌 怨듯넻?쇰줈 ?곕뒗 臾몄옄???뺤떇?쇰줈 蹂??
     private String formatNumber(double value) {
         return String.format(Locale.US, "%.2f", value);
     }
 
-    // 등락 숫자를 부호가 포함된 문자열로 변환
+    // ?깅씫 ?レ옄瑜?遺?멸? ?ы븿??臾몄옄?대줈 蹂??
     private String formatSignedNumber(double value) {
         return String.format(Locale.US, "%.2f", value);
     }
@@ -636,7 +636,7 @@ public class ExchangeService {
     private record ExchangeSnapshot(LocalDate date, double price) {
     }
 
-    // JPY(100) 같은 표시 단위를 맞추기 위해 통화별 배율을 적용
+    // JPY(100) 媛숈? ?쒖떆 ?⑥쐞瑜?留욎텛湲??꾪빐 ?듯솕蹂?諛곗쑉???곸슜
     private double applyDisplayMultiplier(String currency, double rate) {
         return "JPY".equals(currency) ? rate * 100 : rate;
     }

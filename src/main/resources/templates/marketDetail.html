@@ -5,10 +5,11 @@
     <title th:text="'Stoxle - ' + ${stockInfo.stockName}">Stoxle - 종목 상세</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/market.css}">
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
 <!--    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js"></script>-->
 <!--    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js"></script>-->
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js" crossorigin="anonymous"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js" crossorigin="anonymous" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js" crossorigin="anonymous" defer></script>
 </head>
 <body class="withMainHeader">
 
@@ -75,6 +76,6 @@
     </div>
 </div>
 
-<script th:src="@{/js/market.js}"></script>
+<script th:src="@{/js/market.js}" defer></script>
 </body>
 </html>

@@ -21,8 +21,31 @@ let allStocks         = [];       // 현재 로드된 전체 종목 (검색 필�
 // ════════════════════════════════════════════════════════
 //  종목 리스트 로딩
 // ════════════════════════════════════════════════════════
+let marketListPollingTimer = null;
+let detailPricePollingTimer = null;
+let detailChartPollingTimer = null;
+let marketLoadToken = 0;
+
+function createPollingTask(task, { pauseWhenHidden = true } = {}) {
+    let running = false;
+
+    return async () => {
+        if (running || (pauseWhenHidden && document.hidden)) {
+            return;
+        }
+
+        running = true;
+        try {
+            await task();
+        } finally {
+            running = false;
+        }
+    };
+}
+
 async function loadMarketData(type) {
     currentType = type || 'trade';
+    const requestToken = ++marketLoadToken;
     const body     = document.getElementById('stockListBody');
     const error    = document.getElementById('listError');
     const noResult = document.getElementById('listNoResult');
@@ -39,6 +62,7 @@ async function loadMarketData(type) {
     try {
         const res    = await fetch(endpoint);
         const stocks = await res.json();
+        if (requestToken !== marketLoadToken) return;
 
         if (!stocks || stocks.length === 0) {
             body.innerHTML = '';
@@ -66,6 +90,7 @@ async function loadMarketData(type) {
         }
 
     } catch (e) {
+        if (requestToken !== marketLoadToken) return;
         console.error('종목 로딩 실패:', e);
         body.innerHTML = '';
         error.style.display = 'block';
@@ -339,7 +364,8 @@ async function selectStock(code, name, rowEl) {
 
     // 기존 폴링 정리 후 새로 시작
     if (pricePollingTimer) clearInterval(pricePollingTimer);
-    pricePollingTimer = setInterval(updatePanelPrice, 5000);
+    const panelPriceTask = createPollingTask(updatePanelPrice);
+    pricePollingTimer = setInterval(panelPriceTask, 5000);
 }
 
 // ── 패널 현재가 업데이트 ─────────────────────────────────
@@ -565,6 +591,10 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
 
 // 상세 패널용 차트를 최초 생성한다.
 async function initPanelChart() {
+    await renderPanelChart();
+}
+
+async function renderPanelChart() {
     const data = await fetchPanelChartData();
     if (panelChart) { panelChart.destroy(); panelChart = null; }
     const el = document.getElementById('panelChart');
@@ -576,13 +606,7 @@ async function initPanelChart() {
 
 // 상세 패널용 차트 데이터를 다시 불러와 갱신한다.
 async function updatePanelChart() {
-    const data = await fetchPanelChartData();
-    if (panelChart) { panelChart.destroy(); panelChart = null; }
-    const el = document.getElementById('panelChart');
-    if (!el) return;
-    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
-    panelChart = Highcharts.stockChart('panelChart',
-        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
+    await renderPanelChart();
 }
 
 // 현재 선택 종목과 탭에 맞는 상세 패널 차트 데이터를 조회한다.
@@ -701,12 +725,26 @@ function initDetailPage(code) {
     });
 
     initDetailChart(code);
-    setInterval(() => updateDetailPrice(code), 5000);
-    setInterval(() => { if (isMarketOpen()) updateDetailChart(code); }, 10000);
+
+    const detailPriceTask = createPollingTask(() => updateDetailPrice(code));
+    const detailChartTask = createPollingTask(async () => {
+        if (isMarketOpen()) {
+            await updateDetailChart(code);
+        }
+    });
+
+    if (detailPricePollingTimer) clearInterval(detailPricePollingTimer);
+    if (detailChartPollingTimer) clearInterval(detailChartPollingTimer);
+    detailPricePollingTimer = setInterval(detailPriceTask, 5000);
+    detailChartPollingTimer = setInterval(detailChartTask, 10000);
 }
 
 // 개별 종목 상세 페이지 차트를 최초 생성한다.
 async function initDetailChart(code) {
+    await renderDetailChart(code);
+}
+
+async function renderDetailChart(code) {
     const data = await fetchDetailChartData(code);
     if (detailChart) { detailChart.destroy(); detailChart = null; }
     const el = document.getElementById('detailChart');
@@ -719,14 +757,7 @@ async function initDetailChart(code) {
 
 // 개별 종목 상세 페이지 차트를 다시 갱신한다.
 async function updateDetailChart(code) {
-    const data = await fetchDetailChartData(code);
-    if (detailChart) { detailChart.destroy(); detailChart = null; }
-    const el = document.getElementById('detailChart');
-    if (!el) return;
-    const name = el.dataset.name || code;
-    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
-    detailChart = Highcharts.stockChart('detailChart',
-        hcBaseOptions(name, ohlc, vol, hasOhlc, false, detailTab));
+    await renderDetailChart(code);
 }
 
 // 개별 종목 상세 페이지에서 사용할 차트 데이터를 조회한다.
@@ -910,10 +941,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // 데이터 로딩
+        const marketListTask = createPollingTask(() => loadMarketData(currentType));
         await loadMarketData('trade');
 
         // 30초마다 리스트 가격 갱신
-        setInterval(() => loadMarketData(currentType), 30000);
+        if (marketListPollingTimer) clearInterval(marketListPollingTimer);
+        marketListPollingTimer = setInterval(marketListTask, 30000);
     }
 
     // ── 종목 상세 페이지 ──

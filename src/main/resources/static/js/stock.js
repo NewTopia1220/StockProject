@@ -27,6 +27,23 @@ const exchangeChartCache = new Map();
 const exchangeQuoteRequests = new Map();
 const exchangeChartRequests = new Map();
 
+function createPollingTask(task, { pauseWhenHidden = true } = {}) {
+    let running = false;
+
+    return async () => {
+        if (running || (pauseWhenHidden && document.hidden)) {
+            return;
+        }
+
+        running = true;
+        try {
+            await task();
+        } finally {
+            running = false;
+        }
+    };
+}
+
 // 페이지 진입 시 게이지, 차트, 티커, AI 패널을 한 번에 초기화
 document.addEventListener('DOMContentLoaded', () => {
     currentStockName = document.getElementById('chartStockName')?.textContent.trim() || '삼성전자';
@@ -47,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyActiveTickerState();
     initAiRotator();
     startPolling();
+    void refreshAiPredictionForCurrentCode();
 });
 
 // 차트 탭 클릭 이벤트를 연결하고 장중 여부에 따라 탭 사용을 제어
@@ -124,7 +142,7 @@ function bindSearchHandlers() {
 
                 dropdown.style.display = 'block';
             } catch (error) {
-                console.log('search error:', error);
+                // console.log('search error:', error);
             }
         }, 300);
     });
@@ -181,7 +199,7 @@ async function resolveSearchSelection(keyword) {
             name: candidate?.name || candidate?.code || keyword
         };
     } catch (error) {
-        console.log('search resolve error:', error);
+        // console.log('search resolve error:', error);
         return { code: keyword, name: keyword };
     }
 }
@@ -386,14 +404,7 @@ async function startPolling() {
     }
     pollingStarted = true;
 
-    await Promise.all([
-        updateTicker(),
-        updateExchangeCard(),
-        updateTopStocks()
-    ]);
-    await refreshActiveView();
-
-    setInterval(async () => {
+    const tickerTask = createPollingTask(async () => {
         const tickerData = await updateTicker();
 
         if (currentChartSource === 'stock') {
@@ -408,13 +419,9 @@ async function startPolling() {
         if (currentChartSource === 'kosdaq' && tickerData.kosdaq) {
             renderIndexSummary('kosdaq', tickerData.kosdaq);
         }
-    }, 5000);
-
-    setInterval(async () => {
-        await updateTopStocks();
-    }, 30000);
-
-    setInterval(async () => {
+    });
+    const topStocksTask = createPollingTask(updateTopStocks);
+    const chartTask = createPollingTask(async () => {
         if (currentChartSource === 'exchange') {
             return;
         }
@@ -422,14 +429,25 @@ async function startPolling() {
         if (isMarketOpen()) {
             await updateMainChart();
         }
-    }, 10000);
-
-    setInterval(async () => {
+    });
+    const exchangeTask = createPollingTask(async () => {
         const exchangeData = await updateExchangeCard();
         if (currentChartSource === 'exchange') {
             renderExchangeSummary(exchangeData);
         }
-    }, 60000);
+    });
+
+    await Promise.all([
+        updateTicker(),
+        updateExchangeCard(),
+        updateTopStocks()
+    ]);
+    await refreshActiveView();
+
+    setInterval(tickerTask, 5000);
+    setInterval(topStocksTask, 30000);
+    setInterval(chartTask, 10000);
+    setInterval(exchangeTask, 60000);
 }
 
 // 현재 선택 종목을 메인 차트의 활성 소스로 전환
@@ -499,7 +517,7 @@ async function fetchMainChartData() {
             latestChartData = data;
             return data;
         } catch (error) {
-            console.log('exchange chart fetch error:', error);
+            // console.log('exchange chart fetch error:', error);
             latestChartData = emptyChartData();
             return latestChartData;
         }
@@ -522,7 +540,7 @@ async function fetchMainChartData() {
         latestChartData = data;
         return data;
     } catch (error) {
-        console.log('chart fetch error:', error);
+        // console.log('chart fetch error:', error);
         latestChartData = emptyChartData();
         return latestChartData;
     }
@@ -923,7 +941,7 @@ async function refreshActiveSummary() {
             const exchangeData = await getExchangeQuote(getSelectedCurrency());
             await updateExchangeInfo(exchangeData, latestChartData);
         } catch (error) {
-            console.log('exchange summary refresh error:', error);
+            // console.log('exchange summary refresh error:', error);
             await updateExchangeInfo(null, latestChartData);
         }
         return;
@@ -967,7 +985,7 @@ async function updateStockInfo() {
             volumeClass: ''
         });
     } catch (error) {
-        console.log('stock info error:', error);
+        // console.log('stock info error:', error);
     }
 }
 
@@ -977,7 +995,7 @@ async function updateIndexInfo(source, existingData = null) {
         const data = existingData || await fetchJson(source === 'kospi' ? '/api/kospi' : '/api/kosdaq');
         renderIndexSummary(source, data);
     } catch (error) {
-        console.log('index info error:', error);
+        // console.log('index info error:', error);
     }
 }
 
@@ -1019,7 +1037,7 @@ async function updateExchangeInfo(existingData = null, existingChartData = null)
         const chartData = existingChartData || (currentChartSource === 'exchange' ? latestChartData : null);
         renderExchangeSummary(data, chartData);
     } catch (error) {
-        console.log('exchange info error:', error);
+        // console.log('exchange info error:', error);
     }
 }
 
@@ -1100,7 +1118,7 @@ async function updateTicker() {
         renderIndexTicker('kosdaqPrice', 'kosdaqRate', kosdaq);
         return { kospi, kosdaq };
     } catch (error) {
-        console.log('ticker error:', error);
+        // console.log('ticker error:', error);
         return {};
     }
 }
@@ -1138,7 +1156,7 @@ async function updateExchangeCard(existingData = null, existingChartData = null,
 
         return data;
     } catch (error) {
-        console.log('exchange ticker error:', error);
+        // console.log('exchange ticker error:', error);
         return null;
     }
 }
@@ -1169,7 +1187,7 @@ async function updateTopStocks() {
         setHtml('tickerContent1', tickerHtml);
         setHtml('tickerContent2', tickerHtml);
     } catch (error) {
-        console.log('top fluctuation error:', error);
+        // console.log('top fluctuation error:', error);
     }
 }
 
@@ -1312,7 +1330,7 @@ async function refreshAiPredictionForCurrentCode() {
         rebuildAiRotatorItems(true);
         startAiRotator();
     } catch (error) {
-        console.log('ai prediction refresh error:', error);
+        // console.log('ai prediction refresh error:', error);
         if (refreshToken !== aiRefreshToken || requestedCode !== currentCode) {
             return;
         }
@@ -1720,7 +1738,7 @@ async function resolveExchangeMetrics(data, fallbackChartData = null, currency =
         const chartData = await getExchangeChart(currency);
         metrics = resolveChangeMetrics(data, chartData);
     } catch (error) {
-        console.log('exchange metrics fallback error:', error);
+        // console.log('exchange metrics fallback error:', error);
     }
 
     return metrics;

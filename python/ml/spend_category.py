@@ -1,4 +1,4 @@
-﻿from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends
 from pydantic import BaseModel
 import re, requests, urllib.parse
 from transformers import pipeline
@@ -9,41 +9,57 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import oracledb
 
+try:
+    import torch  # noqa: F401
+    TORCH_AVAILABLE = True
+except Exception:
+    torch = None
+    TORCH_AVAILABLE = False
 
-# 1. 吏媛?Wallet) 寃쎈줈 ?ㅼ젙
+
+# 1. 지갑(Wallet) 경로 설정
 WALLET_DIR = "C:/oraclepw"
 os.environ["TNS_ADMIN"] = WALLET_DIR
 oracledb.defaults.config_dir = WALLET_DIR
-# 2. ??紐⑤뱶 ?쒖꽦??(蹂듭궗??寃쎈줈 洹몃?濡?遺숈뿬?ｊ린)
+# 2. 띡 모드 활성화 (복사한 경로 그대로 붙여넣기)
 try:
-    # 寃쎈줈 ?욎뿉 r??遺숈뿬????뒳?섏떆(\) ?몄떇?????⑸땲??
+    # 경로 앞에 r을 붙여야 역슬래시(\) 인식이 잘 됩니다.
     client_path = r"C:\instantclient-basiclite-windows.x64-23.26.1.0.0\instantclient_23_0"
     oracledb.init_oracle_client(lib_dir=client_path)
-    print("???ㅻ씪????紐⑤뱶(Thick Mode) 媛???깃났!")
+    print("Oracle thick mode enabled.")
 except Exception as e:
-    print(f"????紐⑤뱶 媛???ㅽ뙣: {e}")
+    print(f"Oracle thick mode init failed: {e}")
+    print("Continuing with python-oracledb thin mode.")
 
 
 app = FastAPI(title="SpendingData Category Classification API")
 
 # ------------------------------
-# CORS ?ㅼ젙 (釉뚮씪?곗? ?듭떊 ?덉슜)
+# CORS 설정 (브라우저 통신 허용)
 # ------------------------------
-# ??遺遺??덉뼱??釉뚮씪?곗???OPTIONS ?붿껌???듦낵?쒗궡.
+# 이 부분 있어야 브라우저의 OPTIONS 요청을 통과시킴.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],     # 紐⑤뱺 ?꾨찓???덉슜
+    allow_origins=["*"],     # 모든 도메인 허용
     allow_credentials=True,
-    allow_methods=["*"],   # GET, POST, OPTIONS ??紐⑤뱺 硫붿꽌???덉슜
-    allow_headers=["*"],   # 紐⑤뱺 ?ㅻ뜑 ?덉슜
+    allow_methods=["*"],   # GET, POST, OPTIONS 등 모든 메서드 허용
+    allow_headers=["*"],   # 모든 헤더 허용
 )
 
 
 
 # ------------------------------
-# 紐⑤뜽 & 移댄뀒怨좊━ 珥덇린??
+# 모델 & 카테고리 초기화
 # ------------------------------
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+classifier = None
+if TORCH_AVAILABLE:
+    try:
+        classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+        print("Zero-shot classifier loaded: facebook/bart-large-mnli")
+    except Exception as e:
+        print(f"Zero-shot classifier unavailable, using fallback classification only: {e}")
+else:
+    print("PyTorch not available. Using rule/Naver fallback classification only.")
 
 my_categories = [
     "교육", "교통", "미용", "생활", "쇼핑", "식비",
@@ -84,23 +100,23 @@ NAVER_CLIENT_SECRET = "UV2YTZbqdh"
 
 
 # ------------------------------
-# Pydantic 紐⑤뜽 ?뺤쓽
+# Pydantic 모델 정의
 # ------------------------------
-class Transaction(BaseModel):  # ?뱀뿉??諛쏆쓣 JSON ?곗씠???뺤떇 ?뺤쓽
+class Transaction(BaseModel):  # 웹에서 받을 JSON 데이터 형식 정의
     vendor: str
     transaction_date: str   # "YY/MM/DD"
     amount: float
-    user_id: int   # ?몚 異붽?
+    user_id: int   # 👈 추가
 
 
 # ------------------------------
-# Oracle DB ?곌껐
+# Oracle DB 연결
 # ------------------------------
 
-# ?먮컮??TNS_ADMIN=... 怨??숈씪???④낵瑜??낅땲??
-# WALLET_DIR = "C:/oraclepw"`r`nos.environ["TNS_ADMIN"] = WALLET_DIR`r`noracledb.defaults.config_dir = WALLET_DIR
+# 자바의 TNS_ADMIN=... 과 동일한 효과를 냅니다.
+# os.environ["TNS_ADMIN"] = "C:/oraclepw"
 
-# ?섍꼍 蹂?섎? ?ㅼ젙?댁꽌 URL ?ㅼ쓽 臾쇱쓬???) 遺遺?吏?
+# 환경 변수를 설정해서 URL 뒤의 물음표(?) 부분 지움
 DB_URL = "oracle+oracledb://ADMIN:Heeyoun1220!@stoxle_low?events=true"
 
 engine = create_engine(
@@ -115,10 +131,10 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 # ------------------------------
-# Helper ?⑥닔
+# Helper 함수
 # ------------------------------
-# ?ㅼ씠踰?api濡?援щℓ泥섎? ?듯빐 ?ㅼ씠踰꾩젙??移댄뀒怨좊━ 諛쏆븘??
-def get_naver_category(query: str):  # query: 援щℓ泥?
+# 네이버 api로 구매처를 통해 네이버정의 카테고리 받아옴
+def get_naver_category(query: str):  # query: 구매처
     clean_query = re.sub(r'(\s점$|점$|\(주\)|주식회사)', '', query)
     encText = urllib.parse.quote(clean_query)
     url = f"https://openapi.naver.com/v1/search/local.json?query={encText}&display=1"
@@ -129,23 +145,29 @@ def get_naver_category(query: str):  # query: 援щℓ泥?
             items = response.json().get('items')
             if items:
                 return items[0]['category']
-        return "移댄뀒怨좊━ ?놁쓬"
+        return "카테고리 없음"
     except:
-        return "移댄뀒怨좊━ ?놁쓬"
+        return "카테고리 없음"
 
-# 移댄뀒怨좊━ ?⑥닚??- ?ㅼ씠踰??뺤쓽 移댄뀒怨좊━???遺꾨쪟留?異붿텧
+# 카테고리 단순화 - 네이버 정의 카테고리의 대분류만 추출
 def simplify_category(naver_category: str):
     return naver_category.split('>')[0]
 
-# 癒몄떊?щ떇 湲곕컲 遺꾨쪟 - zero-shot紐⑤뜽??媛???곹빀??my_categories?쇰꺼 ?좏깮(移댄뀒怨좊━ 醫낅쪟 異뺤냼)
+# 머신러닝 기반 분류 - zero-shot모델이 가장 적합한 my_categories라벨 선택(카테고리 종류 축소)
 def ml_classify(naver_cat: str):
-    if naver_cat == "移댄뀒怨좊━ ?놁쓬":
-        return "移댄뀒怨좊━ ?놁쓬"
-    result = classifier(naver_cat, my_categories)
-    return result['labels'][0]
+    if naver_cat == "카테고리 없음":
+        return "카테고리 없음"
+    if classifier is None:
+        return naver_cat
+    try:
+        result = classifier(naver_cat, my_categories)
+        return result['labels'][0]
+    except Exception as e:
+        print(f"ml_classify fallback: {e}")
+        return naver_cat
 
 
-# 移댄뀒怨좊━ ?섎룞 蹂댁젙
+# 카테고리 수동 보정
 def finalize_category(vendor: str, naver_raw: str, ml_cat: str):
     for key, val in shop_rules.items():
         if key in vendor:
@@ -155,7 +177,7 @@ def finalize_category(vendor: str, naver_raw: str, ml_cat: str):
             return val
     return ml_cat
 
-# 遺꾨쪟 理쒖쥌 ?ㅽ뻾
+# 분류 최종 실행
 def classify_transaction(transaction: dict):
     vendor = transaction['vendor']
     naver_raw = get_naver_category(vendor)
@@ -165,10 +187,10 @@ def classify_transaction(transaction: dict):
     transaction['naver_raw'] = naver_raw
     transaction['category'] = final_cat
 
-    # month ?먮룞 怨꾩궛
+    # month 자동 계산
     tx_date = datetime.strptime(transaction['transaction_date'], "%y/%m/%d")
     transaction['month'] = tx_date.month
-    transaction['year'] = tx_date.year  # ?몚 ?닿굅 異붽?
+    transaction['year'] = tx_date.year  # 👈 이거 추가
 
     return transaction
 
@@ -176,7 +198,7 @@ def classify_transaction(transaction: dict):
 
 
 # ------------------------------
-# DB ????⑥닔
+# DB 저장 함수
 # ------------------------------
 
 def save_transaction_to_db(tx: dict):
@@ -203,7 +225,7 @@ def save_transaction_to_db(tx: dict):
         return True
     except Exception as e:
         session.rollback()
-        print("DB ????ㅻ쪟:", e)
+        print("DB 저장 오류:", e)
         return False
     finally:
         session.close()
@@ -214,30 +236,29 @@ def save_transaction_to_db(tx: dict):
 # ------------------------------
 @app.post("/classify_transaction")
 def classify(transaction: Transaction):
-    tx_dict = transaction.model_dump()  # user_id??transaction ?덉뿉 ?ㅼ뼱?덉쓬
+    tx_dict = transaction.model_dump()  # user_id는 transaction 안에 들어있음
 
-    # 遺꾨쪟
+    # 분류
     result = classify_transaction(tx_dict)
-    print(f"--- 遺꾨쪟 寃곌낵 ---")
-    print(f"援щℓ泥? {result['vendor']}")
-    print(f"移댄뀒怨좊━: {result['category']}")
-    print(f"湲덉븸: {result['amount']}")
+    print(f"--- 분류 결과 ---")
+    print(f"구매처: {result['vendor']}")
+    print(f"카테고리: {result['category']}")
+    print(f"금액: {result['amount']}")
 
-    # DB ???
+    # DB 저장
     success = save_transaction_to_db(result)
     result['saved'] = success
 
     return {"result": result}
-# /classify_transaction 寃쎈줈濡?POST ?붿껌 諛쏆쓬
-# ?붿껌 JSON ??Transaction 紐⑤뜽 ??Python ?뺤뀛?덈━ ??遺꾨쪟 ?⑥닔 ?몄텧
-# 理쒖쥌 寃곌낵 JSON?쇰줈 諛섑솚
-# ?붾퉬 ???
+# /classify_transaction 경로로 POST 요청 받음
+# 요청 JSON → Transaction 모델 → Python 딕셔너리 → 분류 함수 호출
+# 최종 결과 JSON으로 반환
+# 디비 저장
 
-# 肄붾뱶 留?留덉?留?以꾩뿉 異붽?
+# 코드 맨 마지막 줄에 추가
 if __name__ == "__main__":
     import uvicorn
-    # port??9000踰덉쑝濡??ㅼ젙 (?먮컮 ?ㅼ젙怨?留욎땄)
+    # port는 9000번으로 설정 (자바 설정과 맞춤)
     uvicorn.run(app, host="127.0.0.1", port=8001)
-
 
 

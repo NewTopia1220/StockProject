@@ -16,34 +16,30 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-/**
- * 관심종목 가격 알림 스케줄러
- * - 장 중(09:00~15:30) 평일 5분마다 실행
- * - 전일 대비 ±3% 이상 변동 시 사용자별 알림 생성
- * - 자정에 7일 지난 알림 자동 삭제
- */
 @Component
 @RequiredArgsConstructor
 public class AlertScheduler {
+
+    private static final double ALERT_THRESHOLD = 0.5;
+    private static final String ALERT_TYPE_RISE = "\uC0C1\uC2B9";
+    private static final String ALERT_TYPE_FALL = "\uD558\uB77D";
 
     private final WatchListRepository watchListRepository;
     private final StockAlertRepository stockAlertRepository;
     private final StockPriceService stockPriceService;
     private final WatchListService watchListService;
 
-    private static final double ALERT_THRESHOLD = 0.5;
-
-    /**
-     * 5분마다 관심종목 등락률 체크 (평일 09:00~15:55)
-     */
     @Scheduled(cron = "0 */5 9-15 * * MON-FRI")
     @Transactional
     public void checkPriceAlerts() {
-        // 15:30 이후면 장 마감으로 스킵
-        if (LocalTime.now().isAfter(LocalTime.of(15, 30))) return;
+        if (LocalTime.now().isAfter(LocalTime.of(15, 30))) {
+            return;
+        }
 
         List<Object[]> distinctStocks = watchListRepository.findDistinctStocks();
-        if (distinctStocks.isEmpty()) return;
+        if (distinctStocks.isEmpty()) {
+            return;
+        }
 
         LocalDateTime startOfDay = LocalDateTime.now().toLocalDate().atStartOfDay();
 
@@ -51,76 +47,67 @@ public class AlertScheduler {
             String code = (String) row[0];
             String name = (String) row[1];
 
-            System.out.println("조회 중인 종목: " + name + "(" + code + ")"); // 확인용
-
             try {
                 StockResponseDto price = stockPriceService.getCurrentPrice(code);
-                if (price == null || price.getChangeRate() == null) continue;
+                if (price == null || price.getChangeRate() == null) {
+                    continue;
+                }
 
                 double rate = parseRate(price.getChangeRate());
-                if (Math.abs(rate) < ALERT_THRESHOLD) continue;
+                if (Math.abs(rate) < ALERT_THRESHOLD) {
+                    continue;
+                }
 
-                String alertType = rate > 0 ? "상승" : "하락";
-
-                // 해당 종목 관심 등록 사용자 전체
+                String alertType = rate > 0 ? ALERT_TYPE_RISE : ALERT_TYPE_FALL;
                 List<WatchList> watchers = watchListRepository.findByStockCode(code);
+
                 for (WatchList watcher : watchers) {
-
-                    // 사용자의 알림 수신 여부를 가져옴.
-                    boolean isEnabled = watchListService.isNotifyEnabled(watcher.getUserNum());
-
-                    // 만약 알림 꺼져 있다면, 이 사용자는 알림 생성을 스킵(continue)
-                    System.out.println("유저 " + watcher.getUserNum() + "의 알림 설정 상태: " + isEnabled);
-
-                    if (!isEnabled) {
-                        System.out.println("[알림 차단 확인] 유저: " + watcher.getUserNum() + " | 설정: OFF -> DB 저장을 스킵합니다.");
+                    if (!watchListService.isNotifyEnabled(watcher.getUserNum())) {
                         continue;
-                    } else {
-                        System.out.println("[알림 전송 대상] 유저: " + watcher.getUserNum() + " | 설정: ON -> 로직 진행");
                     }
 
                     boolean exists = stockAlertRepository.existsTodayAlert(
-                            watcher.getUserNum(), code, alertType, startOfDay);
-                    if (!exists) {
-                        StockAlert alert = new StockAlert();
-                        alert.setUserNum(watcher.getUserNum());
-                        alert.setStockCode(code);
-                        alert.setStockName(name);
-                        alert.setChangeRate(String.format("%.2f", Math.abs(rate)));
-                        alert.setAlertType(alertType);
-                        alert.setPrice(price.getCurrentPrice());
-                        alert.setAlertRead(false);
-                        stockAlertRepository.save(alert);
+                        watcher.getUserNum(),
+                        code,
+                        alertType,
+                        startOfDay
+                    );
+                    if (exists) {
+                        continue;
                     }
+
+                    StockAlert alert = new StockAlert();
+                    alert.setUserNum(watcher.getUserNum());
+                    alert.setStockCode(code);
+                    alert.setStockName(name);
+                    alert.setChangeRate(String.format("%.2f", Math.abs(rate)));
+                    alert.setAlertType(alertType);
+                    alert.setPrice(price.getCurrentPrice());
+                    alert.setAlertRead(false);
+                    stockAlertRepository.save(alert);
                 }
 
-                // KIS API 부하 방지
                 Thread.sleep(200);
-
-            } catch (InterruptedException ie) {
+            } catch (InterruptedException interruptedException) {
                 Thread.currentThread().interrupt();
                 break;
-            } catch (Exception e) {
-                System.out.println("알림 체크 오류 [" + code + "]: " + e.getMessage());
+            } catch (Exception ignored) {
+                // Console noise intentionally suppressed during scheduled polling.
             }
         }
     }
 
-    /**
-     * 매일 자정 7일 지난 알림 삭제
-     */
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void cleanOldAlerts() {
         LocalDateTime cutoff = LocalDateTime.now().minusDays(7);
         stockAlertRepository.deleteOlderThan(cutoff);
-        System.out.println("7일 지난 알림 삭제 완료");
     }
 
     private double parseRate(String rate) {
         try {
             return Double.parseDouble(rate.replace(",", "").trim());
-        } catch (Exception e) {
+        } catch (Exception exception) {
             return 0.0;
         }
     }

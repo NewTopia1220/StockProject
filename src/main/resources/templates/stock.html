@@ -6,8 +6,9 @@
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/stock.css}">
     <link rel="stylesheet" th:href="@{/css/ai_predict.css}">
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js"></script>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/highstock.js" defer></script>
+    <script src="https://cdn.jsdelivr.net/npm/highcharts@11/modules/accessibility.js" defer></script>
 </head>
 <body class="withMainHeader">
 
@@ -78,8 +79,9 @@
                     <!-- 종목 정보 -->
                     <div class="stockInfoPanel">
                         <div class="stockNameRow">
-                            <span id="chartStockName">삼성전자</span>
-                            <span id="chartStockCode" class="stockCodeBadge">005930</span>
+                            <span id="chartStockName"
+                                  th:text="${aiPrediction != null and aiPrediction.stockName != null ? aiPrediction.stockName : stockCode}">005930</span>
+                            <span id="chartStockCode" class="stockCodeBadge" th:text="${stockCode}">005930</span>
                         </div>
                         <div class="stockPriceRow">
                             <strong id="chartCurrentPrice">-</strong>
@@ -342,6 +344,6 @@
         sectors: /*[[${sectorCards}]]*/ []
     };
 </script>
-<script th:src="@{/js/stock.js}"></script>
+<script th:src="@{/js/stock.js}" defer></script>
 </body>
 </html>
