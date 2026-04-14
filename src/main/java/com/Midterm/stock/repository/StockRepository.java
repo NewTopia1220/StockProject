@@ -30,4 +30,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
             "s.fullName  LIKE %:keyword% OR " +
             "s.stockCode LIKE %:keyword%")
     List<Stock> findByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    @Query("SELECT s.fullName FROM Stock s WHERE s.stockCode = :stockCode")
+    String findByStockCode(@Param("stockCode") String stockCode);
 }

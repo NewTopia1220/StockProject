@@ -2,6 +2,7 @@ package com.Midterm.stock.service.stock;
 
 import com.Midterm.stock.dto.StockChartDto;
 import com.Midterm.stock.dto.StockResponseDto;
+import com.Midterm.stock.repository.StockRepository;
 import com.fasterxml.jackson.databind.JsonNode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +15,7 @@ import java.util.*;
 @RequiredArgsConstructor
 public class StockPriceService {
 
+    private final StockRepository stockRepository;
     private static final String DOMESTIC_MARKET_CODE = "J";
     private static final String INDEX_MARKET_CODE = "U";
     private static final String KOSPI_CODE = "0001";
@@ -40,7 +42,8 @@ public class StockPriceService {
         kisApi.issueToken();
         StockResponseDto dto = emptyResponseDto();
         dto.setStockCode(stockCode);
-        dto.setStockName(stockCode);
+        String dbName = stockRepository.findByStockCode(stockCode);
+        dto.setStockName(dbName != null ? dbName : stockCode);
         try {
             JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                     .path("/uapi/domestic-stock/v1/quotations/inquire-price")
