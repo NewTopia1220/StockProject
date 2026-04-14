@@ -435,9 +435,9 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         ? (isIntraday ? ohlc[0][1] : ohlc[ohlc.length - 1][1])
         : null;
 
-    // 분별 라인 방향 색상
+    // 시간별·분별 라인 방향 색상 (오르면 빨강, 내리면 파랑)
     const minuteLineColor = (() => {
-        if (tab !== 'minute' || ohlc.length < 2) return '#0E0F37';
+        if ((tab !== 'minute' && tab !== 'time') || ohlc.length < 2) return '#3b82f6';
         const first = hasOhlc ? ohlc[0][4] : ohlc[0][1];
         const last  = hasOhlc ? ohlc[ohlc.length - 1][4] : ohlc[ohlc.length - 1][1];
         return last >= first ? '#ef4444' : '#3b82f6';
@@ -449,8 +449,11 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         data: ohlc,
         color: '#3b82f6', upColor: '#ef4444',
         lineColor: '#3b82f6', upLineColor: '#ef4444',
-        lineWidth: tab === 'minute' ? 2 : 1,
-        pointWidth: tab === 'time' ? 8 : tab === 'minute' ? 4 : undefined,
+
+        lineWidth: 5,
+
+        // 캔들 몸통 너비 (굵기)
+        pointWidth: isIntraday ? (tab === 'time' ? 12 : 6) : undefined,
         dataGrouping: { enabled: false }
     } : {
         type: 'line', name,
@@ -522,8 +525,14 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                     max: _xMax,
                     dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
             }
-            // minute: 자동 스케일
+            // minute: 09:00 KST ~ 현재시간
+            const _nm     = new Date();
+            const _at9m   = new Date(_nm.getFullYear(), _nm.getMonth(), _nm.getDate(),  9,  0, 0, 0).getTime();
+            const _at1530m= new Date(_nm.getFullYear(), _nm.getMonth(), _nm.getDate(), 15, 30, 0, 0).getTime();
+            const _nowTsm = new Date(_nm.getFullYear(), _nm.getMonth(), _nm.getDate(), _nm.getHours(), _nm.getMinutes(), 0, 0).getTime();
+            const _xMaxm  = _nowTsm < _at1530m ? _nowTsm : _at1530m;
             return { ...base, ordinal: false,
+                min: _at9m, max: _xMaxm,
                 dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
         })(),
         yAxis: [{
