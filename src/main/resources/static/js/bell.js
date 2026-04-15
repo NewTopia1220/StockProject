@@ -233,19 +233,12 @@ function updateNotificationPermissionUi() {
 
     const permission = getBrowserNotificationState();
     permissionBar.dataset.permission = permission;
+    permissionBar.hidden = false;
     permissionBtn.hidden = false;
     permissionBtn.disabled = false;
 
     if (permission === 'granted') {
-        if (!alertTypePreferences.stock && !alertTypePreferences.comment) {
-            permissionText.textContent = '브라우저 알림은 켜져 있지만, 마이페이지에서 알림이 모두 꺼져 있어 PC 알림이 표시되지 않습니다.';
-        } else if (!alertTypePreferences.stock || !alertTypePreferences.comment) {
-            permissionText.textContent = '브라우저 알림이 켜져 있습니다. 마이페이지에서 켜둔 항목만 PC 알림으로 표시됩니다.';
-        } else {
-            permissionText.textContent = '브라우저 알림이 켜져 있습니다. 새 알림이 PC 알림으로 표시됩니다.';
-        }
-        permissionBtn.textContent = '사용 중';
-        permissionBtn.disabled = true;
+        permissionBar.hidden = true;
         return;
     }
 
