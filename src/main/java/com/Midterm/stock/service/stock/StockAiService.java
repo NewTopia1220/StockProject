@@ -70,6 +70,13 @@ public class StockAiService {
         return predict(stockCode, today);
     }
 
+    // 초기 페이지 렌더는 캐시된 결과만 사용해 응답 지연을 줄이고, 없으면 프론트에서 비동기로 채운다.
+    public AiPredictionDto getCachedPrediction(String stockCode) {
+        String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+        String cacheKey = buildStockPredictCacheKey(stockCode, today);
+        return getCached(stockPredictCache, cacheKey);
+    }
+
     // 지정한 날짜 기준으로 종목 예측을 수행하고 결과를 캐시
     public AiPredictionDto predict(String stockCode, String date) {
         String cacheKey = buildStockPredictCacheKey(stockCode, date);

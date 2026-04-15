@@ -3,6 +3,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const newsSearchResult = document.getElementById("newsSearchResult");
     const selectedNewsBox = document.getElementById("selectedNewsBox");
     const newsLinkInput = document.getElementById("newsLink");
+    const initialNewsLink = selectedNewsBox?.dataset.initialLink?.trim();
+    const initialNewsTitle = selectedNewsBox?.dataset.initialTitle?.trim();
 
     let searchTimer = null;
 
@@ -105,6 +107,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     if (newsKeywordInput) {
         renderEmptyMessage("두 글자 이상 입력하면 관련 뉴스를 찾을 수 있어요.");
+
+        if (initialNewsLink) {
+            renderSelectedNews({
+                link: initialNewsLink,
+                title: initialNewsTitle || initialNewsLink
+            });
+        }
 
         newsKeywordInput.addEventListener("input", function () {
             const keyword = newsKeywordInput.value;

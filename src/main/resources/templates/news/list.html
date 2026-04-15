@@ -263,6 +263,16 @@
     var CTX_USER_NUM = /*[[${session.loginNum}]]*/ 0;
 </script>
 <script>
+    function toggleNewsAccordion(button) {
+        var panel = button.nextElementSibling;
+        if (!panel) {
+            return;
+        }
+
+        button.classList.toggle('open');
+        panel.classList.toggle('open');
+    }
+
     /* ── 원형 차트 애니메이션 ── */
     // 원형 분석 게이지를 현재 값 기준으로 애니메이션한다.
     (function () {

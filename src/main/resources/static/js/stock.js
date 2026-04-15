@@ -27,6 +27,23 @@ const exchangeChartCache = new Map();
 const exchangeQuoteRequests = new Map();
 const exchangeChartRequests = new Map();
 
+function createPollingTask(task, { pauseWhenHidden = true } = {}) {
+    let running = false;
+
+    return async () => {
+        if (running || (pauseWhenHidden && document.hidden)) {
+            return;
+        }
+
+        running = true;
+        try {
+            await task();
+        } finally {
+            running = false;
+        }
+    };
+}
+
 // 페이지 진입 시 게이지, 차트, 티커, AI 패널을 한 번에 초기화
 document.addEventListener('DOMContentLoaded', () => {
     currentStockName = document.getElementById('chartStockName')?.textContent.trim() || '삼성전자';
@@ -47,6 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     applyActiveTickerState();
     initAiRotator();
     startPolling();
+    void refreshAiPredictionForCurrentCode();
 });
 
 // 차트 탭 클릭 이벤트를 연결하고 장중 여부에 따라 탭 사용을 제어
@@ -124,7 +142,7 @@ function bindSearchHandlers() {
 
                 dropdown.style.display = 'block';
             } catch (error) {
-                console.log('search error:', error);
+                // console.log('search error:', error);
             }
         }, 300);
     });
@@ -181,7 +199,7 @@ async function resolveSearchSelection(keyword) {
             name: candidate?.name || candidate?.code || keyword
         };
     } catch (error) {
-        console.log('search resolve error:', error);
+        // console.log('search resolve error:', error);
         return { code: keyword, name: keyword };
     }
 }
@@ -260,6 +278,11 @@ function bindTickerCards() {
             if (!source) {
                 return;
             }
+            Object.keys(sessionStorage).forEach(key => {
+                if (key.startsWith('mainChart_')) {
+                    sessionStorage.removeItem(key);
+                }
+            });
             await activateChartSource(source);
         });
     });
@@ -386,14 +409,7 @@ async function startPolling() {
     }
     pollingStarted = true;
 
-    await Promise.all([
-        updateTicker(),
-        updateExchangeCard(),
-        updateTopStocks()
-    ]);
-    await refreshActiveView();
-
-    setInterval(async () => {
+    const tickerTask = createPollingTask(async () => {
         const tickerData = await updateTicker();
 
         if (currentChartSource === 'stock') {
@@ -408,13 +424,9 @@ async function startPolling() {
         if (currentChartSource === 'kosdaq' && tickerData.kosdaq) {
             renderIndexSummary('kosdaq', tickerData.kosdaq);
         }
-    }, 5000);
-
-    setInterval(async () => {
-        await updateTopStocks();
-    }, 30000);
-
-    setInterval(async () => {
+    });
+    const topStocksTask = createPollingTask(updateTopStocks);
+    const chartTask = createPollingTask(async () => {
         if (currentChartSource === 'exchange') {
             return;
         }
@@ -422,14 +434,25 @@ async function startPolling() {
         if (isMarketOpen()) {
             await updateMainChart();
         }
-    }, 10000);
-
-    setInterval(async () => {
+    });
+    const exchangeTask = createPollingTask(async () => {
         const exchangeData = await updateExchangeCard();
         if (currentChartSource === 'exchange') {
             renderExchangeSummary(exchangeData);
         }
-    }, 60000);
+    });
+
+    await Promise.all([
+        updateTicker(),
+        updateExchangeCard(),
+        updateTopStocks()
+    ]);
+    await refreshActiveView();
+
+    setInterval(tickerTask, 5000);
+    setInterval(topStocksTask, 30000);
+    setInterval(chartTask, 10000);
+    setInterval(exchangeTask, 60000);
 }
 
 // 현재 선택 종목을 메인 차트의 활성 소스로 전환
@@ -499,7 +522,7 @@ async function fetchMainChartData() {
             latestChartData = data;
             return data;
         } catch (error) {
-            console.log('exchange chart fetch error:', error);
+            // console.log('exchange chart fetch error:', error);
             latestChartData = emptyChartData();
             return latestChartData;
         }
@@ -522,7 +545,7 @@ async function fetchMainChartData() {
         latestChartData = data;
         return data;
     } catch (error) {
-        console.log('chart fetch error:', error);
+        // console.log('chart fetch error:', error);
         latestChartData = emptyChartData();
         return latestChartData;
     }
@@ -564,13 +587,53 @@ async function initMainChart() {
         mainChart.destroy();
     }
 
+    // 1. 현재 차트의 고유 식별자 (종목코드 등)
+    const chartId = (currentChartSource === 'exchange') ? 'fx_' + getSelectedCurrency() : (currentCode || currentChartSource);
+    const storageKey = `mainChart_${chartId}_${currentTab}`;
+
+    // 2. [추가] 다른 종목/소스의 흔적 지우기
+    // sessionStorage 전체를 뒤져서 'mainChart_'로 시작하지만, 현재 chartId가 아닌 것들은 삭제
+    Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('mainChart_') && !key.includes(`_${chartId}_`)) {
+            sessionStorage.removeItem(key);
+        }
+    });
+
+    // 3. 현재 종목/탭의 범위만 불러오기
+    const savedMin = sessionStorage.getItem(storageKey + '_min');
+    const savedMax = sessionStorage.getItem(storageKey + '_max');
+    const savedTs  = sessionStorage.getItem(storageKey + '_ts');
+
+    const TTL = 10000; // 10초
+
+    let pMin, pMax;
+
+    setInterval(() => {
+        const min = sessionStorage.getItem(storageKey + '_min');
+        const max = sessionStorage.getItem(storageKey + '_max');
+
+        if (min || max) {
+            sessionStorage.setItem(storageKey + '_ts', Date.now());
+        }
+    }, 5000);
+
+    if (savedTs && (Date.now() - parseInt(savedTs, 10) < TTL)) {
+        // ✅ 유효한 경우만 사용
+        pMin = savedMin ? parseFloat(savedMin) : undefined;
+        pMax = savedMax ? parseFloat(savedMax) : undefined;
+    } else {
+        // ❌ 만료 → 삭제
+        sessionStorage.removeItem(storageKey + '_min');
+        sessionStorage.removeItem(storageKey + '_max');
+        sessionStorage.removeItem(storageKey + '_ts');
+    }
+
     const labels = Array.isArray(data.labels) ? data.labels : [];
     const closePrices = Array.isArray(data.closePrices) ? data.closePrices : [];
     const openPrices = Array.isArray(data.openPrices) ? data.openPrices : [];
     const highPrices = Array.isArray(data.highPrices) ? data.highPrices : [];
     const lowPrices = Array.isArray(data.lowPrices) ? data.lowPrices : [];
     const volumes = Array.isArray(data.volumes) ? data.volumes : [];
-
     const hasOhlc = currentChartSource !== 'exchange'
         && labels.length > 0
         && openPrices.length === labels.length
@@ -583,17 +646,17 @@ async function initMainChart() {
             const close = Number(closePrices[index]);
             return open !== 0 || high !== 0 || low !== 0 || close !== 0;
         });
-
     const showCandles = hasOhlc;
     const isIntraday = currentTab === 'time' || currentTab === 'minute';
     const timeFormat = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
+    // 라인 차트(인덱스 등) 방향 색상
     const lineColor = (() => {
         if (showCandles || closePrices.length < 2) {
             return '#3b82f6';
         }
         const firstClose = Number(closePrices[0]) || 0;
-        const lastClose = Number(closePrices[closePrices.length - 1]) || 0;
+        const lastClose  = Number(closePrices[closePrices.length - 1]) || 0;
         return lastClose >= firstClose ? '#ef4444' : '#3b82f6';
     })();
 
@@ -623,16 +686,26 @@ async function initMainChart() {
     });
 
     mainChart = Highcharts.stockChart('mainChart', {
-        time: {
-            useUTC: false
-        },
+        time: { useUTC: false }, // 성공 케이스와 동일하게 설정
         chart: {
             backgroundColor: '#ffffff',
             spacing: [10, 12, 8, 12],
             animation: false,
             height: 360,
-            style: {
-                fontFamily: 'inherit'
+            style: { fontFamily: 'inherit' }
+        },
+        rangeSelector: isIntraday ? { enabled: false } : {
+            selected: 1,
+            inputEnabled: false,
+            buttons: [
+                { type: 'month', count: 1, text: '1M' },
+                { type: 'month', count: 3, text: '3M' },
+                { type: 'all', text: 'All' }
+            ],
+            buttonTheme: {
+                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
+                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
+                states: { select: { fill: '#0E0F37', style: { color: '#ffffff' } } }
             }
         },
         credits: {
@@ -703,96 +776,102 @@ async function initMainChart() {
             enabled: false
         },
         xAxis: (() => {
-            const base = {
+            // 현재 종목/소스의 저장된 범위만 불러오기 (키 형식 통일)
+            const savedMin = sessionStorage.getItem(storageKey + '_min');
+            const savedMax = sessionStorage.getItem(storageKey + '_max');
+
+            const firstDataTs = priceSeries.length > 0 ? priceSeries[0][0] : null;
+            const baseDate = firstDataTs ? new Date(firstDataTs) : new Date();
+
+            const _base = {
                 type: 'datetime',
                 lineColor: '#e5e7eb',
                 tickColor: '#e5e7eb',
-                crosshair: {
-                    color: '#cbd5e1',
-                    dashStyle: 'ShortDot'
+                crosshair: { color: '#cbd5e1', dashStyle: 'ShortDot' },
+
+                // 저장된 값이 있을 때만 적용, 없으면 undefined (기본값 사용)
+                min: savedMin ? parseFloat(savedMin) : undefined,
+                max: savedMax ? parseFloat(savedMax) : undefined,
+                events: {
+                    afterSetExtremes: function(e) {
+                        sessionStorage.setItem(storageKey + '_ts', Date.now());
+                        if (e.trigger !== undefined) {
+                            const now = Date.now();
+
+                            sessionStorage.setItem(storageKey + '_min', e.min);
+                            sessionStorage.setItem(storageKey + '_max', e.max);
+                            sessionStorage.setItem(storageKey + '_ts', now);
+                        }
+                    }
                 }
             };
 
             if (currentTab === 'time' || currentTab === 'minute') {
-                const now = new Date();
-                const at9 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0, 0).getTime();
-                const at1530 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 30, 0, 0).getTime();
-                const nowTs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0, 0).getTime();
-                const xMax = nowTs < at1530 ? nowTs : at1530;
+                const _n = new Date();
+                const _at9 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 9, 0, 0, 0).getTime();
+                const _at1530 = new Date(baseDate.getFullYear(), baseDate.getMonth(), baseDate.getDate(), 15, 30, 0, 0).getTime();
+                const _nowTs = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes(), 0, 0).getTime();
+                const _xMax = _nowTs < _at1530 ? _nowTs : _at1530;
 
                 return {
-                    ...base,
+                    ..._base,
                     ordinal: false,
-                    min: at9,
-                    max: xMax,
+                    // 저장값이 유효하면 사용, 아니면 기본 시간 범위
+                    min: (savedMin && parseFloat(savedMin) >= _at9 - 3600000) ? parseFloat(savedMin) : _at9,
+                    max: savedMax ? parseFloat(savedMax) : _xMax,
                     tickInterval: currentTab === 'time' ? 3600000 : undefined,
-                    dateTimeLabelFormats: {
-                        millisecond: '%H:%M',
-                        second: '%H:%M',
-                        minute: '%H:%M',
-                        hour: '%H:%M'
-                    }
+                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' }
                 };
             }
 
-            return {
-                ...base,
-                dateTimeLabelFormats: {
-                    day: '%m/%d',
-                    week: '%m/%d',
-                    month: '%y/%m'
-                }
-            };
+            return { ..._base, ordinal: true, dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
         })(),
-        yAxis: [
-            {
-                top: 0,
-                height: '62%',
-                lineWidth: 0,
-                gridLineColor: '#f3f4f6',
-                tickAmount: 5,
-                labels: {
-                    align: 'left',
-                    x: 0,
-                    style: {
-                        color: '#374151',
-                        fontSize: '11px'
-                    },
-                    formatter: function () {
-                        return Number(this.value).toLocaleString();
-                    }
+
+        yAxis: [{
+            height: '72%',
+            top: 0,
+            lineWidth: 0,
+            gridLineColor: '#f3f4f6',
+            tickAmount: 5,
+            labels: {
+                align: 'left',
+                x: 0,
+                style: {
+                    color: '#374151',
+                    fontSize: '11px'
                 },
-                resize: {
-                    enabled: true
-                },
-                plotLines: []
+                formatter: function () {
+                    return Number(this.value).toLocaleString();
+                }
             },
-            {
-                top: '67%',
-                height: '13%',
-                offset: 0,
-                lineWidth: 0,
-                gridLineColor: '#f9fafb',
-                labels: {
-                    align: 'left',
-                    x: 0,
-                    style: {
-                        color: '#9ca3af',
-                        fontSize: '10px'
-                    },
-                    formatter: function () {
-                        return Number(this.value).toLocaleString();
-                    }
+            resize: {
+                enabled: true
+            },
+            plotLines: []
+        }, {
+            top: '72%',
+            height: '28%',
+            offset: 0,
+            lineWidth: 0,
+            gridLineColor: '#f9fafb',
+            labels: {
+                align: 'left',
+                x: 0,
+                style: {
+                    color: '#9ca3af',
+                    fontSize: '11px'
+                },
+                formatter: function () {
+                    return Number(this.value).toLocaleString();
                 }
             }
-        ],
+        }],
         tooltip: {
             split: false,
             shared: true,
             formatter: function () {
                 const points = this.points || [];
                 let content = `<b>${Highcharts.dateFormat(timeFormat, this.x)}</b><br/>`;
-
                 points.forEach((point) => {
                     if (point.series.type === 'candlestick') {
                         content += `시가 ${point.point.open?.toLocaleString()} · 고가 ${point.point.high?.toLocaleString()} · 저가 ${point.point.low?.toLocaleString()} · 종가 <b>${point.point.close?.toLocaleString()}</b>원<br/>`;
@@ -802,7 +881,6 @@ async function initMainChart() {
                         content += `${point.y?.toLocaleString()}원<br/>`;
                     }
                 });
-
                 return content;
             }
         },
@@ -813,6 +891,7 @@ async function initMainChart() {
                 }
             },
             candlestick: {
+                animation: false,
                 color: '#0051ff',
                 upColor: '#f22e2e',
                 lineColor: '#0051ff',
@@ -823,6 +902,7 @@ async function initMainChart() {
                 pointWidth: isIntraday ? 10 : undefined
             },
             column: {
+                animation: false,
                 borderWidth: 0,
                 color: '#e5e7eb',
                 pointPadding: 0.08,
@@ -830,39 +910,47 @@ async function initMainChart() {
                 pointWidth: isIntraday ? 8 : undefined
             }
         },
-        series: [
-            {
-                type: showCandles ? 'candlestick' : 'line',
-                id: 'price',
-                name: getDatasetLabel(),
-                data: priceSeries,
-                color: showCandles ? '#0051ff' : lineColor,
-                upColor: showCandles ? '#f22e2e' : undefined,
-                lineColor: showCandles ? '#0051ff' : undefined,
-                upLineColor: showCandles ? '#f22e2e' : undefined,
-                lineWidth: showCandles ? 2 : 3,
-                turboThreshold: 0,
-                marker: {
-                    enabled: !showCandles && isIntraday,
-                    radius: 3
-                },
-                tooltip: {
-                    valueDecimals: 2
-                }
+        series: [{
+            type: showCandles ? 'candlestick' : 'line',
+            id: 'price',
+            name: getDatasetLabel(),
+            data: priceSeries,
+            color: showCandles ? '#0051ff' : lineColor,
+            upColor: showCandles ? '#f22e2e' : undefined,
+            lineColor: showCandles ? '#0051ff' : undefined,
+            upLineColor: showCandles ? '#f22e2e' : undefined,
+            lineWidth: showCandles ? 2 : 3,
+            turboThreshold: 0,
+            marker: {
+                enabled: !showCandles && isIntraday,
+                radius: 3
             },
-            {
-                type: 'column',
-                id: 'volume',
-                name: 'Volume',
-                data: volumeSeries,
-                yAxis: 1,
-                turboThreshold: 0,
-                tooltip: {
-                    valueDecimals: 0
-                }
+            tooltip: {
+                valueDecimals: 2
             }
-        ]
+        }, {
+            type: 'column',
+            id: 'volume',
+            name: 'Volume',
+            data: volumeSeries,
+            yAxis: 1,
+            turboThreshold: 0,
+            tooltip: {
+                valueDecimals: 0
+            }
+        }]
     });
+    if (savedMin || savedMax) {
+        const min = savedMin ? parseFloat(savedMin) : undefined;
+        const max = savedMax ? parseFloat(savedMax) : undefined;
+
+        // 데이터가 완전히 렌더링된 후 실행되도록 0ms 타임아웃 부여
+        setTimeout(() => {
+            if (mainChart && mainChart.xAxis[0]) {
+                mainChart.xAxis[0].setExtremes(min, max, true, false);
+            }
+        }, 0);
+    }
 }
 
 // 메인 차트의 데이터를 다시 불러와 화면에 반영
@@ -956,7 +1044,7 @@ async function refreshActiveSummary() {
             const exchangeData = await getExchangeQuote(getSelectedCurrency());
             await updateExchangeInfo(exchangeData, latestChartData);
         } catch (error) {
-            console.log('exchange summary refresh error:', error);
+            // console.log('exchange summary refresh error:', error);
             await updateExchangeInfo(null, latestChartData);
         }
         return;
@@ -1000,7 +1088,7 @@ async function updateStockInfo() {
             volumeClass: ''
         });
     } catch (error) {
-        console.log('stock info error:', error);
+        // console.log('stock info error:', error);
     }
 }
 
@@ -1010,7 +1098,7 @@ async function updateIndexInfo(source, existingData = null) {
         const data = existingData || await fetchJson(source === 'kospi' ? '/api/kospi' : '/api/kosdaq');
         renderIndexSummary(source, data);
     } catch (error) {
-        console.log('index info error:', error);
+        // console.log('index info error:', error);
     }
 }
 
@@ -1052,7 +1140,7 @@ async function updateExchangeInfo(existingData = null, existingChartData = null)
         const chartData = existingChartData || (currentChartSource === 'exchange' ? latestChartData : null);
         renderExchangeSummary(data, chartData);
     } catch (error) {
-        console.log('exchange info error:', error);
+        // console.log('exchange info error:', error);
     }
 }
 
@@ -1133,7 +1221,7 @@ async function updateTicker() {
         renderIndexTicker('kosdaqPrice', 'kosdaqRate', kosdaq);
         return { kospi, kosdaq };
     } catch (error) {
-        console.log('ticker error:', error);
+        // console.log('ticker error:', error);
         return {};
     }
 }
@@ -1171,7 +1259,7 @@ async function updateExchangeCard(existingData = null, existingChartData = null,
 
         return data;
     } catch (error) {
-        console.log('exchange ticker error:', error);
+        // console.log('exchange ticker error:', error);
         return null;
     }
 }
@@ -1202,7 +1290,7 @@ async function updateTopStocks() {
         setHtml('tickerContent1', tickerHtml);
         setHtml('tickerContent2', tickerHtml);
     } catch (error) {
-        console.log('top fluctuation error:', error);
+        // console.log('top fluctuation error:', error);
     }
 }
 
@@ -1345,7 +1433,7 @@ async function refreshAiPredictionForCurrentCode() {
         rebuildAiRotatorItems(true);
         startAiRotator();
     } catch (error) {
-        console.log('ai prediction refresh error:', error);
+        // console.log('ai prediction refresh error:', error);
         if (refreshToken !== aiRefreshToken || requestedCode !== currentCode) {
             return;
         }
@@ -1753,7 +1841,7 @@ async function resolveExchangeMetrics(data, fallbackChartData = null, currency =
         const chartData = await getExchangeChart(currency);
         metrics = resolveChangeMetrics(data, chartData);
     } catch (error) {
-        console.log('exchange metrics fallback error:', error);
+        // console.log('exchange metrics fallback error:', error);
     }
 
     return metrics;

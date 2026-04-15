@@ -21,8 +21,31 @@ let allStocks         = [];        // 현재 로드된 전체 종목 (검색 필
 // ════════════════════════════════════════════════════════
 //  종목 리스트 로딩
 // ════════════════════════════════════════════════════════
+let marketListPollingTimer = null;
+let detailPricePollingTimer = null;
+let detailChartPollingTimer = null;
+let marketLoadToken = 0;
+
+function createPollingTask(task, { pauseWhenHidden = true } = {}) {
+    let running = false;
+
+    return async () => {
+        if (running || (pauseWhenHidden && document.hidden)) {
+            return;
+        }
+
+        running = true;
+        try {
+            await task();
+        } finally {
+            running = false;
+        }
+    };
+}
+
 async function loadMarketData(type) {
     currentType = type || 'trade';
+    const requestToken = ++marketLoadToken;
     const body     = document.getElementById('stockListBody');
     const error    = document.getElementById('listError');
     const noResult = document.getElementById('listNoResult');
@@ -39,6 +62,7 @@ async function loadMarketData(type) {
     try {
         const res    = await fetch(endpoint);
         const stocks = await res.json();
+        if (requestToken !== marketLoadToken) return;
 
         if (!stocks || stocks.length === 0) {
             body.innerHTML = '';
@@ -68,6 +92,7 @@ async function loadMarketData(type) {
         }
 
     } catch (e) {
+        if (requestToken !== marketLoadToken) return;
         console.error('종목 로딩 실패:', e);
         body.innerHTML = '';
         error.style.display = 'block';
@@ -134,7 +159,7 @@ function renderStockList(container, stocks) {
         colTradeHeader.textContent = currentType === 'trade' ? '거래대금' : '거래량';
     }
 
-    container.innerHTML = visibleStocks.map((s, i) => {
+    container.innerHTML = stocks.map((s, i) => {
         const code       = s.stockCode || '';
         const name       = s.stockName || '-';
         const price      = s.currentPrice ? Number(s.currentPrice).toLocaleString() + '원' : '-';
@@ -377,7 +402,8 @@ async function selectStock(code, name, rowEl) {
 
     // 기존 폴링 정리 후 새로 시작
     if (pricePollingTimer) clearInterval(pricePollingTimer);
-    pricePollingTimer = setInterval(updatePanelPrice, 5000);
+    const panelPriceTask = createPollingTask(updatePanelPrice);
+    pricePollingTimer = setInterval(panelPriceTask, 5000);
 }
 
 // ── 패널 현재가 업데이트 ─────────────────────────────────
@@ -468,6 +494,35 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
     const isIntraday = (tab === 'time' || tab === 'minute');
     const timeFmt    = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
+    // 1. 현재 차트의 고유 식별자 (종목코드 등)
+    // 참고: currentChartSource, getSelectedCurrency, currentCode, currentTab 등은 전역 변수로 존재한다고 가정
+    const chartId = (typeof currentChartSource !== 'undefined' && currentChartSource === 'exchange')
+        ? 'fx_' + (typeof getSelectedCurrency === 'function' ? getSelectedCurrency() : 'KRW')
+        : (typeof currentCode !== 'undefined' ? currentCode : 'defaultId');
+    const storageKey = `mainChart_${chartId}_${typeof currentTab !== 'undefined' ? currentTab : tab}`;
+
+    // 2. 다른 종목/소스의 흔적 지우기
+    Object.keys(sessionStorage).forEach(key => {
+        if (key.startsWith('mainChart_') && !key.includes(`_${chartId}_`)) {
+            sessionStorage.removeItem(key);
+        }
+    });
+
+    // 3. 현재 종목/탭의 범위만 불러오기
+    const savedMin = sessionStorage.getItem(storageKey + '_min');
+    const savedMax = sessionStorage.getItem(storageKey + '_max');
+    const pMin = savedMin ? parseFloat(savedMin) : undefined;
+    const pMax = savedMax ? parseFloat(savedMax) : undefined;
+
+    setInterval(() => {
+        const min = sessionStorage.getItem(storageKey + '_min');
+        const max = sessionStorage.getItem(storageKey + '_max');
+
+        if (min || max) {
+            sessionStorage.setItem(storageKey + '_ts', Date.now());
+        }
+    }, 5000);
+
     // 시가 plotLine 값
     const openPriceVal = hasOhlc && ohlc.length > 0
         ? (isIntraday ? ohlc[0][1] : ohlc[ohlc.length - 1][1])
@@ -508,7 +563,22 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             backgroundColor: '#fff',
             style: { fontFamily: 'inherit' },
             animation: false,
-            height: compact ? 220 : 340
+            height: compact ? 220 : 340,
+            events: {
+                load: function () {
+                    const savedMin = sessionStorage.getItem(storageKey + '_min');
+                    const savedMax = sessionStorage.getItem(storageKey + '_max');
+
+                    if (savedMin || savedMax) {
+                        this.xAxis[0].setExtremes(
+                            savedMin ? parseFloat(savedMin) : undefined,
+                            savedMax ? parseFloat(savedMax) : undefined,
+                            true,
+                            false
+                        );
+                    }
+                }
+            }
         },
         credits: { enabled: false },
         rangeSelector: (compact || isIntraday) ? { enabled: false } : {
@@ -545,9 +615,51 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             }
         },
         xAxis: (() => {
-            const base = { type: 'datetime', lineColor: '#e5e7eb', tickColor: '#e5e7eb' };
+            // 현재 종목/소스의 저장된 범위만 불러오기 (키 형식 통일)
+            const savedMin = sessionStorage.getItem(storageKey + '_min');
+            const savedMax = sessionStorage.getItem(storageKey + '_max');
+            const savedTs  = sessionStorage.getItem(storageKey + '_ts');
+
+            const TTL = 10000; // 10초
+
+            let pMin, pMax;
+
+            if (savedTs && (Date.now() - parseInt(savedTs, 10) < TTL)) {
+                // ✅ 유효한 경우만 사용
+                pMin = savedMin ? parseFloat(savedMin) : undefined;
+                pMax = savedMax ? parseFloat(savedMax) : undefined;
+            } else {
+                // ❌ 만료 → 삭제
+                sessionStorage.removeItem(storageKey + '_min');
+                sessionStorage.removeItem(storageKey + '_max');
+                sessionStorage.removeItem(storageKey + '_ts');
+            }
+
+            const firstDataTs = ohlc.length > 0 ? ohlc[0][0] : new Date().getTime();
+            const d = new Date(firstDataTs);
+
+            const base = {
+                type: 'datetime',
+                lineColor: '#e5e7eb',
+                tickColor: '#e5e7eb',
+                // 저장된 값이 있을 때만 적용, 없으면 undefined (기본값 사용)
+                min: savedMin ? parseFloat(savedMin) : undefined,
+                max: savedMax ? parseFloat(savedMax) : undefined,
+                events: {
+                    afterSetExtremes: function(e) {
+                        if (e.trigger !== undefined) {
+                            const now = Date.now();
+
+                            sessionStorage.setItem(storageKey + '_min', e.min);
+                            sessionStorage.setItem(storageKey + '_max', e.max);
+                            sessionStorage.setItem(storageKey + '_ts', now);
+
+                        }
+                    }
+                }
+            };
             if (tab === 'daily') {
-                return { ...base, ordinal: true,
+                return { ...base,min: pMin, max: pMax, ordinal: true,
                     dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
             }
             if (tab === 'time') {
@@ -559,8 +671,8 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                 const _xMax   = _nowTs < _at1530 ? _nowTs : _at1530;
                 return { ...base, ordinal: false,
                     tickInterval: 3600000,
-                    min: _at9,
-                    max: _xMax,
+                    min: pMin || _at9,  // 저장된 값이 있으면 우선 사용, 없으면 9시
+                    max: pMax || _xMax,
                     dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
             }
             // minute: 09:00 KST ~ 현재시간
@@ -570,16 +682,20 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
             const _nowTsm = new Date(_nm.getFullYear(), _nm.getMonth(), _nm.getDate(), _nm.getHours(), _nm.getMinutes(), 0, 0).getTime();
             const _xMaxm  = _nowTsm < _at1530m ? _nowTsm : _at1530m;
             return { ...base, ordinal: false,
-                min: _at9m, max: _xMaxm,
+                min: pMin || _at9m,
+                max: pMax || _xMaxm,
                 dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' } };
         })(),
         yAxis: [{
+            // 메인 차트 (위)
             labels: { align: 'left', style: { color: '#374151', fontSize: '10px' },
-                      formatter: function() { return this.value.toLocaleString(); } },
+                formatter: function() { return this.value.toLocaleString(); } },
             height: '72%', gridLineColor: '#f3f4f6',
+
             resize: { enabled: !compact },
             plotLines: []
         }, {
+            // 거래량 차트 (아래)
             labels: { align: 'left', style: { color: '#9ca3af', fontSize: '10px' } },
             top: '72%', height: '28%', offset: 0,
             gridLineColor: '#f9fafb'
@@ -598,12 +714,26 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                 chartOptions: { rangeSelector: { inputEnabled: false } } }]
         }
     };
-}
+    if (savedMin || savedMax) {
+        const min = savedMin ? parseFloat(savedMin) : undefined;
+        const max = savedMax ? parseFloat(savedMax) : undefined;
 
+        // 데이터가 완전히 렌더링된 후 실행되도록 0ms 타임아웃 부여
+        setTimeout(() => {
+            if (mainChart && mainChart.xAxis[0]) {
+                mainChart.xAxis[0].setExtremes(min, max, true, false);
+            }
+        }, 0);
+    }
+}
 // ── 패널 차트 (market 페이지 오른쪽 패널) ────────────────
 
 // 상세 패널용 차트를 최초 생성한다.
 async function initPanelChart() {
+    await renderPanelChart();
+}
+
+async function renderPanelChart() {
     const data = await fetchPanelChartData();
     if (panelChart) { panelChart.destroy(); panelChart = null; }
     const el = document.getElementById('panelChart');
@@ -611,19 +741,57 @@ async function initPanelChart() {
     const { ohlc, vol, hasOhlc } = buildOhlcv(data);
     panelChart = Highcharts.stockChart('panelChart',
         hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
+    keepSessionAlive(storageKey);
+    applySavedExtremes(panelChart, storageKey);
 }
 
 // 상세 패널용 차트 데이터를 다시 불러와 갱신한다.
 async function updatePanelChart() {
-    const data = await fetchPanelChartData();
-    if (panelChart) { panelChart.destroy(); panelChart = null; }
-    const el = document.getElementById('panelChart');
-    if (!el) return;
-    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
-    panelChart = Highcharts.stockChart('panelChart',
-        hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
+    await renderPanelChart();
 }
+async function startPolling() {
+    if (pollingStarted) {
+        return;
+    }
+    pollingStarted = true;
 
+    const tickerTask = createPollingTask(async () => {
+        const tickerData = await updateTicker();
+
+        if (currentChartSource === 'stock') {
+            await updateStockInfo();
+            return;
+        }
+    });
+    const topStocksTask = createPollingTask(updateTopStocks);
+    const chartTask = createPollingTask(async () => {
+        if (currentChartSource === 'exchange') {
+            return;
+        }
+
+        if (isMarketOpen()) {
+            await updateMainChart();
+        }
+    });
+    const exchangeTask = createPollingTask(async () => {
+        const exchangeData = await updateExchangeCard();
+        if (currentChartSource === 'exchange') {
+            renderExchangeSummary(exchangeData);
+        }
+    });
+
+    await Promise.all([
+        updateTicker(),
+        updateExchangeCard(),
+        updateTopStocks()
+    ]);
+    await refreshActiveView();
+
+    setInterval(tickerTask, 5000);
+    setInterval(topStocksTask, 30000);
+    setInterval(chartTask, 10000);
+    setInterval(exchangeTask, 60000);
+}
 // 현재 선택 종목과 탭에 맞는 상세 패널 차트 데이터를 조회한다.
 async function fetchPanelChartData() {
     let tab = panelTab;
@@ -726,26 +894,40 @@ function initDetailPage(code) {
     document.querySelectorAll('.detailChartTab').forEach(btn => {
         btn.addEventListener('click', async () => {
             document.querySelectorAll('.detailChartTab')
-                    .forEach(b => b.classList.remove('active'));
+                .forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             detailTab = btn.dataset.tab;
             if ((detailTab === 'time' || detailTab === 'minute') && !isMarketOpen()) {
                 alert('시간별/분별 차트는 장 운영시간(09:00~15:30)에만 제공됩니다.');
                 detailTab = 'daily';
                 document.querySelectorAll('.detailChartTab')
-                        .forEach(b => b.classList.toggle('active', b.dataset.tab === 'daily'));
+                    .forEach(b => b.classList.toggle('active', b.dataset.tab === 'daily'));
             }
             await updateDetailChart(code);
         });
     });
 
     initDetailChart(code);
-    setInterval(() => updateDetailPrice(code), 5000);
-    setInterval(() => { if (isMarketOpen()) updateDetailChart(code); }, 10000);
+
+    const detailPriceTask = createPollingTask(() => updateDetailPrice(code));
+    const detailChartTask = createPollingTask(async () => {
+        if (isMarketOpen()) {
+            await updateDetailChart(code);
+        }
+    });
+
+    if (detailPricePollingTimer) clearInterval(detailPricePollingTimer);
+    if (detailChartPollingTimer) clearInterval(detailChartPollingTimer);
+    detailPricePollingTimer = setInterval(detailPriceTask, 5000);
+    detailChartPollingTimer = setInterval(detailChartTask, 10000);
 }
 
 // 개별 종목 상세 페이지 차트를 최초 생성한다.
 async function initDetailChart(code) {
+    await renderDetailChart(code);
+}
+
+async function renderDetailChart(code) {
     const data = await fetchDetailChartData(code);
     if (detailChart) { detailChart.destroy(); detailChart = null; }
     const el = document.getElementById('detailChart');
@@ -758,14 +940,7 @@ async function initDetailChart(code) {
 
 // 개별 종목 상세 페이지 차트를 다시 갱신한다.
 async function updateDetailChart(code) {
-    const data = await fetchDetailChartData(code);
-    if (detailChart) { detailChart.destroy(); detailChart = null; }
-    const el = document.getElementById('detailChart');
-    if (!el) return;
-    const name = el.dataset.name || code;
-    const { ohlc, vol, hasOhlc } = buildOhlcv(data);
-    detailChart = Highcharts.stockChart('detailChart',
-        hcBaseOptions(name, ohlc, vol, hasOhlc, false, detailTab));
+    await renderDetailChart(code);
 }
 
 // 개별 종목 상세 페이지에서 사용할 차트 데이터를 조회한다.
@@ -899,17 +1074,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             const kw = searchInput.value.trim();
             clearBtn.style.display = kw ? '' : 'none';
             clearTimeout(searchDebounce);
-
-            if (kw.length === 0) {
-                hideSearchDropdown();
-                filterStockList('');
-                return;
-            }
-
-            searchDebounce = setTimeout(() => {
-                runSearch(kw);
-                filterStockList(kw);
-            }, 250);
+            if (kw.length === 0) { hideSearchDropdown(); return; }
+            searchDebounce = setTimeout(() => runSearch(kw), 250);
         });
 
         // ESC 키로 드롭다운 닫기
@@ -924,7 +1090,6 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchInput.value = '';
             clearBtn.style.display = 'none';
             hideSearchDropdown();
-            filterStockList('');
             searchInput.focus();
         });
 
@@ -940,14 +1105,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             btn.addEventListener('click', async () => {
                 if (!selectedCode) return;
                 document.querySelectorAll('.panelChartTab')
-                        .forEach(b => b.classList.remove('active'));
+                    .forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 panelTab = btn.dataset.tab;
                 if ((panelTab === 'time' || panelTab === 'minute') && !isMarketOpen()) {
                     alert('시간별/분별 차트는 장 운영시간(09:00~15:30)에만 제공됩니다.');
                     panelTab = 'daily';
                     document.querySelectorAll('.panelChartTab')
-                            .forEach(b => b.classList.toggle('active', b.dataset.tab === 'daily'));
+                        .forEach(b => b.classList.toggle('active', b.dataset.tab === 'daily'));
                 }
                 await updatePanelChart();
             });
@@ -959,10 +1124,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
 
         // 데이터 로딩
+        const marketListTask = createPollingTask(() => loadMarketData(currentType));
         await loadMarketData('trade');
 
         // 30초마다 리스트 가격 갱신
-        setInterval(() => loadMarketData(currentType), 30000);
+        if (marketListPollingTimer) clearInterval(marketListPollingTimer);
+        marketListPollingTimer = setInterval(marketListTask, 30000);
     }
 
     // ── 종목 상세 페이지 ──

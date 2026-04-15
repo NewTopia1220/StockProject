@@ -8,17 +8,17 @@ import org.springframework.web.reactive.function.client.WebClient;
 import java.time.LocalDateTime;
 
 /**
- * KIS API 공통 서비스
- * - OAuth 토큰 발급 및 캐싱
- * - 공통 GET 요청 헬퍼
- * - kisClient WebClient 관리
+ * KIS API 怨듯넻 ?쒕퉬??
+ * - OAuth ?좏겙 諛쒓툒 諛?罹먯떛
+ * - 怨듯넻 GET ?붿껌 ?ы띁
+ * - kisClient WebClient 愿由?
  */
 @Service
 public class KisApiService {
 
     private final String appKey;
     private final String appSecret;
-    final WebClient kisClient; // package-private: 같은 패키지 서비스에서 접근
+    final WebClient kisClient; // package-private: 媛숈? ?⑦궎吏 ?쒕퉬?ㅼ뿉???묎렐
 
     private String accessToken;
     private LocalDateTime tokenExpireTime;
@@ -65,13 +65,13 @@ public class KisApiService {
                     .build();
 
         } catch (Exception e) {
-            throw new RuntimeException("KIS WebClient 초기화 실패", e);
+            throw new RuntimeException("KIS WebClient 珥덇린???ㅽ뙣", e);
         }
     }
 
     /**
-     * KIS OAuth 토큰 발급 (23시간 캐싱)
-     * synchronized: 동시 다중 요청 시 중복 발급 방지
+     * KIS OAuth ?좏겙 諛쒓툒 (23?쒓컙 罹먯떛)
+     * synchronized: ?숈떆 ?ㅼ쨷 ?붿껌 ??以묐났 諛쒓툒 諛⑹?
      */
     public synchronized void issueToken() {
         if (accessToken != null && tokenExpireTime != null
@@ -94,29 +94,29 @@ public class KisApiService {
             if (response != null && response.has("access_token")) {
                 this.accessToken = response.get("access_token").asText();
                 this.tokenExpireTime = LocalDateTime.now().plusHours(23);
-                System.out.println("토큰 발급 완료!");
+                // System.out.println("?좏겙 諛쒓툒 ?꾨즺!");
             }
         } catch (Exception e) {
-            System.out.println("토큰 발급 오류: " + e.getMessage());
+            // System.out.println("?좏겙 諛쒓툒 ?ㅻ쪟: " + e.getMessage());
         }
     }
 
-    // KIS API 요청 간 최소 간격 (100ms) - 초당 10회 제한 대응
+    // KIS API ?붿껌 媛?理쒖냼 媛꾧꺽 (100ms) - 珥덈떦 10???쒗븳 ???
     private long lastCallMs = 0;
     private static final long MIN_CALL_INTERVAL_MS = 100;
 
     /**
-     * KIS API 공통 GET 요청 (최대 2회 재시도 + 호출 간격 제한)
+     * KIS API 怨듯넻 GET ?붿껌 (理쒕? 2???ъ떆??+ ?몄텧 媛꾧꺽 ?쒗븳)
      */
     public JsonNode get(
             java.util.function.Function<org.springframework.web.util.UriBuilder, java.net.URI> uriFunc,
             String trId) {
         if (accessToken == null) {
-            System.out.println("토큰 없음 - KIS API 스킵 [" + trId + "]");
+            // System.out.println("?좏겙 ?놁쓬 - KIS API ?ㅽ궢 [" + trId + "]");
             return null;
         }
 
-        // 호출 간격 보장 (synchronized로 직렬화)
+        // ?몄텧 媛꾧꺽 蹂댁옣 (synchronized濡?吏곷젹??
         synchronized (this) {
             long now = System.currentTimeMillis();
             long wait = MIN_CALL_INTERVAL_MS - (now - lastCallMs);
@@ -138,7 +138,7 @@ public class KisApiService {
                         .bodyToMono(JsonNode.class)
                         .block();
             } catch (Exception e) {
-                System.out.println("KIS API 오류 [" + trId + "] 시도 " + attempt + ": " + e.getMessage());
+                // System.out.println("KIS API ?ㅻ쪟 [" + trId + "] ?쒕룄 " + attempt + ": " + e.getMessage());
                 if (attempt == 2) return null;
                 try { Thread.sleep(600); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); }
             }

@@ -19,7 +19,7 @@ def fetch_stocks():
         })
 
     kosdaq = fdr.StockListing('KOSDAQ')
-    for _, row in kosdaq.iterrows..venv\Scripts\activate():
+    for _, row in kosdaq.iterrows():
         result.append({
             "code": str(row.get('Code', '')),
             "name": str(row.get('Name', '')),

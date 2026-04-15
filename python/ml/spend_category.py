@@ -9,17 +9,27 @@ from fastapi.middleware.cors import CORSMiddleware
 import os
 import oracledb
 
+try:
+    import torch  # noqa: F401
+    TORCH_AVAILABLE = True
+except Exception:
+    torch = None
+    TORCH_AVAILABLE = False
+
 
 # 1. 지갑(Wallet) 경로 설정
-os.environ["TNS_ADMIN"] = "C:/oraclepw"
+WALLET_DIR = "C:/oraclepw"
+os.environ["TNS_ADMIN"] = WALLET_DIR
+oracledb.defaults.config_dir = WALLET_DIR
 # 2. 띡 모드 활성화 (복사한 경로 그대로 붙여넣기)
 try:
     # 경로 앞에 r을 붙여야 역슬래시(\) 인식이 잘 됩니다.
     client_path = r"C:\instantclient-basiclite-windows.x64-23.26.1.0.0\instantclient_23_0"
     oracledb.init_oracle_client(lib_dir=client_path)
-    print("✓ 오라클 띡 모드(Thick Mode) 가동 성공!")
+    print("Oracle thick mode enabled.")
 except Exception as e:
-    print(f"✓ 띡 모드 가동 실패: {e}")
+    print(f"Oracle thick mode init failed: {e}")
+    print("Continuing with python-oracledb thin mode.")
 
 
 app = FastAPI(title="SpendingData Category Classification API")
@@ -41,7 +51,15 @@ app.add_middleware(
 # ------------------------------
 # 모델 & 카테고리 초기화
 # ------------------------------
-classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+classifier = None
+if TORCH_AVAILABLE:
+    try:
+        classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+        print("Zero-shot classifier loaded: facebook/bart-large-mnli")
+    except Exception as e:
+        print(f"Zero-shot classifier unavailable, using fallback classification only: {e}")
+else:
+    print("PyTorch not available. Using rule/Naver fallback classification only.")
 
 my_categories = [
     "교육", "교통", "미용", "생활", "쇼핑", "식비",
@@ -101,7 +119,14 @@ class Transaction(BaseModel):  # 웹에서 받을 JSON 데이터 형식 정의
 # 환경 변수를 설정해서 URL 뒤의 물음표(?) 부분 지움
 DB_URL = "oracle+oracledb://ADMIN:Heeyoun1220!@stoxle_low?events=true"
 
-engine = create_engine(DB_URL, echo=True)
+engine = create_engine(
+    DB_URL,
+    echo=True,
+    connect_args={
+        "config_dir": WALLET_DIR,
+        "wallet_location": WALLET_DIR,
+    },
+)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
@@ -132,8 +157,14 @@ def simplify_category(naver_category: str):
 def ml_classify(naver_cat: str):
     if naver_cat == "카테고리 없음":
         return "카테고리 없음"
-    result = classifier(naver_cat, my_categories)
-    return result['labels'][0]
+    if classifier is None:
+        return naver_cat
+    try:
+        result = classifier(naver_cat, my_categories)
+        return result['labels'][0]
+    except Exception as e:
+        print(f"ml_classify fallback: {e}")
+        return naver_cat
 
 
 # 카테고리 수동 보정
@@ -205,7 +236,7 @@ def save_transaction_to_db(tx: dict):
 # ------------------------------
 @app.post("/classify_transaction")
 def classify(transaction: Transaction):
-    tx_dict = transaction.dict()  # user_id는 transaction 안에 들어있음
+    tx_dict = transaction.model_dump()  # user_id는 transaction 안에 들어있음
 
     # 분류
     result = classify_transaction(tx_dict)
