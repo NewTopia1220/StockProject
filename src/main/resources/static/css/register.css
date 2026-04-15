@@ -1,380 +1,329 @@
- *{
-    box-sizing:border-box;
+@charset "UTF-8";
+
+:root {
+    --register-primary: #3182F6;
+    --register-primary-light: #6EA8FF;
+    --register-primary-soft: #EAF3FF;
+    --register-primary-border: #D7E7FF;
+    --register-accent: #15164D;
+    --register-text: #182033;
+    --register-sub: #7D879D;
+    --register-line: #E6EDF8;
+    --register-white: rgba(255, 255, 255, 0.96);
+    --register-shadow: 0 18px 42px rgba(49, 130, 246, 0.10);
 }
 
-html, body{
-    margin:0;
-    padding:0;
-    min-height:100%;
-    font-family:"Malgun Gothic", "맑은 고딕", Arial, sans-serif;
+body.withGuestHeader {
+    margin: 0;
+    padding-top: 50px;
     background:
-        radial-gradient(circle at top left, rgba(99,102,241,0.08), transparent 28%),
-        radial-gradient(circle at bottom right, rgba(59,130,246,0.08), transparent 24%),
-        linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
-    color:#0E0F37;
+        radial-gradient(circle at right bottom, rgba(21, 22, 77, 0.10) 0%, rgba(21, 22, 77, 0.04) 18%, rgba(21, 22, 77, 0.01) 34%, rgba(243, 247, 253, 0) 52%),
+        linear-gradient(180deg, #FBFDFF 0%, #F3F8FF 100%);
 }
 
-body{
-    display:flex;
-    flex-direction:column;
-    padding-top:76px;
+.page {
+    width: 100%;
 }
 
-.page{
-    width:100%;
-    max-width:1280px;
-    margin:0 auto;
-    padding:48px 24px 80px;
+.registerWrap {
+    width: 100%;
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 18px 20px 28px;
 }
 
-.registerWrap{
-    display:flex;
-    align-items:center;
-    justify-content:center;
+.registerLayout {
+    display: grid;
+    grid-template-columns: 1fr 0.98fr;
+    gap: 20px;
+    align-items: stretch;
 }
 
-.registerLayout{
-    width:100%;
-    display:grid;
-    grid-template-columns: 0.92fr 1.08fr;
-    gap:28px;
-    align-items:stretch;
+.introPanel {
+    position: relative;
+    overflow: hidden;
+    border-radius: 28px;
+    padding: 32px 30px 24px;
+    color: #ffffff;
+    background:
+        radial-gradient(circle at 85% 10%, rgba(255,255,255,0.24) 0%, rgba(255,255,255,0.10) 16%, rgba(255,255,255,0) 34%),
+        linear-gradient(145deg, #74AEFF 0%, #4F92FF 26%, #3182F6 52%, #3A66DA 76%, #283D9F 100%);
+    box-shadow: 0 22px 42px rgba(49, 130, 246, 0.18);
 }
 
-/* left panel */
-.introPanel{
-    background: linear-gradient(-45deg, #15164D, #2c1f44, #233657, #15164D);
-    background-size: 400% 400%;
-    animation: gradientBG 14s ease infinite;
-    color:#fff;
-    border-radius:28px;
-    padding:42px 34px;
-    display:flex;
-    flex-direction:column;
-    justify-content:space-between;
-    min-height:680px;
-    position:relative;
-    overflow:hidden;
-    box-shadow:0 20px 50px rgba(31, 42, 68, 0.18);
+.introBadge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 16px;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.18);
+    color: rgba(255,255,255,0.98);
+    font-size: 12px;
+    font-weight: 700;
+    margin-bottom: 20px;
+    backdrop-filter: blur(8px);
 }
 
-.introPanel::before{
-    content:"";
-    position:absolute;
-    top:-120px;
-    right:-80px;
-    width:260px;
-    height:260px;
-    background:rgba(255,255,255,0.08);
-    border-radius:50%;
-    filter:blur(4px);
+.introTitle {
+    margin: 0 0 16px;
+    font-size: 44px;
+    line-height: 1.14;
+    font-weight: 800;
+    letter-spacing: -0.045em;
+    color: #ffffff;
 }
 
-.introPanel::after{
-    content:"";
-    position:absolute;
-    bottom:-100px;
-    left:-60px;
-    width:220px;
-    height:220px;
-    background:rgba(255,255,255,0.05);
-    border-radius:50%;
-    filter:blur(2px);
+.introDesc {
+    margin: 0 0 24px;
+    font-size: 17px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.95);
 }
 
-@keyframes gradientBG {
-    0% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
-    100% { background-position: 0% 50%; }
+.introStatWrap {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
 }
 
-.introTop{
-    position:relative;
-    z-index:2;
+.introStat {
+    padding: 16px 14px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(6px);
 }
 
-.introBadge{
-    display:inline-flex;
-    align-items:center;
-    padding:8px 14px;
-    border-radius:999px;
-    background:rgba(255,255,255,0.10);
-    border:1px solid rgba(255,255,255,0.14);
-    font-size:12px;
-    font-weight:700;
-    color:#f8fafc;
-    letter-spacing:0.2px;
-    margin-bottom:20px;
-    backdrop-filter:blur(6px);
+.introStatValue {
+    margin: 0 0 5px;
+    font-size: 17px;
+    font-weight: 800;
+    color: #ffffff;
 }
 
-.introTitle{
-    margin:0;
-    font-size:44px;
-    line-height:1.25;
-    font-weight:800;
-    letter-spacing:-1px;
+.introStatLabel {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.88);
 }
 
-.introDesc{
-    margin:18px 0 0;
-    max-width:460px;
-    font-size:15px;
-    line-height:1.9;
-    color:rgba(255,255,255,0.88);
+.introBottom {
+    margin-top: 20px;
 }
 
-.introStatWrap{
-    margin-top:28px;
-    display:grid;
-    grid-template-columns:repeat(3, 1fr);
-    gap:12px;
+.introPointWrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.introStat{
-    background:rgba(255,255,255,0.07);
-    border:1px solid rgba(255,255,255,0.12);
-    border-radius:16px;
-    padding:16px 14px;
-    backdrop-filter:blur(8px);
+.introPoint {
+    padding: 16px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.14);
+    backdrop-filter: blur(6px);
 }
 
-.introStatValue{
-    margin:0;
-    font-size:18px;
-    font-weight:800;
-    color:#ffffff;
+.introPointTitle {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 800;
+    color: #ffffff;
 }
 
-.introStatLabel{
-    margin:6px 0 0;
-    font-size:12px;
-    color:rgba(255,255,255,0.76);
-    line-height:1.5;
+.introPointText {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: rgba(255,255,255,0.88);
 }
 
-.introBottom{
-    position:relative;
-    z-index:2;
-    margin-top:28px;
+.registerCard {
+    background: var(--register-white);
+    border: 1px solid rgba(49, 130, 246, 0.12);
+    border-radius: 28px;
+    padding: 30px 30px 22px;
+    box-shadow: var(--register-shadow);
+    backdrop-filter: blur(12px);
 }
 
-.introPointWrap{
-    display:grid;
-    grid-template-columns:1fr;
-    gap:14px;
+.cardHead {
+    margin-bottom: 22px;
 }
 
-.introPoint{
-    background:rgba(255,255,255,0.08);
-    border-radius:18px;
-    padding:18px 18px;
-    border:1px solid rgba(255,255,255,0.12);
-    backdrop-filter:blur(8px);
-    transition:transform 0.25s ease, background 0.25s ease;
+.cardTitle {
+    margin: 0 0 10px;
+    font-size: 34px;
+    line-height: 1.14;
+    font-weight: 800;
+    color: var(--register-accent);
+    letter-spacing: -0.04em;
 }
 
-.introPoint:hover{
-    transform:translateY(-3px);
-    background:rgba(255,255,255,0.11);
+.cardDesc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--register-sub);
 }
 
-.introPointTitle{
-    margin:0 0 8px;
-    font-size:15px;
-    font-weight:800;
-    color:#fff;
+.field {
+    margin-bottom: 14px;
 }
 
-.introPointText{
-    margin:0;
-    font-size:13px;
-    line-height:1.7;
-    color:rgba(255,255,255,0.85);
+.fieldLabel {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--register-accent);
+    line-height: 1.4;
 }
 
-/* right panel */
-.registerCard{
-    background:rgba(255,255,255,0.92);
-    border:1px solid rgba(229,231,235,0.9);
-    border-radius:28px;
-    padding:42px 36px 34px;
-    box-shadow:
-        0 16px 40px rgba(15, 23, 42, 0.08),
-        0 2px 10px rgba(15, 23, 42, 0.04);
-    backdrop-filter:blur(10px);
+.requiredMark {
+    color: #FF5A8B;
+    margin-right: 2px;
 }
 
-.cardHead{
-    margin-bottom:26px;
+.inputBox {
+    width: 100%;
+    height: 50px;
+    border: 1px solid var(--register-primary-border);
+    border-radius: 18px;
+    padding: 0 16px;
+    font-size: 14px;
+    color: var(--register-text);
+    background: rgba(255,255,255,0.98);
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
 }
 
-.cardTitle{
-    margin:0;
-    font-size:38px;
-    font-weight:800;
-    color:#111827;
-    letter-spacing:-0.8px;
+.inputBox::placeholder {
+    color: #B4BED0;
 }
 
-.cardDesc{
-    margin:12px 0 0;
-    font-size:14px;
-    line-height:1.7;
-    color:#6b7280;
+.inputBox:focus {
+    border-color: var(--register-primary);
+    box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.12);
 }
 
-.field{
-    margin-bottom:20px;
+.helpText {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.45;
+    color: var(--register-sub);
 }
 
-.fieldLabel{
-    display:block;
-    margin-bottom:8px;
-    font-size:14px;
-    font-weight:700;
-    color:#1f2937;
+.registerBtn {
+    width: 100%;
+    height: 56px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 20px;
+    background: linear-gradient(135deg, #5D9CFF 0%, #3182F6 52%, #2D63D6 100%);
+    color: #ffffff;
+    font-size: 16px;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 14px 28px rgba(49, 130, 246, 0.20);
+    transition: transform 0.18s ease, filter 0.18s ease;
 }
 
-.requiredMark{
-    color:#ed0086;
-    margin-right:2px;
+.registerBtn:hover {
+    transform: translateY(-1px);
+    filter: brightness(0.99);
 }
 
-.inputBox{
-    width:100%;
-    height:56px;
-    border:1px solid #d1d5db;
-    border-radius:16px;
-    background:#ffffff;
-    padding:0 16px;
-    font-size:15px;
-    color:#111827;
-    outline:none;
-    transition:
-        border-color 0.2s ease,
-        box-shadow 0.2s ease,
-        transform 0.2s ease,
-        background-color 0.2s ease;
+.bottomArea {
+    margin-top: 16px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--register-sub);
 }
 
-.inputBox::placeholder{
-    color:#9ca3af;
+.bottomArea a {
+    color: var(--register-accent);
+    font-weight: 700;
 }
 
-.inputBox:hover{
-    border-color:#b8c0cc;
-    background:#fcfcfd;
-}
-
-.inputBox:focus{
-    border-color:#15164D;
-    box-shadow:0 0 0 4px rgba(31, 42, 68, 0.10);
-    background:#fff;
-}
-
-.helpText{
-    margin:8px 2px 0;
-    font-size:12px;
-    line-height:1.6;
-    color:#6b7280;
-}
-
-.registerBtn{
-    width:100%;
-    height:58px;
-    margin-top:10px;
-    border:none;
-    border-radius:16px;
-    background:linear-gradient(135deg, #15164D 0%, #2e4068 100%);
-    color:#ffffff;
-    font-size:16px;
-    font-weight:800;
-    letter-spacing:-0.2px;
-    cursor:pointer;
-    box-shadow:0 12px 24px rgba(31, 42, 68, 0.18);
-    transition:transform 0.2s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-}
-
-.registerBtn:hover{
-    transform:translateY(-2px);
-    box-shadow:0 18px 30px rgba(31, 42, 68, 0.22);
-}
-
-.registerBtn:active{
-    transform:translateY(0);
-    box-shadow:0 8px 18px rgba(31, 42, 68, 0.18);
-}
-
-.bottomArea{
-    margin-top:22px;
-    text-align:center;
-    font-size:14px;
-    color:#6b7280;
-}
-
-.bottomArea a{
-    margin-left:6px;
-    text-decoration:none;
-    color:#15164D;
-    font-weight:800;
-}
-
-.bottomArea a:hover{
-    text-decoration:underline;
-}
-
-/* 반응형 */
-@media (max-width: 1024px){
-    .registerLayout{
-        grid-template-columns:1fr;
+@media (max-width: 1280px) {
+    .registerWrap {
+        padding: 16px 18px 24px;
     }
 
-    .introPanel{
-        min-height:auto;
-        padding:36px 28px;
+    .registerLayout {
+        gap: 16px;
     }
 
-    .introTitle{
-        font-size:36px;
+    .introPanel {
+        padding: 28px 26px 22px;
     }
 
-    .introStatWrap{
-        grid-template-columns:repeat(3, 1fr);
+    .introTitle {
+        font-size: 40px;
+    }
+
+    .registerCard {
+        padding: 26px 26px 20px;
+    }
+
+    .cardTitle {
+        font-size: 30px;
     }
 }
 
-@media (max-width: 768px){
-    body{
-        padding-top:68px;
+@media (max-width: 1024px) {
+    .registerLayout {
+        grid-template-columns: 1fr;
     }
 
-    .page{
-        padding:28px 16px 56px;
+    .introTitle {
+        font-size: 36px;
     }
+}
 
-    .registerLayout{
-        gap:18px;
+@media (max-width: 768px) {
+    .registerWrap {
+        padding: 12px 14px 20px;
     }
 
     .introPanel,
-    .registerCard{
-        border-radius:22px;
+    .registerCard {
+        border-radius: 22px;
     }
 
-    .introTitle{
-        font-size:30px;
+    .introPanel {
+        padding: 22px 18px 18px;
     }
 
-    .cardTitle{
-        font-size:30px;
+    .registerCard {
+        padding: 20px 18px 16px;
     }
 
-    .introStatWrap{
-        grid-template-columns:1fr;
+    .introStatWrap {
+        grid-template-columns: 1fr;
+        gap: 8px;
     }
 
-    .registerCard{
-        padding:30px 22px 24px;
+    .introTitle {
+        font-size: 30px;
+    }
+
+    .introDesc {
+        font-size: 15px;
+    }
+
+    .inputBox {
+        height: 46px;
+        border-radius: 16px;
+    }
+
+    .registerBtn {
+        height: 50px;
+        border-radius: 18px;
     }
 }

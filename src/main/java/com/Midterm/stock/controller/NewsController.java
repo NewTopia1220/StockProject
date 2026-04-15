@@ -50,13 +50,20 @@ public class NewsController {
 
         int totalCount = newsDao.getNewsCount(sector, keyword);
         int pageSize = 3;
-        int pageBlockSize = 3;
+        int visiblePages = 7;
+
         int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
         int currentPage = Math.max(1, Math.min(page, totalPages));
+
         int start = (currentPage - 1) * pageSize + 1;
         int end = currentPage * pageSize;
-        int startPage = ((currentPage - 1) / pageBlockSize) * pageBlockSize + 1;
-        int endPage = Math.min(startPage + pageBlockSize - 1, totalPages);
+
+        int startPage = Math.max(1, currentPage - 3);
+        int endPage = Math.min(totalPages, startPage + visiblePages - 1);
+
+        if (endPage - startPage < visiblePages - 1) {
+            startPage = Math.max(1, endPage - visiblePages + 1);
+        }
 
         List<NewsDto> newsList = newsDao.getNewsList(sector, keyword, start, end, uid);
         enrichPredictionSignals(newsList);

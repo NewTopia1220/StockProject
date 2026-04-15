@@ -7,10 +7,7 @@ html, body{
     padding:0;
     min-height:100%;
     font-family:"Malgun Gothic", "맑은 고딕", Arial, sans-serif;
-    background:
-        radial-gradient(circle at top left, rgba(99,102,241,0.10), transparent 26%),
-        radial-gradient(circle at bottom right, rgba(59,130,246,0.09), transparent 24%),
-        linear-gradient(180deg, #f8fafc 0%, #eef2f7 100%);
+    background: #f4f6fb;
     color:#0E0F37;
 }
 

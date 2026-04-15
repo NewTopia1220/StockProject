@@ -1,212 +1,209 @@
 @charset "UTF-8";
 
-/* 전체 공통 */
-*{
-    box-sizing:border-box;
+* {
+    box-sizing: border-box;
 }
 
-html, body{
-    margin:0;
-    padding:0;
-    min-height:100%;
-    font-family:"Malgun Gothic", "맑은 고딕", Arial, sans-serif;
-    background:#f5f7fb;
-    color:#0E0F37;
+html,
+body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    font-family: "Malgun Gothic", "맑은 고딕", Arial, sans-serif;
+    background: #f5f7fb;
+    color: #0E0F37;
 }
 
-/* 헤더와 충돌 방지: body 직접 레이아웃 제어 최소화 */
-.communityWritePage{
-    width:100%;
-    max-width:950px;
-    padding:76px 20px 70px;
-    margin: 56px auto;
+.communityWritePage {
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 26px 18px 42px;
 }
 
-.communityWriteCard{
-    background:#ffffff;
-    border:1px solid #e8ebf1;
-    border-radius:20px;
-    padding:34px 32px 30px;
-    box-shadow:0 8px 22px rgba(15, 23, 42, 0.05);
+.communityWriteCard {
+    background: #ffffff;
+    border: 1px solid #e8ebf1;
+    border-radius: 20px;
+    padding: 24px 24px 22px;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
 }
 
-.communityWriteTop{
-    margin-bottom:28px;
+.communityWriteTop {
+    margin-bottom: 18px;
 }
 
-.communityWriteTop h2{
-    margin:0;
-    font-size:24px;
-    font-weight:800;
-    color:#111827;
-    letter-spacing:-0.3px;
-    line-height:1.3;
+.communityWriteTop h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 800;
+    color: #111827;
+    letter-spacing: -0.2px;
+    line-height: 1.3;
 }
 
-.communityWriteTop p{
-    margin:8px 0 0;
-    font-size:14px;
-    line-height:1.6;
-    color:#9aa3b2;
+.communityWriteTop p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #9aa3b2;
 }
 
-.communityWriteForm{
-    margin:0;
+.communityWriteForm {
+    margin: 0;
 }
 
-/* 상단 2열 */
-.cwGridTwo{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:16px;
+.cwGridTwo {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px 16px;
 }
 
-/* 필드 */
-.cwField{
-    margin-bottom:22px;
+.cwField {
+    margin-bottom: 14px;
 }
 
-.cwField label{
-    display:block;
-    margin-bottom:10px;
-    font-size:14px;
-    font-weight:700;
-    color:#111c4b;
-    line-height:1.4;
+.cwField label {
+    display: block;
+    margin-bottom: 7px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #111c4b;
+    line-height: 1.35;
 }
 
-/* input / select */
-.cwInput{
-    width:100%;
-    height:48px;
-    border:1px solid #d9dee8;
-    border-radius:12px;
-    padding:0 16px;
-    font-size:14px;
-    color:#111827;
-    background:#ffffff;
-    outline:none;
-    box-shadow:none;
-    transition:border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-    appearance:none;
-    -webkit-appearance:none;
-    -moz-appearance:none;
+.cwInput {
+    width: 100%;
+    height: 44px;
+    border: 1px solid #d9dee8;
+    border-radius: 12px;
+    padding: 0 14px;
+    font-size: 13px;
+    color: #111827;
+    background: #ffffff;
+    outline: none;
+    box-shadow: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
 }
 
-.cwInput::placeholder{
-    color:#c0c6d1;
+.cwInput::placeholder {
+    color: #c0c6d1;
 }
 
-select.cwInput{
-    cursor:pointer;
-    padding-right:42px;
+select.cwInput {
+    cursor: pointer;
+    padding-right: 40px;
     background-image:
         linear-gradient(45deg, transparent 50%, #b4bac6 50%),
         linear-gradient(135deg, #b4bac6 50%, transparent 50%);
     background-position:
-        calc(100% - 22px) calc(50% - 3px),
-        calc(100% - 16px) calc(50% - 3px);
-    background-size:6px 6px, 6px 6px;
-    background-repeat:no-repeat;
+        calc(100% - 20px) calc(50% - 3px),
+        calc(100% - 14px) calc(50% - 3px);
+    background-size: 6px 6px, 6px 6px;
+    background-repeat: no-repeat;
 }
 
 .cwInput:hover,
 .cwTextarea:hover,
-.cwFileFake:hover{
-    border-color:#c7ceda;
+.newsDataLink input[type="text"]:hover {
+    border-color: #c7ceda;
 }
 
 .cwInput:focus,
-.cwTextarea:focus{
-    border-color:#15164D;
-    box-shadow:0 0 0 4px rgba(21, 22, 77, 0.08);
-    background:#ffffff;
+.cwTextarea:focus,
+.newsDataLink input[type="text"]:focus {
+    border-color: #15164D;
+    box-shadow: 0 0 0 4px rgba(21, 22, 77, 0.08);
+    background: #ffffff;
 }
 
-/* 읽기 전용 */
-.cwReadonly{
-    background:#ffffff;
-    color:#6b7280;
+.cwReadonly {
+    background: #ffffff;
+    color: #6b7280;
 }
 
-.cwReadonly:focus{
-    border-color:#d9dee8;
-    box-shadow:none;
+.cwReadonly:focus {
+    border-color: #d9dee8;
+    box-shadow: none;
 }
 
-/* textarea */
-.cwTextarea{
-    width:100%;
-    min-height:220px;
-    border:1px solid #d9dee8;
-    border-radius:12px;
-    padding:16px;
-    resize:vertical;
-    font-size:14px;
-    line-height:1.7;
-    color:#111827;
-    background:#ffffff;
-    outline:none;
-    transition:border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
+.cwTextarea {
+    width: 100%;
+    min-height: 150px;
+    border: 1px solid #d9dee8;
+    border-radius: 12px;
+    padding: 13px 14px;
+    resize: vertical;
+    font-size: 13px;
+    line-height: 1.65;
+    color: #111827;
+    background: #ffffff;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.cwTextarea::placeholder{
-    color:#c0c6d1;
+.cwTextarea::placeholder {
+    color: #c0c6d1;
 }
 
 .cwHint {
     display: block;
-    margin-top: 6px;
-    font-size: 13px;
+    margin-top: 5px;
+    font-size: 12px;
     color: #777;
+    line-height: 1.45;
 }
 
-/* 뉴스 관련 */
 .newsDataLink {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-top: 6px;
-    padding: 0;
+    gap: 8px;
+    margin-top: 2px;
+    width: 100%;
 }
 
 .newsDataLink label {
     margin: 0;
     color: #1b2254;
-    font-size: 16px;
+    font-size: 13px;
     font-weight: 700;
 }
 
 .newsDataLink input[type="text"] {
     width: 100%;
-    height: 52px;
-    padding: 0 16px;
+    height: 44px;
+    padding: 0 14px;
     border: 1px solid #d8dfec;
-    border-radius: 14px;
+    border-radius: 12px;
     background: #ffffff;
-    font-size: 15px;
+    font-size: 13px;
     box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
 #newsSearchResult {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 
 .newsSearchItem {
     width: 100%;
     display: block;
     border: 1px solid #e2e8f3;
-    border-radius: 14px;
+    border-radius: 12px;
     background: #ffffff;
-    padding: 14px 16px;
+    padding: 11px 13px;
     text-align: left;
     box-sizing: border-box;
     cursor: pointer;
     appearance: none;
     -webkit-appearance: none;
-    box-shadow: 0 8px 20px rgba(21, 22, 77, 0.05);
+    box-shadow: 0 4px 12px rgba(21, 22, 77, 0.04);
 }
 
 .newsSearchItem:hover {
@@ -216,44 +213,45 @@ select.cwInput{
 
 .newsSearchItem strong {
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 4px;
     color: #18214d;
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
-    line-height: 1.5;
+    line-height: 1.45;
 }
 
 .newsSearchItem span {
     display: block;
     color: #8a92a8;
-    font-size: 13px;
-    line-height: 1.5;
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 .newsEmptyMessage {
-    padding: 14px 16px;
+    padding: 11px 13px;
     border: 1px dashed #d8dfec;
-    border-radius: 14px;
+    border-radius: 12px;
     background: #ffffff;
     color: #98a0b5;
-    font-size: 13px;
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 #selectedNewsBox {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
 }
 
 .selectedNewsTag {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    padding: 10px 14px;
+    gap: 7px;
+    padding: 8px 12px;
     border-radius: 999px;
     background: #eef2ff;
     color: #27306b;
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
 }
 
@@ -261,146 +259,89 @@ select.cwInput{
     border: none;
     background: transparent;
     color: #5a63d8;
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 800;
     cursor: pointer;
     padding: 0;
 }
 
-.cwInput,
-.cwTextarea,
-#newsKeyword {
-    display: block;
-    width: 100%;
-    box-sizing: border-box;
-}
-
-.cwField,
-.newsDataLink {
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* 파일 */
-/*.cwFileReal{
-    display:none;
-}
-
-.cwFileFake{
-    position:relative;
-    width:100%;
-    height:48px;
-    border:1px solid #d9dee8;
-    border-radius:12px;
-    background:#ffffff;
-    cursor:pointer;
-    margin-bottom:0;
-    transition:border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
-}
-
-.cwFileFake span{
-    *//* position:absolute + top:50% + translateY(-50%) : 글자 박스를 강제로 정중앙에 *//*
-    position:absolute;
-    top:50%;
-    left:16px;
-    transform:translateY(-50%);
-    font-size:14px;
-    font-weight:400;
-    line-height:1;
-    color:#c0c6d1;
-    white-space:nowrap;
-}*/
-
-/* 버튼 */
-.cwButtonRow{
-    margin-top:38px;
-    display:flex;
-    justify-content:flex-end;
-    align-items:center;
-    gap:12px;
+.cwButtonRow {
+    margin-top: 20px;
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 10px;
 }
 
 .cwCancelBtn,
-.cwSubmitBtn{
-    min-width:80px;
-    height:48px;
-    padding:0 20px;
-    border-radius:12px;
-    display:inline-flex;
-    justify-content:center;
-    align-items:center;
-    text-decoration:none;
-    font-size:15px;
-    font-weight:700;
-    line-height:1;
-    cursor:pointer;
-    transition:all 0.2s ease;
-}
-
-.cwSubmitBtn,
-.cwCancelBtn{
-    border:none;
-    background:#d9d9d9;
-    color:#ffffff;
-    box-shadow:0 8px 18px rgba(21, 22, 77, 0.16);
+.cwSubmitBtn {
+    min-width: 76px;
+    height: 42px;
+    padding: 0 16px;
+    border-radius: 10px;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    background: #d9d9d9;
+    color: #ffffff;
+    box-shadow: 0 6px 14px rgba(21, 22, 77, 0.12);
 }
 
 .cwSubmitBtn:hover,
-.cwCancelBtn:hover{
-    background:#15164D;
-    color:#ffffff;
-    transform:translateY(-1px);
+.cwCancelBtn:hover {
+    background: #15164D;
+    color: #ffffff;
+    transform: translateY(-1px);
 }
 
-.cwSubmitBtn:active{
-    transform:translateY(0);
+.cwSubmitBtn:active,
+.cwCancelBtn:active {
+    transform: translateY(0);
 }
 
-/* 반응형 */
-@media screen and (max-width: 900px){
-    .communityWritePage{
-        padding:96px 16px 56px;
+@media screen and (max-width: 900px) {
+    .communityWritePage {
+        max-width: 100%;
+        padding: 18px 16px 34px;
     }
 
-    .communityWriteCard{
-        padding:28px 22px 24px;
+    .communityWriteCard {
+        padding: 20px 18px 18px;
     }
 
-    .cwGridTwo{
-        grid-template-columns:1fr;
-        gap:0;
+    .cwGridTwo {
+        grid-template-columns: 1fr;
+        gap: 0;
     }
 }
 
-@media screen and (max-width: 600px){
-    .communityWritePage{
-        padding:88px 14px 50px;
+@media screen and (max-width: 600px) {
+    .communityWritePage {
+        padding: 14px 12px 26px;
     }
 
-    .communityWriteCard{
-        padding:22px 16px 20px;
-        border-radius:16px;
+    .communityWriteCard {
+        padding: 18px 14px 16px;
+        border-radius: 16px;
     }
 
-    .communityWriteTop h2{
-        font-size:21px;
+    .communityWriteTop h2 {
+        font-size: 18px;
     }
 
-    .cwInput,
-    .cwTextarea,
-    #newsKeyword {
-        display: block;
-        width: 100%;
-        box-sizing: border-box;
+    .cwTextarea {
+        min-height: 130px;
+        font-size: 13px;
     }
 
-    .cwTextarea{
-        min-height:220px;
-        font-size:14px;
+    .cwButtonRow {
+        margin-top: 18px;
     }
-
-    .cwButtonRow{
-        margin-top:28px;
-    }
-
 }

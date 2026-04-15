@@ -1,17 +1,17 @@
 @charset "UTF-8";
 
 :root {
-    --header-bg: #ffffff;                 /* 헤더 배경색 */
-    --header-border: #e5e7eb;             /* 헤더 아래 경계선 */
-    --header-text: #111827;               /* 헤더 진한 글자색 */
-    --header-sub: #6b7280;                /* 보조 글자색 */
+    --header-bg: #ffffff;
+    --header-border: #e5e7eb;
+    --header-text: #111827;
+    --header-sub: #6b7280;
     --header-sub-soft: #9ca3af;
-    --header-primary: #15164D;            /* 헤더 포인트색 */
-    --header-primary-strong: #0E0F37;     /* 헤더 강조색 */
+    --header-primary: #15164D;
+    --header-primary-strong: #0E0F37;
     --header-hover: #f9fafb;
     --header-max-width: 1380px;
-    --header-topbar-height: 50px;         /* 헤더 윗줄 높이 */
-    --header-category-height: 48px;       /* 헤더 카테고리 메뉴 높이 */
+    --header-topbar-height: 50px;
+    --header-category-height: 48px;
 }
 
 a {
@@ -409,11 +409,27 @@ body.withGuestHeader {
     padding: 0;
     display: flex;
     align-items: center;
-    gap: 40px;
+    gap: 12px;
+}
+
+.categoryMenu li {
+    width: 112px;
+    flex: 0 0 112px;
+    display: flex;
+    justify-content: center;
+}
+
+.categoryMenu li:nth-child(1),
+.categoryMenu li:nth-child(2),
+.categoryMenu li:nth-child(3) {
+    width: 92px;
+    flex: 0 0 92px;
 }
 
 .categoryMenu li a {
     position: relative;
+    width: 100%;
+    text-align: center;
     color: var(--header-text);
     font-size: 14px;
     font-weight: 600;
@@ -530,14 +546,31 @@ body.withGuestHeader {
     }
 
     .categoryBar {
-        height: 48px;
+        height: var(--header-category-height);
+        display: flex;
+        align-items: center;
+        border-top: 1px solid #f9fafb;
+        border-bottom: 1px solid #f2f2f2;
+        background-color: #ffffff;
     }
 
     .categoryMenu {
-        gap: 20px;
+        gap: 10px;
         overflow-x: auto;
         white-space: nowrap;
         width: 100%;
+    }
+
+    .categoryMenu li {
+        width: 96px;
+        flex: 0 0 96px;
+    }
+
+    .categoryMenu li:nth-child(1),
+    .categoryMenu li:nth-child(2),
+    .categoryMenu li:nth-child(3) {
+        width: 82px;
+        flex: 0 0 82px;
     }
 
     .categoryMenu li a {
