@@ -39,74 +39,6 @@
     margin: 0 0 4px;
 }
 
-.newsAccordion {
-    margin-top: 8px;
-}
-
-.newsAccordionBtn {
-    width: 100%;
-    height: 48px;
-    padding: 0 16px;
-    border: 1px solid #1f2937;
-    border-radius: 18px;
-    background: #fff;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 14px;
-    font-weight: 800;
-    color: #111827;
-    cursor: pointer;
-}
-
-.newsAccordionArrow {
-    font-size: 18px;
-    line-height: 1;
-    transition: transform 0.2s ease;
-}
-
-.newsAccordionBtn.open .newsAccordionArrow {
-    transform: rotate(180deg);
-}
-
-.newsAccordionPanel {
-    display: none;
-    margin-top: 12px;
-}
-
-.newsAccordionPanel.open {
-    display: block;
-}
-
-.newsSectorNav {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.newsSectorItem {
-    display: flex;
-    align-items: center;
-    min-height: 58px;
-    padding: 0 20px;
-    border-radius: 20px;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 700;
-    color: #4b5563;
-    transition: all 0.2s ease;
-}
-
-.newsSectorItem:hover {
-    background: #f8fafc;
-    color: #1d234f;
-}
-
-.newsSectorItem.active {
-    background: #2f356b;
-    color: #fff;
-}
-
 /* ══════════════════════════════════════
    사이드바 AI 분석 패널
 ══════════════════════════════════════ */
@@ -232,6 +164,9 @@
     background: #10b981;
 }
 
+/* ══════════════════════════════════════
+   섹터 선택 카드
+══════════════════════════════════════ */
 .newsFilterCard {
     padding: 18px 18px 16px;
 }
@@ -242,35 +177,42 @@
 
 .newsAccordionBtn {
     width: 100%;
-    height: 86px;
-    padding: 0 22px;
-    border: 4px solid #2B3042;
-    border-radius: 32px;
+    padding: 12px;
+    border: none;
     background: #ffffff;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    font-size: 19px;
+    gap: 10px;
+    cursor: pointer;
+    font-size: 13px;
     font-weight: 800;
     color: #111827;
-    cursor: pointer;
+    border-radius: 18px;
     box-shadow: none;
+    transition: background 0.2s ease;
+}
+
+.newsAccordionBtn:hover {
+    background: #f8fbff;
 }
 
 .newsAccordionBtn span:first-child {
-    letter-spacing: -0.03em;
+    display: block;
+    min-width: 0;
 }
 
 .newsAccordionArrow {
-    font-size: 30px;
-    font-weight: 700;
+    font-size: 13px;
     line-height: 1;
-    color: #2B3042;
-    transition: transform 0.2s ease;
+    color: #6b7280;
+    transition: transform 0.2s ease, color 0.2s ease;
+    flex-shrink: 0;
 }
 
 .newsAccordionBtn.open .newsAccordionArrow {
     transform: rotate(180deg);
+    color: #111827;
 }
 
 .newsAccordionPanel {
@@ -285,30 +227,37 @@
 .newsSectorNav {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
+    padding-right: 0;
 }
 
 .newsSectorItem {
+    width: 100%;
     display: flex;
     align-items: center;
-    min-height: 52px;
-    padding: 0 18px;
-    border-radius: 18px;
-    text-decoration: none;
-    font-size: 15px;
-    font-weight: 700;
+    justify-content: space-between;
+    min-height: 38px;
+    padding: 8px 12px;
+    border-radius: 12px;
+    border: 1px solid transparent;
     color: #4b5563;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    background: #ffffff;
     transition: all 0.2s ease;
 }
 
 .newsSectorItem:hover {
-    background: #f8fafc;
-    color: #1d234f;
+    background: #f3f6fb;
+    border-color: #e8edf5;
+    color: #1f2937;
 }
 
 .newsSectorItem.active {
-    background: #2f356b;
-    color: #fff;
+    background: linear-gradient(135deg, #15164D 0%, #2f436c 100%);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(31, 42, 68, 0.15);
 }
 
 /* 사이드바 링크 */
