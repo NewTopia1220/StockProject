@@ -1,17 +1,16 @@
-// 페이지의 HTML 구조가 모두 준비되면 실행합니다.
 window.addEventListener("DOMContentLoaded", function () {
 
-    // 메인 3단 레이아웃 컨테이너를 찾습니다.
+    // 메인 3단 레이아웃 컨테이너
     const communityMain = document.querySelector(".communityMain");
 
-    // 오른쪽 사이드 전체 영역을 찾습니다.
+    // 오른쪽 사이드 전체 영역
     const communityRight = document.getElementById("communityRight") || document.querySelector(".communityRight");
 
-    // 인기 카테고리 패널을 찾습니다.
-    // id가 있으면 그걸 쓰고, 없으면 오른쪽 첫 번째 카드로 대체합니다.
+    // 인기 카테고리 패널
+    // id가 있으면 그걸 쓰고, 없으면 오른쪽 첫 번째 카드로 대체
     const popularPanel = document.getElementById("popularPanel") || document.querySelector(".communityRight .sideCard:first-child");
 
-    // 토글 스위치와 실제 패널을 연결하는 설정입니다.
+    // 토글 스위치와 실제 패널을 연결
     const panelConfigs = [
         { toggleId: "togglePopular", panel: popularPanel, key: "popular" },
         { toggleId: "toggleGuide", panel: document.getElementById("guidePanel"), key: "guide" },
@@ -19,23 +18,23 @@ window.addEventListener("DOMContentLoaded", function () {
         { toggleId: "togglePrice", panel: document.getElementById("pricePanel"), key: "price" }
     ];
 
-    // 오른쪽 패널 토글 상태를 저장할 localStorage 키입니다.
+    // 오른쪽 패널 토글 상태를 저장할 localStorage
     const TOGGLE_STORAGE_KEY = "communityRightPanelSettingsV4";
 
-    // 아코디언 열림/닫힘 상태를 저장할 localStorage 키입니다.
+    // 아코디언 열림/닫힘 상태를 저장할 localStorage
     const ACCORDION_STORAGE_KEY = "communityAccordionStateV2";
 
-    // 필수 레이아웃 요소가 없으면 실행을 멈춥니다.
+    // 필수 레이아웃 요소가 없으면 실행을 멈춤
     if (!communityMain || !communityRight) {
         return;
     }
 
-    // toggleId로 체크박스를 찾아주는 함수입니다.
+    // toggleId로 체크박스
     function getCheckbox(toggleId) {
         return document.getElementById(toggleId);
     }
 
-    // 현재 토글 체크 상태를 localStorage에 저장합니다.
+    // 현재 토글 체크 상태를 localStorage에 저장
     function saveToggleSettings() {
         const settings = {};
 
@@ -47,7 +46,7 @@ window.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem(TOGGLE_STORAGE_KEY, JSON.stringify(settings));
     }
 
-    // 저장된 토글 상태를 localStorage에서 읽어옵니다.
+    // 저장된 토글 상태를 localStorage에서
     function loadToggleSettings() {
         const saved = localStorage.getItem(TOGGLE_STORAGE_KEY);
         if (!saved) return null;
@@ -60,7 +59,7 @@ window.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // 저장된 토글 상태를 실제 체크박스/패널에 반영합니다.
+    // 저장된 토글 상태를 실제 체크박스/패널에 반영
     function applyToggleSettings() {
         const settings = loadToggleSettings();
 
@@ -76,27 +75,27 @@ window.addEventListener("DOMContentLoaded", function () {
 
             checkbox.checked = isChecked;
 
-            // 체크 해제된 패널은 CSS 클래스 is-hidden으로 숨깁니다.
+            // 체크 해제된 패널은 CSS 클래스 is-hidden
             panel.classList.toggle("is-hidden", !isChecked);
         });
 
-        // 현재 보이는 패널 개수를 다시 계산합니다.
+        // 현재 보이는 패널 개수를 다시 계산
         const visiblePanels = panelConfigs.filter(function (config) {
             return config.panel && !config.panel.classList.contains("is-hidden");
         });
 
-        // 모두 숨겨졌으면 오른쪽 전체도 숨기고 레이아웃을 2열처럼 바꿉니다.
+        // 모두 숨겨졌으면 오른쪽 전체도 숨기고 레이아웃을 2열처럼
         if (visiblePanels.length === 0) {
             communityRight.classList.add("is-empty");
             communityMain.classList.add("right-empty");
         } else {
-            // 하나라도 보이면 오른쪽 전체를 다시 보여줍니다.
+            // 하나라도 보이면 오른쪽 전체를 다시
             communityRight.classList.remove("is-empty");
             communityMain.classList.remove("right-empty");
         }
     }
 
-    // 토글 체크박스 change 이벤트를 연결합니다.
+    // 토글 체크박스 change 이벤트를 연결
     function bindToggles() {
         panelConfigs.forEach(function (config) {
             const checkbox = getCheckbox(config.toggleId);
@@ -109,7 +108,7 @@ window.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // 현재 아코디언 상태(open 여부)를 localStorage에 저장합니다.
+    // 현재 아코디언 상태(open 여부)를 localStorage에 저장
     function saveAccordionState() {
         const accordionItems = document.querySelectorAll(".accordionItem");
         const state = [];
@@ -121,7 +120,7 @@ window.addEventListener("DOMContentLoaded", function () {
         localStorage.setItem(ACCORDION_STORAGE_KEY, JSON.stringify(state));
     }
 
-    // 저장된 아코디언 상태를 불러옵니다.
+    // 저장된 아코디언 상태를 불러옵
     function loadAccordionState() {
         const saved = localStorage.getItem(ACCORDION_STORAGE_KEY);
         if (!saved) return null;
@@ -134,7 +133,7 @@ window.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    // 저장된 아코디언 상태를 실제 DOM에 반영합니다.
+    // 저장된 아코디언 상태를 실제 DOM에 반영
     function applyAccordionState() {
         const state = loadAccordionState();
         if (!state) return;
@@ -146,7 +145,7 @@ window.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // 아코디언 버튼 클릭 이벤트를 연결합니다.
+    // 아코디언 버튼 클릭 이벤트를 연결
     function bindAccordion() {
         const accordionButtons = document.querySelectorAll(".accordionButton");
 
@@ -155,22 +154,22 @@ window.addEventListener("DOMContentLoaded", function () {
                 const item = button.closest(".accordionItem");
                 if (!item) return;
 
-                // 현재 아코디언을 열거나 닫습니다.
+                // 현재 아코디언을 열거나 닫
                 item.classList.toggle("open");
 
-                // 바뀐 상태를 저장합니다.
+                // 바뀐 상태를 저장
                 saveAccordionState();
             });
         });
     }
 
-    // 저장된 아코디언 상태를 먼저 적용합니다.
+    // 저장된 아코디언 상태를 먼저 적용
     applyAccordionState();
 
-    // 저장된 토글 상태를 적용합니다.
+    // 저장된 토글 상태를 적용
     applyToggleSettings();
 
-    // 이후 사용자 조작을 감지하도록 이벤트를 연결합니다.
+    // 이후 사용자 조작을 감지하도록 이벤트를 연결
     bindAccordion();
     bindToggles();
 });

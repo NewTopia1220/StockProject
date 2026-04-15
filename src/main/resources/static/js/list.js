@@ -111,9 +111,13 @@ function setActiveCategoryFromUrl() {
 }
 
 function toggleNewsAccordion(button) {
-    const panel = button.nextElementSibling;
-    if (!panel) return;
+    const item = button.closest(".newsAccordionItem");
+    if (!item) return;
 
-    button.classList.toggle('open');
-    panel.classList.toggle('open');
+    item.classList.toggle("open");
+
+    const arrow = button.querySelector(".newsAccordionArrow");
+    if (arrow) {
+        arrow.textContent = item.classList.contains("open") ? "⌃" : "⌄";
+    }
 }

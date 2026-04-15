@@ -4,9 +4,11 @@
     <meta charset="UTF-8">
     <title>Stoxle - 뉴스</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/color.css}">
     <link rel="stylesheet" th:href="@{/css/community/list.css}">
     <link rel="stylesheet" th:href="@{/css/news/list.css}">
     <script type="text/javascript" th:src="@{/js/jquery.js}"></script>
+    <script th:src="@{/js/list.js}" defer></script>
 </head>
 <body class="withMainHeader">
 <div th:replace="~{fragments/header :: header('news')}"></div>
@@ -87,14 +89,18 @@
             </div>
 
             <div class="sidebarCard newsFilterCard">
-                <div class="newsAccordion">
-                    <button type="button" class="newsAccordionBtn" onclick="toggleNewsAccordion(this)">
-                        <span>섹터 선택</span>
-                        <span class="newsAccordionArrow">⌄</span>
-                    </button>
+                <div class="sidebarHeader">
+                    <h3>섹터 선택</h3>
+                </div>
 
-                    <div class="newsAccordionPanel">
-                        <nav class="newsSectorNav">
+                <div class="newsCategoryNav">
+                    <div class="newsAccordionItem open">
+                        <button type="button" class="newsAccordionButton" onclick="toggleNewsAccordion(this)">
+                            <span>전체 뉴스</span>
+                            <span class="newsAccordionArrow">⌃</span>
+                        </button>
+
+                        <div class="newsAccordionContent">
                             <a th:href="@{/news(keyword=${keyword})}"
                                class="newsSectorItem"
                                th:classappend="${sector == null} ? ' active' : ''">
@@ -108,7 +114,7 @@
                                th:text="${entry.key}">
                                 섹터
                             </a>
-                        </nav>
+                        </div>
                     </div>
                 </div>
             </div>

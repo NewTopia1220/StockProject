@@ -1,21 +1,18 @@
 @charset "UTF-8";
 
-/* ══════════════════════════════════════
-   종목 페이지 공통
-══════════════════════════════════════ */
-
+/* 종목 페이지 공통 */
 .marketPage {
     width: 100%;
     max-width: none;
     margin: 0 auto;
 }
 
-/* ── 검색바 래퍼 (드롭다운 기준점) ── */
+/* 검색바 래퍼 */
 .listSearchBarWrapper {
     position: relative;
 }
 
-/* ── 검색바 ── */
+/* 검색바 */
 .listSearchBar {
     display: flex;
     align-items: center;
@@ -24,14 +21,14 @@
     border-bottom: 1px solid #f3f4f6;
 }
 
-/* ── 자동완성 드롭다운 ── */
+/* 자동완성 드롭다운 */
 .searchDropdown {
     position: absolute;
     top: 100%;
     left: 0;
     right: 0;
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
     border-top: none;
     border-radius: 0 0 12px 12px;
     box-shadow: 0 8px 24px rgba(0,0,0,0.10);
@@ -62,7 +59,7 @@
 .searchDropdownName {
     font-size: 14px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -74,14 +71,14 @@
     padding: 2px 6px;
     border-radius: 4px;
     background: #f3f4f6;
-    color: #6b7280;
+    color: var(--text-muted);
     flex-shrink: 0;
 }
 
 .searchDropdownCode {
     font-size: 13px;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--text-light);
     flex-shrink: 0;
     margin-left: 12px;
 }
@@ -89,7 +86,7 @@
 .searchDropdownEmpty {
     padding: 20px 16px;
     text-align: center;
-    color: #9ca3af;
+    color: var(--text-light);
     font-size: 13px;
 }
 
@@ -98,15 +95,15 @@
     border: none;
     outline: none;
     font-size: 14px;
-    color: #111827;
+    color: var(--text-main);
     background: transparent;
 }
-.listSearchBar input::placeholder { color: #9ca3af; }
+.listSearchBar input::placeholder { color: var(--text-light); }
 
 .searchClearBtn {
     background: none;
     border: none;
-    color: #9ca3af;
+    color: var(--text-light);
     cursor: pointer;
     font-size: 13px;
     padding: 0 2px;
@@ -114,7 +111,7 @@
 }
 .searchClearBtn:hover { color: #374151; }
 
-/* ── 리스트 내부 필터 탭 ── */
+/* 리스트 내부 필터 탭 */
 .listFilterTabs {
     display: flex;
     gap: 8px;
@@ -125,22 +122,28 @@
 .listFilterBtn {
     padding: 5px 16px;
     border-radius: 20px;
-    border: 1.5px solid #e5e7eb;
-    background: #fff;
-    color: #6b7280;
+    border: 1.5px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s;
 }
-.listFilterBtn:hover  { border-color: #0E0F37; color: #0E0F37; }
-.listFilterBtn.active {
-    background: #0E0F37;
-    border-color: #0E0F37;
-    color: #fff;
+
+.listFilterBtn:hover {
+    border-color: var(--primary-main);
+    color: var(--primary-main);
 }
 
-/* ── 스플릿 레이아웃 ── */
+/* active는 dark보다 mid로 가는 게 커뮤니티/뉴스와 더 잘 맞음 */
+.listFilterBtn.active {
+    background: var(--primary-mid);
+    border-color: var(--primary-mid);
+    color: var(--white);
+}
+
+/* 스플릿 레이아웃 */
 .marketSplit {
     display: grid;
     grid-template-columns: 410px 1fr;
@@ -152,13 +155,10 @@
     .marketSplit { grid-template-columns: 1fr; }
 }
 
-/* ══════════════════════════════════════
-   종목 리스트 패널
-══════════════════════════════════════ */
-
+/* 종목 리스트 패널 */
 .marketListPanel {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
     border-radius: 14px;
     overflow: hidden;
     max-height: 500px;
@@ -172,16 +172,14 @@
     min-height: 0;
 }
 
-/* 스크롤바 디자인 */
 #stockListBody::-webkit-scrollbar {
     width: 6px;
 }
 
 #stockListBody::-webkit-scrollbar-thumb {
-    background: #e5e7eb;
+    background: var(--line);
     border-radius: 10px;
 }
-
 
 #stockListBody::-webkit-scrollbar-track {
     background: transparent;
@@ -192,14 +190,14 @@
     grid-template-columns: 50px 1fr 96px 72px 80px;
     padding: 9px 16px;
     background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--line);
     font-size: 11px;
     font-weight: 600;
-    color: #9ca3af;
+    color: var(--text-light);
     letter-spacing: 0.02em;
 }
 
-/* ── 종목 행 ── */
+/* 종목 행 */
 .stockRow {
     display: grid;
     grid-template-columns: 50px 1fr 96px 72px 80px;
@@ -211,7 +209,7 @@
 }
 .stockRow:last-child { border-bottom: none; }
 .stockRow:hover      { background: #f9fafb; }
-.stockRow.selected   { background: #f0f1ff; }
+.stockRow.selected   { background: var(--primary-main-soft); }
 
 .colRank {
     display: flex;
@@ -222,12 +220,11 @@
 .rankNum {
     font-size: 13px;
     font-weight: 700;
-    color: #9ca3af;
+    color: var(--text-light);
     width: 18px;
     text-align: center;
 }
 
-/* 하트 버튼 */
 .heartBtn {
     background: none;
     border: none;
@@ -252,7 +249,7 @@
 .rowStockName {
     font-size: 14px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -260,7 +257,7 @@
 
 .rowStockCode {
     font-size: 11px;
-    color: #9ca3af;
+    color: var(--text-light);
     margin-top: 1px;
 }
 
@@ -268,7 +265,7 @@
     text-align: right;
     font-size: 14px;
     font-weight: 700;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .colRate {
@@ -276,18 +273,18 @@
     font-size: 13px;
     font-weight: 700;
 }
-.colRate.up   { color: #ef4444; }
-.colRate.down { color: #3b82f6; }
-.colRate.flat { color: #9ca3af; }
+.colRate.up   { color: var(--danger-main); }
+.colRate.down { color: var(--primary-main); }
+.colRate.flat { color: var(--text-light); }
 
 .colTrade {
     text-align: right;
     font-size: 12px;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
-/* ── 스켈레톤 ── */
+/* 스켈레톤 */
 .stockRowSkeleton {
     display: grid;
     grid-template-columns: 50px 1fr 96px 72px 80px;
@@ -316,17 +313,17 @@
     100% { background-position: -200% 0; }
 }
 
-/* ── 에러 ── */
+/* 에러 */
 .listErrorBox {
     padding: 40px 20px;
     text-align: center;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 14px;
     font-weight: 600;
 }
 .listErrorSub {
     font-size: 12px;
-    color: #9ca3af;
+    color: var(--text-light);
     margin-top: 6px;
     font-weight: 400;
 }
@@ -334,40 +331,35 @@
     margin-top: 14px;
     padding: 7px 18px;
     border-radius: 8px;
-    border: 1px solid #d1d5db;
-    background: #fff;
+    border: 1px solid var(--line-strong);
+    background: var(--bg-card);
     cursor: pointer;
     font-size: 13px;
     font-weight: 600;
     color: #374151;
 }
 
-/* ══════════════════════════════════════
-   차트 패널 (오른쪽)
-══════════════════════════════════════ */
-
+/* 차트 패널 */
 .marketChartPanel {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
     border-radius: 14px;
     overflow: hidden;
     position: sticky;
     top: 140px;
 }
 
-/* 미선택 상태 */
 .chartPanelEmpty {
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     padding: 80px 20px;
-    color: #9ca3af;
+    color: var(--text-light);
 }
 .emptyIcon { font-size: 36px; margin-bottom: 12px; }
 .emptyText { font-size: 14px; text-align: center; line-height: 1.6; }
 
-/* 선택 후 */
 .chartPanelContent { padding: 16px 20px 20px; }
 
 .panelStockHeader {
@@ -380,20 +372,19 @@
 .panelStockName {
     font-size: 20px;
     font-weight: 800;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .panelStockCode {
     font-size: 12px;
-    color: #9ca3af;
+    color: var(--text-light);
     margin-top: 2px;
 }
 
-/* 패널 관심종목 버튼 */
 .panelWatchBtn {
     font-size: 22px;
     background: none;
-    border: 1.5px solid #e5e7eb;
+    border: 1.5px solid #e8d7ae;
     border-radius: 10px;
     width: 40px;
     height: 40px;
@@ -401,15 +392,18 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #d1d5db;
+    color: #d8a63c;
     transition: all 0.15s;
     flex-shrink: 0;
 }
-.panelWatchBtn:hover    { border-color: #f59e0b; color: #f59e0b; }
+.panelWatchBtn:hover {
+    border-color: #e0ae43;
+    color: #e0ae43;
+}
 .panelWatchBtn.watching {
-    background: #fef3c7;
-    border-color: #f59e0b;
-    color: #f59e0b;
+    background: #fff7dc;
+    border-color: #e0ae43;
+    color: #d89213;
 }
 
 .panelPriceRow {
@@ -422,15 +416,15 @@
 .panelCurrentPrice {
     font-size: 26px;
     font-weight: 800;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .panelChangeRate {
     font-size: 14px;
     font-weight: 700;
 }
-.panelChangeRate.up   { color: #ef4444; }
-.panelChangeRate.down { color: #3b82f6; }
+.panelChangeRate.up   { color: var(--danger-main); }
+.panelChangeRate.down { color: var(--primary-main); }
 
 .panelMeta {
     display: flex;
@@ -438,10 +432,9 @@
     flex-wrap: wrap;
     margin-bottom: 12px;
 }
-.panelMeta span { font-size: 12px; color: #6b7280; }
-.panelMeta strong { color: #111827; font-weight: 700; }
+.panelMeta span { font-size: 12px; color: var(--text-muted); }
+.panelMeta strong { color: var(--text-main); font-weight: 700; }
 
-/* 알림 안내 */
 .panelAlertNote {
     font-size: 12px;
     color: #d97706;
@@ -458,7 +451,6 @@
     display: block;
 }
 
-/* 차트 탭 */
 .panelChartTabs {
     display: flex;
     gap: 6px;
@@ -470,48 +462,50 @@
     border-radius: 7px;
     font-size: 12px;
     font-weight: 600;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    color: #6b7280;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-muted);
     cursor: pointer;
     transition: all 0.13s;
 }
-.panelChartTab.active {
-    background: #0E0F37;
-    border-color: #0E0F37;
-    color: #fff;
+
+/* 일별/시간별/분별 active도 mid로 맞춤 */
+.panelChartTab:hover:not(.active) {
+    border-color: var(--primary-main);
+    color: var(--primary-main);
 }
 
-/* 차트 영역 */
+.panelChartTab.active {
+    background: var(--primary-mid);
+    border-color: var(--primary-mid);
+    color: var(--white);
+}
+
 .panelChartArea {
     height: 200px;
     margin-bottom: 14px;
 }
 .panelChartArea canvas { width: 100% !important; height: 220px !important; }
 
-/* 전체 차트 링크 */
 .panelDetailLink {
     display: block;
     text-align: center;
     font-size: 13px;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--text-muted);
     padding: 10px;
-    border: 1px solid #e5e7eb;
+    border: 1px solid var(--line);
     border-radius: 8px;
     text-decoration: none;
     transition: all 0.13s;
 }
 .panelDetailLink:hover {
     background: #f9fafb;
-    color: #0E0F37;
-    border-color: #0E0F37;
+    color: var(--primary-dark);
+    border-color: var(--primary-dark);
 }
 
-/* ══════════════════════════════════════
-   종목 상세 페이지 (marketDetail.html)
-══════════════════════════════════════ */
-
+/* 상세 페이지 */
 .detailPage {
     max-width: 900px;
     margin: 0 auto;
@@ -523,13 +517,13 @@
     gap: 6px;
     font-size: 14px;
     font-weight: 600;
-    color: #6b7280;
+    color: var(--text-muted);
     margin-bottom: 20px;
     cursor: pointer;
     text-decoration: none;
     transition: color 0.15s;
 }
-.detailBackBtn:hover { color: #111827; }
+.detailBackBtn:hover { color: var(--text-main); }
 
 .detailHeader {
     display: flex;
@@ -549,13 +543,13 @@
 .detailName {
     font-size: 24px;
     font-weight: 800;
-    color: #111827;
+    color: var(--text-main);
     margin: 0;
 }
 
 .detailCodeBadge {
     background: #f3f4f6;
-    color: #6b7280;
+    color: var(--text-muted);
     font-size: 13px;
     font-weight: 600;
     padding: 4px 10px;
@@ -571,21 +565,24 @@
     font-size: 14px;
     font-weight: 700;
     cursor: pointer;
-    border: 1.5px solid #e5e7eb;
-    background: #fff;
-    color: #6b7280;
+    border: 1.5px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-muted);
     transition: all 0.18s;
 }
-.watchBtn:hover { border-color: #f59e0b; color: #f59e0b; }
+.watchBtn:hover {
+    border-color: #e0ae43;
+    color: #e0ae43;
+}
 .watchBtn.watching {
-    background: #fef3c7;
-    border-color: #f59e0b;
-    color: #d97706;
+    background: #fff7dc;
+    border-color: #e0ae43;
+    color: #d89213;
 }
 
 .detailPricePanel {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
     border-radius: 14px;
     padding: 20px 24px;
     margin-bottom: 20px;
@@ -594,7 +591,7 @@
 .detailCurrentPrice {
     font-size: 32px;
     font-weight: 800;
-    color: #111827;
+    color: var(--text-main);
 }
 
 .detailPriceChange {
@@ -602,8 +599,8 @@
     font-weight: 700;
     margin-top: 4px;
 }
-.detailPriceChange.up   { color: #ef4444; }
-.detailPriceChange.down { color: #3b82f6; }
+.detailPriceChange.up   { color: var(--danger-main); }
+.detailPriceChange.down { color: var(--primary-main); }
 
 .detailMeta {
     display: flex;
@@ -611,12 +608,12 @@
     margin-top: 14px;
     flex-wrap: wrap;
 }
-.detailMeta span   { font-size: 13px; color: #6b7280; }
-.detailMeta strong { color: #111827; font-weight: 700; }
+.detailMeta span   { font-size: 13px; color: var(--text-muted); }
+.detailMeta strong { color: var(--text-main); font-weight: 700; }
 
 .detailChartBox {
-    background: #fff;
-    border: 1px solid #e5e7eb;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
     border-radius: 14px;
     padding: 20px 24px;
 }
@@ -632,22 +629,25 @@
     border-radius: 8px;
     font-size: 13px;
     font-weight: 600;
-    border: 1px solid #e5e7eb;
-    background: #fff;
-    color: #6b7280;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--text-muted);
     cursor: pointer;
     transition: all 0.15s;
 }
+
+.detailChartTab:hover:not(.active) {
+    border-color: var(--primary-main);
+    color: var(--primary-main);
+}
+
 .detailChartTab.active {
-    background: #0E0F37;
-    border-color: #0E0F37;
-    color: #fff;
+    background: var(--primary-mid);
+    border-color: var(--primary-mid);
+    color: var(--white);
 }
 
 .detailChartContainer {
     position: relative;
 }
 
-.pageContainer{
-    padding: 28px 20px;
-}
