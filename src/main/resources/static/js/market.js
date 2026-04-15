@@ -24,6 +24,7 @@ let allStocks         = [];        // 현재 로드된 전체 종목 (검색 필
 let marketListPollingTimer = null;
 let detailPricePollingTimer = null;
 let detailChartPollingTimer = null;
+let chartPollingTimer = null;
 let marketLoadToken = 0;
 
 function createPollingTask(task, { pauseWhenHidden = true } = {}) {
@@ -404,6 +405,16 @@ async function selectStock(code, name, rowEl) {
     if (pricePollingTimer) clearInterval(pricePollingTimer);
     const panelPriceTask = createPollingTask(updatePanelPrice);
     pricePollingTimer = setInterval(panelPriceTask, 5000);
+
+    if (chartPollingTimer) clearInterval(chartPollingTimer);
+
+    const panelChartTask = createPollingTask(async () => {
+        if (isMarketOpen()) {
+            await updatePanelChart();
+        }
+    });
+
+    chartPollingTimer = setInterval(panelChartTask, 10000);
 }
 
 // ── 패널 현재가 업데이트 ─────────────────────────────────
@@ -741,8 +752,6 @@ async function renderPanelChart() {
     const { ohlc, vol, hasOhlc } = buildOhlcv(data);
     panelChart = Highcharts.stockChart('panelChart',
         hcBaseOptions(selectedName, ohlc, vol, hasOhlc, true, panelTab));
-    keepSessionAlive(storageKey);
-    applySavedExtremes(panelChart, storageKey);
 }
 
 // 상세 패널용 차트 데이터를 다시 불러와 갱신한다.
@@ -1141,4 +1150,5 @@ document.addEventListener('DOMContentLoaded', async () => {
         initWatchBtn(code, name);
         updateDetailPrice(code);
     }
+    await startPolling();
 });

@@ -184,7 +184,7 @@ public class StockPriceService {
             int callCount  = 0;
             int retryCount = 0;
 
-            while (callCount < 5 && retryCount < 3) {
+            while (callCount < 13 && retryCount < 3) {
                 final String hp = hourParam;
                 JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
