@@ -659,7 +659,7 @@ public class CommunityBoardDao {
         connect();
         int count = -1;
         String sql = "update community_board "
-                + "set category = ?, title = ?, content = ?, updated_at = sysdate "
+                + "set category = ?, title = ?, content = ?, news_link = ?, updated_at = sysdate "
                 + "where board_id = ?";
 
         try {
@@ -667,7 +667,8 @@ public class CommunityBoardDao {
             pstmt.setString(1, dto.getCategory());
             pstmt.setString(2, dto.getTitle());
             pstmt.setString(3, dto.getContent());
-            pstmt.setInt(4, dto.getBoard_id());
+            pstmt.setString(4, dto.getNews_link());
+            pstmt.setInt(5, dto.getBoard_id());
             count = pstmt.executeUpdate();
 
             if (count > 0) {

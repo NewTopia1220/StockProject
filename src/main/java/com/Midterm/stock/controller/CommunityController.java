@@ -467,6 +467,9 @@ public class CommunityController {
         if (dto.getTagNames() != null) {
             dto.setTagNames(dto.getTagNames().trim());
         }
+        if (dto.getNews_link() != null) {
+            dto.setNews_link(dto.getNews_link().trim());
+        }
 
         String bannedWord = findBannedWord(dto.getTitle(), dto.getContent(), dto.getTagNames());
 

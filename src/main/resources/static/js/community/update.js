@@ -3,8 +3,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const newsSearchResult = document.getElementById("newsSearchResult");
     const selectedNewsBox = document.getElementById("selectedNewsBox");
     const newsLinkInput = document.getElementById("newsLink");
-    const initialNewsLink = selectedNewsBox?.dataset.initialLink?.trim();
-    const initialNewsTitle = selectedNewsBox?.dataset.initialTitle?.trim();
+    const initialNewsLink = selectedNewsBox?.dataset.initialLink?.trim()
+        || newsLinkInput?.value?.trim()
+        || "";
+    const initialNewsTitle = selectedNewsBox?.dataset.initialTitle?.trim() || "";
 
     let searchTimer = null;
 
