@@ -426,6 +426,7 @@ public class CommunityController {
         }
 
         model.addAttribute("dto", dto);
+        addSelectedNewsTitle(model, dto);
         model.addAttribute("currentPage", "community");
         return "community/update";
     }
@@ -454,6 +455,7 @@ public class CommunityController {
 
         if (bannedWord != null) {
             model.addAttribute("dto", dto);
+            addSelectedNewsTitle(model, dto);
             model.addAttribute("currentPage", "community");
             model.addAttribute("errorMessage", "금지어가 포함되어 있습니다: " + bannedWord);
             return "community/update";
@@ -467,6 +469,17 @@ public class CommunityController {
             "시발", "병신", "개새끼", "뒤져", "뒤질", "뒤졌", "존나", "십창", "맘충", "여적여", "개줌마", "빨갱이",
             "찍어야", "낙선시켜", "좌파", "우파", "정치충", "종북", "느금", "개비", "니애미"
     );
+
+    private void addSelectedNewsTitle(Model model, CommunityDto dto) {
+        String selectedNewsTitle = null;
+        if (dto != null && dto.getNews_link() != null && !dto.getNews_link().isBlank()) {
+            selectedNewsTitle = communityExtraDao.getNewsTitleByLink(dto.getNews_link());
+            if (selectedNewsTitle == null || selectedNewsTitle.isBlank()) {
+                selectedNewsTitle = dto.getNews_link();
+            }
+        }
+        model.addAttribute("selectedNewsTitle", selectedNewsTitle);
+    }
 
     private String findBannedWord(String... values) {
         for (String value : values) {

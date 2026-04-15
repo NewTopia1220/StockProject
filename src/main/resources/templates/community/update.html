@@ -102,8 +102,10 @@
 
                     <div id="newsSearchResult"></div>
 
-                    <div id="selectedNewsBox"></div>
-                    <input type="hidden" name="news_link" id="newsLink">
+                    <div id="selectedNewsBox"
+                         th:data-initial-link="${dto.news_link}"
+                         th:data-initial-title="${selectedNewsTitle}"></div>
+                    <input type="hidden" name="news_link" id="newsLink" th:value="${dto.news_link}">
                 </div>
 
                 <div class="cwButtonRow">
