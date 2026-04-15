@@ -422,7 +422,7 @@ public class UserDao {
             try (ResultSet rs = pstmt.executeQuery()) {
                 if (rs.next()) {
                     int status = rs.getInt("notify_stock");
-                    System.out.println("DAO DEBUG: DB에서 가져온 값 -> " + status);
+                    /*System.out.println("DAO DEBUG: DB에서 가져온 값 -> " + status);*/
                     return status;
                 } else {
                     System.out.println("DAO DEBUG: 유저를 찾을 수 없음 (num=" + userNum + ")");
@@ -459,7 +459,7 @@ public class UserDao {
             pstmt.setInt(1, status);
             pstmt.setInt(2, userNum);
             pstmt.executeUpdate();
-            System.out.println("유저 " + userNum + " [" + type + "] 알림 설정 변경 -> " + status);
+            /*System.out.println("유저 " + userNum + " [" + type + "] 알림 설정 변경 -> " + status);*/
         } catch (SQLException e) { e.printStackTrace(); }
     }
 }

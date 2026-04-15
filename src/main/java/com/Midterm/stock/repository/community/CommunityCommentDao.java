@@ -18,12 +18,12 @@ public class CommunityCommentDao {
     private ResultSet rs = null;
 
     public CommunityCommentDao() {
-        System.out.println("CommunityCommentDao 생성자 호출 - 클라우드 설정 시작");
+        /*System.out.println("CommunityCommentDao 생성자 호출 - 클라우드 설정 시작");*/
         try {
             Class.forName(driver);
             System.setProperty("oracle.net.wallet_location",
                     "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
-            System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");
+            /*System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");*/
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -32,7 +32,7 @@ public class CommunityCommentDao {
     public Connection connect() {
         try {
             conn = DriverManager.getConnection(url, id, pw);
-            System.out.println("오라클 클라우드 DB 접속 성공!");
+            /*System.out.println("오라클 클라우드 DB 접속 성공!");*/
         } catch (SQLException e) {
             System.err.println("DB 접속 실패: " + e.getMessage());
             e.printStackTrace();

@@ -1,4 +1,3 @@
-
 /**
  * DOM에서 사용 가능한 금액 가져오기
  */
@@ -20,13 +19,13 @@ function validateInputs() {
     if (goalAmountInput) {
         let value = parseInt(goalAmountInput.value.replace(/,/g, '')) || 0;
         value = Math.max(0, value);
-        goalAmountInput.value = value.toLocaleString('ko-KR'); // <-- 콤마 재적용
+        goalAmountInput.value = value.toLocaleString('ko-KR');
     }
 
     if (goalMonthsInput) {
         let value = parseInt(goalMonthsInput.value.replace(/,/g, '')) || 1;
         value = Math.max(1, value);
-        goalMonthsInput.value = value.toLocaleString('ko-KR'); // <-- 콤마 재적용
+        goalMonthsInput.value = value.toLocaleString('ko-KR');
     }
 }
 
@@ -81,19 +80,19 @@ function updateGapAnalysis(monthlyRequired, gap, availableAmount) {
 
     if (!gapItem || !gapValue) return;
 
+    const labelEl = gapItem.querySelector('.analysis-label');
+
     if (gap > 0) {
-        // 부족
         gapItem.classList.add('warning');
         gapItem.classList.remove('success');
-        gapItem.querySelector('.analysis-label').textContent = '부족 금액';
+        if (labelEl) labelEl.textContent = '부족 금액';
         gapValue.textContent = '-' + formatNumber(gap) + '원';
         gapValue.classList.remove('primary');
         gapValue.classList.add('accent');
     } else {
-        // 여유
         gapItem.classList.remove('warning');
         gapItem.classList.add('success');
-        gapItem.querySelector('.analysis-label').textContent = '여유 금액';
+        if (labelEl) labelEl.textContent = '여유 금액';
         gapValue.textContent = '+' + formatNumber(Math.abs(gap)) + '원';
         gapValue.classList.remove('accent');
         gapValue.classList.add('primary');
@@ -113,7 +112,6 @@ function updateAlertBanner(gap) {
     if (!alertTitle || !alertDescription || !alertIcon) return;
 
     if (gap > 0) {
-        // 부족
         alertBanner.classList.remove('success');
         alertBanner.classList.add('warning');
         alertIcon.classList.remove('success');
@@ -124,7 +122,6 @@ function updateAlertBanner(gap) {
         alertTitle.textContent = '저축 목표 달성 어려움';
         alertDescription.innerHTML = `현재 수입과 지출 패턴으로는 월 <span style="font-weight: 600;">${formatNumber(gap)}원</span>이 부족합니다. 지출을 줄이거나 수입을 늘려보세요.`;
 
-        // 경고 아이콘
         alertIcon.innerHTML = `
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/>
@@ -133,7 +130,6 @@ function updateAlertBanner(gap) {
             </svg>
         `;
     } else {
-        // 충분
         alertBanner.classList.remove('warning');
         alertBanner.classList.add('success');
         alertIcon.classList.remove('warning');
@@ -144,7 +140,6 @@ function updateAlertBanner(gap) {
         alertTitle.textContent = '목표 달성 가능';
         alertDescription.innerHTML = `현재 재무 상태로 목표를 달성할 수 있습니다. 월 <span style="font-weight: 600;">${formatNumber(Math.abs(gap))}원</span>의 여유가 있습니다.`;
 
-        // 체크 아이콘
         alertIcon.innerHTML = `
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="20 6 9 17 4 12"/>
@@ -160,7 +155,7 @@ function animateCards() {
     const cards = document.querySelectorAll('.card');
 
     const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
             if (entry.isIntersecting) {
                 entry.target.style.opacity = '1';
                 entry.target.style.transform = 'translateY(0)';
@@ -168,7 +163,7 @@ function animateCards() {
         });
     }, { threshold: 0.2 });
 
-    cards.forEach(card => {
+    cards.forEach((card) => {
         card.style.opacity = '0';
         card.style.transform = 'translateY(20px)';
         card.style.transition = 'opacity 0.5s, transform 0.5s';
@@ -180,7 +175,7 @@ function animateCards() {
  * 입력값 콤마 포맷팅
  */
 function setupMoneyInputs() {
-    document.querySelectorAll('.money').forEach(input => {
+    document.querySelectorAll('.money').forEach((input) => {
         if (input.value) {
             input.value = input.value.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
         }
@@ -194,11 +189,24 @@ function setupMoneyInputs() {
     const form = document.querySelector('form');
     if (form) {
         form.addEventListener('submit', () => {
-            document.querySelectorAll('.money').forEach(input => {
+            document.querySelectorAll('.money').forEach((input) => {
                 input.value = input.value.replace(/,/g, '');
             });
         });
     }
+}
+
+/**
+ * 최근 분석 이력 더보기/접기
+ */
+function toggleHistory() {
+    const list = document.getElementById('historyList');
+    const button = document.querySelector('.history-more-btn');
+
+    if (!list || !button) return;
+
+    list.classList.toggle('collapsed');
+    button.textContent = list.classList.contains('collapsed') ? '더보기' : '접기';
 }
 
 /**
@@ -216,14 +224,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupMoneyInputs();
     calculateSavings();
-});
 
-
-
-window.addEventListener('load', animateCards);
-
-// 사이드 바에 사용자 성이름 아이콘 가져오기
-document.addEventListener('DOMContentLoaded', () => {
     const userNameEl = document.querySelector('.user-name');
     const userAvatarEl = document.querySelector('.user-avatar');
 
@@ -232,3 +233,5 @@ document.addEventListener('DOMContentLoaded', () => {
         userAvatarEl.textContent = fullName.charAt(0) || '';
     }
 });
+
+window.addEventListener('load', animateCards);
