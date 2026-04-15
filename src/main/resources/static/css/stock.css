@@ -386,7 +386,7 @@ a.t-item:hover span {
 .searchWrapper input {
     width: 100%;
     padding: 8px 12px;
-    border: 1px solid var(--border);
+    border: 1px solid #3182F6;
     border-radius: 10px;
     font-size: 13px;
     color: var(--text-main);
@@ -396,7 +396,7 @@ a.t-item:hover span {
 }
 
 .searchWrapper input:focus {
-    border-color: var(--primary);
+    border-color: #15164D;
 }
 
 #searchDropdown {
