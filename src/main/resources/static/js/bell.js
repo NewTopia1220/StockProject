@@ -1,6 +1,7 @@
 let badgeRefreshTimer = null;
 let alertToastInitialized = false;
 let latestSeenAlertId = null;
+let latestAlertItems = [];
 // 알림창 기능
 let alertTypePreferences = {
     stock: true,
@@ -105,14 +106,9 @@ async function refreshBadge() {
         if (!badge) return;
 
         syncAlertTypePreferences(data.notifySettings);
-        handleAlertToasts(data.alerts || []);
-
-        if (data.unreadCount > 0) {
-            badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
-            badge.classList.add('show');
-        } else {
-            badge.classList.remove('show');
-        }
+        latestAlertItems = Array.isArray(data.alerts) ? data.alerts : [];
+        handleAlertToasts(latestAlertItems);
+        updateBellBadge(latestAlertItems);
     } catch (e) {}
 }
 
@@ -150,6 +146,7 @@ function initSystemNotificationControls() {
 
     window.addEventListener('stoxle-notification-setting-change', (event) => {
         syncAlertTypePreferences(event.detail);
+        updateBellBadge(latestAlertItems);
     });
 
     updateNotificationPermissionUi();
@@ -174,6 +171,30 @@ function syncAlertTypePreferences(settings) {
 function isAlertTypeEnabled(alert) {
     const preferenceKey = alert?.alertType === '댓글' ? 'comment' : 'stock';
     return alertTypePreferences[preferenceKey] !== false;
+}
+
+function getVisibleUnreadCount(alerts) {
+    if (!Array.isArray(alerts)) {
+        return 0;
+    }
+
+    return alerts.filter(alert => !alert?.read && isAlertTypeEnabled(alert)).length;
+}
+
+function updateBellBadge(alerts) {
+    const badge = document.getElementById('bellBadge');
+    if (!badge) {
+        return;
+    }
+
+    const unreadCount = getVisibleUnreadCount(alerts);
+    if (unreadCount > 0) {
+        badge.textContent = unreadCount > 99 ? '99+' : unreadCount;
+        badge.classList.add('show');
+        return;
+    }
+
+    badge.classList.remove('show');
 }
 
 async function requestSystemNotificationPermission() {
