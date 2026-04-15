@@ -17,6 +17,7 @@ let panelTab          = 'daily';   // 패널 차트 탭
 let watchingSet       = new Set(); // 관심종목 코드 집합
 let pricePollingTimer = null;      // 현재가 폴링 타이머
 let allStocks         = [];        // 현재 로드된 전체 종목 (검색 필터용)
+const MARKET_LIST_LIMIT = 30;      // 시장 화면 랭킹 최대 노출 개수
 
 // ════════════════════════════════════════════════════════
 //  종목 리스트 로딩
@@ -86,8 +87,8 @@ async function loadMarketData(type) {
         if (keyword) {
             filterStockList(keyword);
         } else {
-            // 화면에는 10개만 노출
-            const visibleStocks = stocks.slice(0, 10);
+            // 화면에는 최대 30개만 노출
+            const visibleStocks = stocks.slice(0, MARKET_LIST_LIMIT);
             renderStockList(body, visibleStocks);
             syncDefaultPanelSelection(visibleStocks);
         }
@@ -101,9 +102,8 @@ async function loadMarketData(type) {
 }
 
 // 목록 로딩 중 표시할 스켈레톤 행들을 렌더링
-// 15 => 10
 function renderSkeletons(container) {
-    container.innerHTML = Array.from({ length: 10 }, () => `
+    container.innerHTML = Array.from({ length: MARKET_LIST_LIMIT }, () => `
         <div class="stockRowSkeleton">
             <div class="skelBlock skelRank"></div>
             <div class="skelBlock skelName"></div>
@@ -141,8 +141,8 @@ function formatVolume(raw) {
 
 // 종목 목록 배열을 좌측 리스트 UI로 렌더링하고 클릭 이벤트를 연결한다.
 function renderStockList(container, stocks) {
-    // 최종 렌더링 단계에서 한 번 더 10개로 제한
-    const visibleStocks = (stocks || []).slice(0, 10);
+    // 최종 렌더링 단계에서 한 번 더 30개로 제한
+    const visibleStocks = (stocks || []).slice(0, MARKET_LIST_LIMIT);
 
     if (!visibleStocks.length) {
         container.innerHTML = '';
@@ -160,7 +160,7 @@ function renderStockList(container, stocks) {
         colTradeHeader.textContent = currentType === 'trade' ? '거래대금' : '거래량';
     }
 
-    container.innerHTML = stocks.map((s, i) => {
+    container.innerHTML = visibleStocks.map((s, i) => {
         const code       = s.stockCode || '';
         const name       = s.stockName || '-';
         const price      = s.currentPrice ? Number(s.currentPrice).toLocaleString() + '원' : '-';
@@ -340,7 +340,7 @@ function filterStockList(keyword) {
     const kw = String(keyword || '').trim().toLowerCase();
 
     if (!kw) {
-        const visibleStocks = allStocks.slice(0, 10);
+        const visibleStocks = allStocks.slice(0, MARKET_LIST_LIMIT);
         renderStockList(body, visibleStocks);
         syncDefaultPanelSelection(visibleStocks);
         return;
@@ -349,7 +349,7 @@ function filterStockList(keyword) {
     const filtered = allStocks.filter(s =>
         (s.stockName || '').toLowerCase().includes(kw) ||
         (s.stockCode || '').includes(kw)
-    ).slice(0, 10);
+    ).slice(0, MARKET_LIST_LIMIT);
 
     if (!filtered.length) {
         body.innerHTML = '';

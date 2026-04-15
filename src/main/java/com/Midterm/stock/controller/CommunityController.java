@@ -290,7 +290,11 @@ public class CommunityController {
         String trimmedContent = content == null ? "" : content.trim();
         if (!trimmedContent.isEmpty()) {
             int result = communityCommentDao.insertComment(boardId, loginNum, trimmedContent);
-            if (result > 0 && article.getUser_num() != loginNum) {
+            if (result > 0 && isOwnArticleComment(article, loginNum)) {
+                return "redirect:/community/detail?board_id=" + boardId;
+            }
+
+            if (result > 0) {
 
                 boolean isCommentAlertEnabled = watchListService.isCommentNotifyEnabled(article.getUser_num());
                 System.out.println("댓글 알림 체크 - 작성자: " + article.getUser_num() + " | 상태: " + isCommentAlertEnabled);
@@ -467,6 +471,9 @@ public class CommunityController {
         if (dto.getTagNames() != null) {
             dto.setTagNames(dto.getTagNames().trim());
         }
+        if (dto.getNews_link() != null) {
+            dto.setNews_link(dto.getNews_link().trim());
+        }
 
         String bannedWord = findBannedWord(dto.getTitle(), dto.getContent(), dto.getTagNames());
 
@@ -496,6 +503,10 @@ public class CommunityController {
             }
         }
         model.addAttribute("selectedNewsTitle", selectedNewsTitle);
+    }
+
+    private boolean isOwnArticleComment(CommunityDto article, Integer loginNum) {
+        return article != null && loginNum != null && article.getUser_num() == loginNum;
     }
 
     private String findBannedWord(String... values) {

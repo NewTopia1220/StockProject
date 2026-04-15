@@ -96,7 +96,7 @@
 .gauge-center {
     position: absolute;
     left: 50%;
-    top: 57%;
+    top: 70%;
     transform: translate(-50%, -50%);
     width: 100%;
     text-align: center;
@@ -112,7 +112,7 @@
 
 .gauge-label {
     display: block;
-    margin-top: 4px;
+    margin-top: 6px;
     font-size: 11px;
     color: var(--muted-foreground);
 }
@@ -131,21 +131,25 @@
     flex-direction: column;
     gap: 6px;
     min-width: 0;
+    align-items: center;
+    text-align: center;
 }
 
 .stat-item .stat-label {
-    font-size: 11px;
+    font-size: 14px;
     color: var(--muted-foreground);
     margin-bottom: 0;
     line-height: 1.35;
     word-break: keep-all;
+    text-align: center;
 }
 
 .stat-item .stat-value {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 700;
     line-height: 1.2;
     word-break: keep-all;
+    text-align: center;
 }
 
 .stat-item .stat-value.accent {
