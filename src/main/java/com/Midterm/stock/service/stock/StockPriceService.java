@@ -20,6 +20,7 @@ public class StockPriceService {
     private static final String INDEX_MARKET_CODE = "U";
     private static final String KOSPI_CODE = "0001";
     private static final String KOSDAQ_CODE = "1001";
+    private static final int MARKET_RANK_LIMIT = 30;
 
     private static final String CURRENT_PRICE_TR_ID  = "FHKST01010100";
     private static final String DAILY_PRICE_TR_ID     = "FHKST01010400";
@@ -254,7 +255,7 @@ public class StockPriceService {
                     .queryParam("fid_cond_scr_div_code", "20170")
                     .queryParam("fid_input_iscd", "0000")
                     .queryParam("fid_rank_sort_cls_code", "0")
-                    .queryParam("fid_input_cnt_1", "20")
+                    .queryParam("fid_input_cnt_1", String.valueOf(MARKET_RANK_LIMIT))
                     .queryParam("fid_prc_cls_code", "0")
                     .queryParam("fid_input_price_1", "0")
                     .queryParam("fid_input_price_2", "1000000")
@@ -267,7 +268,12 @@ public class StockPriceService {
 
             JsonNode output = response == null ? null : response.get("output");
             if (output == null || output.isNull()) return result;
-            for (JsonNode item : output) result.add(toStockDto(item));
+            for (JsonNode item : output) {
+                result.add(toStockDto(item));
+                if (result.size() >= MARKET_RANK_LIMIT) {
+                    break;
+                }
+            }
         } catch (Exception e) {
             // System.out.println("Top fluctuation lookup failed: " + e.getMessage());
         }
@@ -283,6 +289,7 @@ public class StockPriceService {
                     .queryParam("fid_cond_mrkt_div_code", DOMESTIC_MARKET_CODE)
                     .queryParam("fid_cond_scr_div_code", "20171")
                     .queryParam("fid_input_iscd", "0000")
+                    .queryParam("fid_input_cnt_1", String.valueOf(MARKET_RANK_LIMIT))
                     .queryParam("fid_div_cls_code", "2")
                     .queryParam("fid_blng_cls_code", "0")
                     .queryParam("fid_trgt_cls_code", "111111111")
@@ -295,7 +302,12 @@ public class StockPriceService {
 
             JsonNode output = response == null ? null : response.get("output");
             if (output == null || output.isNull()) return result;
-            for (JsonNode item : output) result.add(toStockDto(item));
+            for (JsonNode item : output) {
+                result.add(toStockDto(item));
+                if (result.size() >= MARKET_RANK_LIMIT) {
+                    break;
+                }
+            }
         } catch (Exception e) {
             // System.out.println("Top trade amount lookup failed: " + e.getMessage());
         }
