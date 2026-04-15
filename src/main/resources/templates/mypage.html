@@ -6,6 +6,7 @@
     <title>Stoxle - 설정</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
+    <link rel="stylesheet" th:href="@{/css/asset/mypage.css}">
 </head>
 
 
@@ -21,7 +22,6 @@
                 <!-- 헤더 -->
                 <div class="page-header">
                     <h1>설정</h1>
-                    <p class="page-subtitle">계정 및 앱 설정을 관리하세요</p>
                 </div>
 
                 <!-- 프로필 섹션 -->
@@ -33,7 +33,6 @@
                         </svg>
                         <div>
                             <h3 class="section-title">프로필</h3>
-                            <p class="section-subtitle">개인 정보를 관리하세요</p>
                         </div>
                     </div>
 
@@ -78,7 +77,6 @@
                         </svg>
                         <div>
                             <h3 class="section-title">알림 설정</h3>
-                            <p class="section-subtitle">받고 싶은 알림을 선택하세요</p>
                         </div>
                     </div>
 
@@ -123,7 +121,6 @@
                         </svg>
                         <div>
                             <h3 class="section-title">계정 보안</h3>
-                            <p class="section-subtitle">안전한 자산관리를 위해 보안을 유자하세요</p>
                         </div>
                     </div>
 
@@ -135,8 +132,7 @@
                             <!--                        <p class="settings-value display-mode" style="font-size: 12px; color: #888;">마지막 변경: 2026.01.15</p>-->
 
                             <div class="edit-mode" style="display:none; margin-top: 5px;">
-                                <input type="password" id="input-password" placeholder="새 비밀번호 입력"
-                                       style="padding: 8px; border: 1px solid #ddd; border-radius: 4px; width: 200px;">
+                                <input type="password" id="input-password" class="settings-edit-input" placeholder="새 비밀번호 입력">
                             </div>
                         </div>
 
@@ -170,7 +166,7 @@
 
 
                 <!-- 로그아웃 -->
-                <div class="card logout-section">
+                <div class="logout-section">
                     <button class="btn-logout" th:onclick="|location.href='@{/logout}'|">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
