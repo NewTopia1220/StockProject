@@ -49,8 +49,8 @@ public class NewsController {
         int uid = userNum != null ? userNum : 0;
 
         int totalCount = newsDao.getNewsCount(sector, keyword);
-        int pageSize = 7;
-        int pageBlockSize = 7;
+        int pageSize = 3;
+        int pageBlockSize = 3;
         int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
         int currentPage = Math.max(1, Math.min(page, totalPages));
         int start = (currentPage - 1) * pageSize + 1;

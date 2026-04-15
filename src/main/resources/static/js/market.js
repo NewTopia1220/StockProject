@@ -9,14 +9,14 @@ if (typeof Highcharts !== 'undefined') {
 
 // ── 전역 상태 ────────────────────────────────────────────
 
-let currentType       = 'trade';  // 현재 필터 (trade | fluctuation)
-let selectedCode      = '';       // 선택된 종목코드
-let selectedName      = '';       // 선택된 종목명
-let panelChart        = null;     // 패널 차트 인스턴스
-let panelTab          = 'daily';  // 패널 차트 탭
+let currentType       = 'trade';   // 현재 필터 (trade | fluctuation)
+let selectedCode      = '';        // 선택된 종목코드
+let selectedName      = '';        // 선택된 종목명
+let panelChart        = null;      // 패널 차트 인스턴스
+let panelTab          = 'daily';   // 패널 차트 탭
 let watchingSet       = new Set(); // 관심종목 코드 집합
-let pricePollingTimer = null;     // 현재가 폴링 타이머
-let allStocks         = [];       // 현재 로드된 전체 종목 (검색 필터용)
+let pricePollingTimer = null;      // 현재가 폴링 타이머
+let allStocks         = [];        // 현재 로드된 전체 종목 (검색 필터용)
 
 // ════════════════════════════════════════════════════════
 //  종목 리스트 로딩
@@ -28,7 +28,7 @@ async function loadMarketData(type) {
     const noResult = document.getElementById('listNoResult');
     if (!body) return;
 
-    error.style.display    = 'none';
+    error.style.display = 'none';
     if (noResult) noResult.style.display = 'none';
     renderSkeletons(body);
 
@@ -61,8 +61,10 @@ async function loadMarketData(type) {
         if (keyword) {
             filterStockList(keyword);
         } else {
-            renderStockList(body, stocks);
-            syncDefaultPanelSelection(stocks);
+            // 화면에는 10개만 노출
+            const visibleStocks = stocks.slice(0, 10);
+            renderStockList(body, visibleStocks);
+            syncDefaultPanelSelection(visibleStocks);
         }
 
     } catch (e) {
@@ -73,8 +75,9 @@ async function loadMarketData(type) {
 }
 
 // 목록 로딩 중 표시할 스켈레톤 행들을 렌더링
+// 15 => 10
 function renderSkeletons(container) {
-    container.innerHTML = Array.from({ length: 15 }, () => `
+    container.innerHTML = Array.from({ length: 10 }, () => `
         <div class="stockRowSkeleton">
             <div class="skelBlock skelRank"></div>
             <div class="skelBlock skelName"></div>
@@ -112,12 +115,16 @@ function formatVolume(raw) {
 
 // 종목 목록 배열을 좌측 리스트 UI로 렌더링하고 클릭 이벤트를 연결한다.
 function renderStockList(container, stocks) {
-    if (!stocks || stocks.length === 0) {
+    // 최종 렌더링 단계에서 한 번 더 10개로 제한
+    const visibleStocks = (stocks || []).slice(0, 10);
+
+    if (!visibleStocks.length) {
         container.innerHTML = '';
         const noResult = document.getElementById('listNoResult');
         if (noResult) noResult.style.display = 'block';
         return;
     }
+
     const noResult = document.getElementById('listNoResult');
     if (noResult) noResult.style.display = 'none';
 
@@ -127,7 +134,7 @@ function renderStockList(container, stocks) {
         colTradeHeader.textContent = currentType === 'trade' ? '거래대금' : '거래량';
     }
 
-    container.innerHTML = stocks.map((s, i) => {
+    container.innerHTML = visibleStocks.map((s, i) => {
         const code       = s.stockCode || '';
         const name       = s.stockName || '-';
         const price      = s.currentPrice ? Number(s.currentPrice).toLocaleString() + '원' : '-';
@@ -270,7 +277,7 @@ async function runSearch(keyword) {
 
     const kw = keyword.toLowerCase();
 
-    // 1차: 현재 20개 목록에서 검색
+    // 1차: 현재 로드된 전체 목록에서 검색
     const localHits = allStocks.filter(s =>
         (s.stockName || '').toLowerCase().includes(kw) ||
         (s.stockCode || '').includes(kw)
@@ -293,9 +300,40 @@ async function runSearch(keyword) {
         });
         showSearchDropdown(merged.slice(0, 10));
     } catch (e) {
-        if (localHits.length > 0) showSearchDropdown(localHits);
+        if (localHits.length > 0) showSearchDropdown(localHits.slice(0, 10));
         else hideSearchDropdown();
     }
+}
+
+// 검색 결과를 좌측 리스트에 반영한다.
+function filterStockList(keyword) {
+    const body     = document.getElementById('stockListBody');
+    const noResult = document.getElementById('listNoResult');
+    if (!body) return;
+
+    const kw = String(keyword || '').trim().toLowerCase();
+
+    if (!kw) {
+        const visibleStocks = allStocks.slice(0, 10);
+        renderStockList(body, visibleStocks);
+        syncDefaultPanelSelection(visibleStocks);
+        return;
+    }
+
+    const filtered = allStocks.filter(s =>
+        (s.stockName || '').toLowerCase().includes(kw) ||
+        (s.stockCode || '').includes(kw)
+    ).slice(0, 10);
+
+    if (!filtered.length) {
+        body.innerHTML = '';
+        if (noResult) noResult.style.display = 'block';
+        return;
+    }
+
+    if (noResult) noResult.style.display = 'none';
+    renderStockList(body, filtered);
+    syncDefaultPanelSelection(filtered);
 }
 
 // ════════════════════════════════════════════════════════
@@ -561,6 +599,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         }
     };
 }
+
 // ── 패널 차트 (market 페이지 오른쪽 패널) ────────────────
 
 // 상세 패널용 차트를 최초 생성한다.
@@ -860,8 +899,17 @@ document.addEventListener('DOMContentLoaded', async () => {
             const kw = searchInput.value.trim();
             clearBtn.style.display = kw ? '' : 'none';
             clearTimeout(searchDebounce);
-            if (kw.length === 0) { hideSearchDropdown(); return; }
-            searchDebounce = setTimeout(() => runSearch(kw), 250);
+
+            if (kw.length === 0) {
+                hideSearchDropdown();
+                filterStockList('');
+                return;
+            }
+
+            searchDebounce = setTimeout(() => {
+                runSearch(kw);
+                filterStockList(kw);
+            }, 250);
         });
 
         // ESC 키로 드롭다운 닫기
@@ -876,6 +924,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             searchInput.value = '';
             clearBtn.style.display = 'none';
             hideSearchDropdown();
+            filterStockList('');
             searchInput.focus();
         });
 

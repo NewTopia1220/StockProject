@@ -7,6 +7,8 @@
 
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
+    <link rel="stylesheet" th:href="@{/css/asset/analytics.css}">
+
 
     <script th:inline="javascript">
         window.categoryData = [[${categories}]];
@@ -117,8 +119,6 @@
 
                 <!-- 필수 vs 비필수 수평 바 차트 -->
                 <div class="card need-want-chart">
-                    <h3 class="card-title-section">필수(Need) vs 비필수(Want)</h3>
-
                     <div class="bar-item">
                         <div class="bar-header">
                             <span class="bar-label">필수(Need)</span>

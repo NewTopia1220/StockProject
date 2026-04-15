@@ -14,14 +14,7 @@
 
 <div class="pageContainer communityPage">
 
-    <section class="communityHero">
-        <div class="heroTop">
-            <div class="heroText">
-                <h1>투자 정보와 시장 이슈를 함께 나누는 공간</h1>
-                <p>실시간으로 흐름을 확인하고 의견을 공유할 수 있습니다.</p>
-            </div>
-        </div>
-
+    <section class="communityHero compactSearchHero">
         <form class="communitySearch" th:action="@{/community}" method="get">
             <input type="text" name="keyword" th:value="${param.keyword}" placeholder="종목명, 키워드, 시장 이슈를 검색해보세요">
             <button type="submit">검색</button>
@@ -34,7 +27,6 @@
             <div class="sidebarCard">
                 <div class="sidebarHeader">
                     <h3>카테고리</h3>
-                    <p>관심 있는 키워드를 선택하세요.</p>
                 </div>
 
                 <nav class="categoryNav categoryAccordion">
@@ -71,7 +63,7 @@
                         </div>
                     </div>
 
-                    <div class="accordionItem open">
+                    <div class="accordionItem themeAccordion">
                         <button type="button" class="accordionButton">
                             <span>테마별</span>
                             <span class="accordionArrow">⌄</span>
@@ -132,7 +124,6 @@
                 <section class="sidebarPanelControl">
                     <div class="sidebarPanelControlHeader">
                         <h4>패널 설정</h4>
-                        <p>오른쪽 패널을 토글로 바로 켜고 끌 수 있습니다.</p>
                     </div>
 
                     <div class="sidebarPanelToggleGroup">
@@ -177,50 +168,6 @@
         </aside>
 
         <section class="communityContent">
-
-            <section class="featuredSection" th:if="${featuredPosts != null and not #lists.isEmpty(featuredPosts)}">
-                <div class="featuredHeader">
-                    <div class="featuredTitleWrap">
-                        <h2>지금 인기 글</h2>
-                        <p>좋아요가 가장 많은 게시글 두 개를 먼저 보여드려요.</p>
-                    </div>
-                    <span class="featuredBadge">TOP 2</span>
-                </div>
-
-                <div class="featuredBoardList">
-                    <article class="featuredBoardItem" th:each="featured : ${featuredPosts}">
-                        <a class="featuredBoardLink" th:href="@{/community/detail(board_id=${featured.board_id})}">
-                            <div class="boardTopRow">
-                                <span class="boardCategory" th:text="${featured.category}">카테고리</span>
-
-                                <div class="boardRightStat">
-                                    <span class="featuredLike" th:text="'좋아요 ' + ${featured.like_count}">좋아요 0</span>
-                                </div>
-                            </div>
-
-                            <h3 class="featuredBoardTitle" th:text="${featured.title}">추천 게시글 제목</h3>
-
-                            <p class="featuredBoardPreview"
-                               th:text="${#strings.length(featured.content) > 120 ? #strings.substring(featured.content, 0, 120) + '...' : featured.content}">
-                                추천 게시글 내용 미리보기
-                            </p>
-
-                            <div class="boardBottom">
-                                <div class="boardMeta">
-                                    <span th:text="'작성자 ' + ${featured.displayName}">작성자</span>
-                                    <span th:text="${#dates.format(featured.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-09 12:00</span>
-                                </div>
-
-                                <div class="boardStats">
-                                    <span th:text="'조회 ' + ${featured.view_count}">조회 0</span>
-                                    <span th:text="'좋아요 ' + ${featured.like_count}">좋아요 0</span>
-                                </div>
-                            </div>
-                        </a>
-                    </article>
-                </div>
-            </section>
-
             <div class="contentTop">
                 <div class="contentWrap">
                     <h2 th:text="${param.category == null ? '전체 게시글' :
@@ -263,6 +210,37 @@
             </div>
 
             <div class="boardList" th:if="${lists != null and not #lists.isEmpty(lists)}">
+                <article class="boardItem featuredInline"
+                         th:each="featured, stat : ${featuredPosts}">
+                    <a class="boardLink" th:href="@{/community/detail(board_id=${featured.board_id})}">
+                        <div class="boardTopRow">
+                            <span class="boardCategory" th:text="${featured.category}">카테고리</span>
+
+                            <div class="boardRightStat">
+                                <span class="hotRankBadge" th:text="'HOT ' + ${stat.count}">HOT 1</span>
+                            </div>
+                        </div>
+
+                        <h3 class="boardTitle" th:text="${featured.title}">추천 게시글 제목</h3>
+
+                        <p class="boardPreview"
+                           th:text="${#strings.length(featured.content) > 120 ? #strings.substring(featured.content, 0, 120) + '...' : featured.content}">
+                            추천 게시글 내용 미리보기
+                        </p>
+
+                        <div class="boardBottom">
+                            <div class="boardMeta">
+                                <span th:text="'작성자 ' + ${featured.displayName}">작성자</span>
+                                <span th:text="${#dates.format(featured.created_at, 'yyyy-MM-dd HH:mm')}">2026-04-09 12:00</span>
+                            </div>
+
+                            <div class="boardStats">
+                                <span th:text="'조회 ' + ${featured.view_count}">조회 0</span>
+                            </div>
+                        </div>
+                    </a>
+                </article>
+
                 <article class="boardItem" th:each="dto : ${lists}">
                     <a class="boardLink" th:href="@{/community/detail(board_id=${dto.board_id})}">
                         <div class="boardTopRow">
@@ -311,7 +289,7 @@
                         <a th:href="@{/community(category='beginner')}" class="ghostBtn">초보질문 보러가기</a>
                     </div>
 
-                    <div class="emptyArea" th:if="${isPopularView}">
+                    <div class="emptyBtnArea" th:if="${isPopularView}">
                         <a th:href="@{/community}" class="writeBtn">전체 게시글 보기</a>
                         <a th:href="@{/community/insert}" class="ghostBtn">글 작성하러 가기</a>
                     </div>
@@ -339,7 +317,6 @@
                     >
                 </a>
             </div>
-
         </section>
 
         <aside class="communityRight" id="communityRight">

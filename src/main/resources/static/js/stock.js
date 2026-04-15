@@ -570,6 +570,7 @@ async function initMainChart() {
     const highPrices = Array.isArray(data.highPrices) ? data.highPrices : [];
     const lowPrices = Array.isArray(data.lowPrices) ? data.lowPrices : [];
     const volumes = Array.isArray(data.volumes) ? data.volumes : [];
+
     const hasOhlc = currentChartSource !== 'exchange'
         && labels.length > 0
         && openPrices.length === labels.length
@@ -582,15 +583,17 @@ async function initMainChart() {
             const close = Number(closePrices[index]);
             return open !== 0 || high !== 0 || low !== 0 || close !== 0;
         });
+
     const showCandles = hasOhlc;
     const isIntraday = currentTab === 'time' || currentTab === 'minute';
     const timeFormat = isIntraday ? '%H:%M' : '%Y-%m-%d';
 
-    // 라인 차트(인덱스 등) 방향 색상
     const lineColor = (() => {
-        if (showCandles || closePrices.length < 2) return '#3b82f6';
+        if (showCandles || closePrices.length < 2) {
+            return '#3b82f6';
+        }
         const firstClose = Number(closePrices[0]) || 0;
-        const lastClose  = Number(closePrices[closePrices.length - 1]) || 0;
+        const lastClose = Number(closePrices[closePrices.length - 1]) || 0;
         return lastClose >= firstClose ? '#ef4444' : '#3b82f6';
     })();
 
@@ -620,26 +623,16 @@ async function initMainChart() {
     });
 
     mainChart = Highcharts.stockChart('mainChart', {
-        time: { useUTC: false }, // 성공 케이스와 동일하게 설정
+        time: {
+            useUTC: false
+        },
         chart: {
             backgroundColor: '#ffffff',
-            spacing: [14, 14, 14, 14],
+            spacing: [10, 12, 8, 12],
             animation: false,
             height: 360,
-            style: { fontFamily: 'inherit' }
-        },
-        rangeSelector: isIntraday ? { enabled: false } : {
-            selected: 1,
-            inputEnabled: false,
-            buttons: [
-                { type: 'month', count: 1, text: '1M' },
-                { type: 'month', count: 3, text: '3M' },
-                { type: 'all', text: 'All' }
-            ],
-            buttonTheme: {
-                fill: '#f9fafb', stroke: '#e5e7eb', r: 6,
-                style: { color: '#374151', fontWeight: '600', fontSize: '11px' },
-                states: { select: { fill: '#0E0F37', style: { color: '#ffffff' } } }
+            style: {
+                fontFamily: 'inherit'
             }
         },
         credits: {
@@ -648,23 +641,22 @@ async function initMainChart() {
         legend: {
             enabled: false
         },
+        exporting: {
+            enabled: false
+        },
+        title: {
+            text: ''
+        },
         rangeSelector: isIntraday ? {
             enabled: false
         } : {
             selected: 1,
             inputEnabled: false,
-            buttons: [{
-                type: 'month',
-                count: 1,
-                text: '1M'
-            }, {
-                type: 'month',
-                count: 3,
-                text: '3M'
-            }, {
-                type: 'all',
-                text: 'All'
-            }],
+            buttons: [
+                { type: 'month', count: 1, text: '1M' },
+                { type: 'month', count: 3, text: '3M' },
+                { type: 'all', text: 'All' }
+            ],
             buttonTheme: {
                 fill: '#f9fafb',
                 stroke: '#e5e7eb',
@@ -685,85 +677,122 @@ async function initMainChart() {
             }
         },
         navigator: {
-            enabled: !isIntraday
+            enabled: !isIntraday,
+            height: 20,
+            margin: 4,
+            maskFill: 'rgba(99, 102, 241, 0.16)',
+            outlineColor: '#cbd5e1',
+            outlineWidth: 1,
+            handles: {
+                backgroundColor: '#ffffff',
+                borderColor: '#4f46e5',
+                width: 11,
+                height: 18,
+                lineWidth: 1
+            },
+            xAxis: {
+                labels: {
+                    style: {
+                        color: '#6b7280',
+                        fontSize: '10px'
+                    }
+                }
+            }
         },
         scrollbar: {
-            enabled: !isIntraday
-        },
-        exporting: {
             enabled: false
         },
-        title: {
-            text: ''
-        },
         xAxis: (() => {
-            const _base = {
+            const base = {
                 type: 'datetime',
                 lineColor: '#e5e7eb',
                 tickColor: '#e5e7eb',
-                crosshair: { color: '#cbd5e1', dashStyle: 'ShortDot' }
+                crosshair: {
+                    color: '#cbd5e1',
+                    dashStyle: 'ShortDot'
+                }
             };
 
             if (currentTab === 'time' || currentTab === 'minute') {
-                // 성공 케이스의 시간 계산 방식 적용 (Date.UTC 및 한국시간 보정)
-                const _n     = new Date();
-                const _at9   = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(),  9,  0, 0, 0).getTime();
-                const _at1530= new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), 15, 30, 0, 0).getTime();
-                const _nowTs = new Date(_n.getFullYear(), _n.getMonth(), _n.getDate(), _n.getHours(), _n.getMinutes(), 0, 0).getTime();
-                const _xMax  = _nowTs < _at1530 ? _nowTs : _at1530;
-                return { ..._base, ordinal: false,
-                    min: _at9, max: _xMax,
+                const now = new Date();
+                const at9 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 9, 0, 0, 0).getTime();
+                const at1530 = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 15, 30, 0, 0).getTime();
+                const nowTs = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), now.getMinutes(), 0, 0).getTime();
+                const xMax = nowTs < at1530 ? nowTs : at1530;
+
+                return {
+                    ...base,
+                    ordinal: false,
+                    min: at9,
+                    max: xMax,
                     tickInterval: currentTab === 'time' ? 3600000 : undefined,
-                    dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' }
+                    dateTimeLabelFormats: {
+                        millisecond: '%H:%M',
+                        second: '%H:%M',
+                        minute: '%H:%M',
+                        hour: '%H:%M'
+                    }
                 };
             }
-            return { ..._base, dateTimeLabelFormats: { day: '%m/%d', week: '%m/%d', month: '%y/%m' } };
-        })(),
-        yAxis: [{
-            top: 0,
-            height: '72%',
-            lineWidth: 0,
-            gridLineColor: '#f3f4f6',
-            tickAmount: 5,
-            labels: {
-                align: 'left',
-                x: 0,
-                style: {
-                    color: '#374151',
-                    fontSize: '11px'
-                },
-                formatter: function () {
-                    return Number(this.value).toLocaleString();
+
+            return {
+                ...base,
+                dateTimeLabelFormats: {
+                    day: '%m/%d',
+                    week: '%m/%d',
+                    month: '%y/%m'
                 }
-            },
-            resize: {
-                enabled: true
-            },
-            plotLines: []
-        }, {
-            top: '72%',
-            height: '28%',
-            offset: 0,
-            lineWidth: 0,
-            gridLineColor: '#f9fafb',
-            labels: {
-                align: 'left',
-                x: 0,
-                style: {
-                    color: '#9ca3af',
-                    fontSize: '11px'
+            };
+        })(),
+        yAxis: [
+            {
+                top: 0,
+                height: '62%',
+                lineWidth: 0,
+                gridLineColor: '#f3f4f6',
+                tickAmount: 5,
+                labels: {
+                    align: 'left',
+                    x: 0,
+                    style: {
+                        color: '#374151',
+                        fontSize: '11px'
+                    },
+                    formatter: function () {
+                        return Number(this.value).toLocaleString();
+                    }
                 },
-                formatter: function () {
-                    return Number(this.value).toLocaleString();
+                resize: {
+                    enabled: true
+                },
+                plotLines: []
+            },
+            {
+                top: '67%',
+                height: '13%',
+                offset: 0,
+                lineWidth: 0,
+                gridLineColor: '#f9fafb',
+                labels: {
+                    align: 'left',
+                    x: 0,
+                    style: {
+                        color: '#9ca3af',
+                        fontSize: '10px'
+                    },
+                    formatter: function () {
+                        return Number(this.value).toLocaleString();
+                    }
                 }
             }
-        }],
+        ],
         tooltip: {
             split: false,
             shared: true,
             formatter: function () {
                 const points = this.points || [];
                 let content = `<b>${Highcharts.dateFormat(timeFormat, this.x)}</b><br/>`;
+
                 points.forEach((point) => {
                     if (point.series.type === 'candlestick') {
                         content += `시가 ${point.point.open?.toLocaleString()} · 고가 ${point.point.high?.toLocaleString()} · 저가 ${point.point.low?.toLocaleString()} · 종가 <b>${point.point.close?.toLocaleString()}</b>원<br/>`;
@@ -773,6 +802,7 @@ async function initMainChart() {
                         content += `${point.y?.toLocaleString()}원<br/>`;
                     }
                 });
+
                 return content;
             }
         },
@@ -800,35 +830,38 @@ async function initMainChart() {
                 pointWidth: isIntraday ? 8 : undefined
             }
         },
-        series: [{
-            type: showCandles ? 'candlestick' : 'line',
-            id: 'price',
-            name: getDatasetLabel(),
-            data: priceSeries,
-            color: showCandles ? '#0051ff' : lineColor,
-            upColor: showCandles ? '#f22e2e' : undefined,
-            lineColor: showCandles ? '#0051ff' : undefined,
-            upLineColor: showCandles ? '#f22e2e' : undefined,
-            lineWidth: showCandles ? 2 : 3,
-            turboThreshold: 0,
-            marker: {
-                enabled: !showCandles && isIntraday,
-                radius: 3
+        series: [
+            {
+                type: showCandles ? 'candlestick' : 'line',
+                id: 'price',
+                name: getDatasetLabel(),
+                data: priceSeries,
+                color: showCandles ? '#0051ff' : lineColor,
+                upColor: showCandles ? '#f22e2e' : undefined,
+                lineColor: showCandles ? '#0051ff' : undefined,
+                upLineColor: showCandles ? '#f22e2e' : undefined,
+                lineWidth: showCandles ? 2 : 3,
+                turboThreshold: 0,
+                marker: {
+                    enabled: !showCandles && isIntraday,
+                    radius: 3
+                },
+                tooltip: {
+                    valueDecimals: 2
+                }
             },
-            tooltip: {
-                valueDecimals: 2
+            {
+                type: 'column',
+                id: 'volume',
+                name: 'Volume',
+                data: volumeSeries,
+                yAxis: 1,
+                turboThreshold: 0,
+                tooltip: {
+                    valueDecimals: 0
+                }
             }
-        }, {
-            type: 'column',
-            id: 'volume',
-            name: 'Volume',
-            data: volumeSeries,
-            yAxis: 1,
-            turboThreshold: 0,
-            tooltip: {
-                valueDecimals: 0
-            }
-        }]
+        ]
     });
 }
 

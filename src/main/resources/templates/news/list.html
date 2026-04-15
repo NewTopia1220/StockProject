@@ -13,12 +13,12 @@
 
 <div class="pageContainer communityPage newsPage">
     <section class="communityHero">
-        <div class="heroTop">
+<!--        <div class="heroTop">
             <div class="heroText">
                 <h1>AI가 분석한 오늘의 주식 뉴스</h1>
                 <p>기사별로 주가 영향과 익일 상승 예측을 함께 보면서 시장 흐름을 한눈에 확인해보세요.</p>
             </div>
-        </div>
+        </div>-->
 
         <form class="communitySearch" th:action="@{/news}" method="get">
             <input type="hidden" name="sector" th:value="${sector}" th:if="${sector != null}">
@@ -87,27 +87,30 @@
             </div>
 
             <div class="sidebarCard newsFilterCard">
-                <div class="sidebarHeader">
-                    <h3>섹터 필터</h3>
+                <div class="newsAccordion">
+                    <button type="button" class="newsAccordionBtn" onclick="toggleNewsAccordion(this)">
+                        <span>섹터 선택</span>
+                        <span class="newsAccordionArrow">⌄</span>
+                    </button>
+
+                    <div class="newsAccordionPanel">
+                        <nav class="newsSectorNav">
+                            <a th:href="@{/news(keyword=${keyword})}"
+                               class="newsSectorItem"
+                               th:classappend="${sector == null} ? ' active' : ''">
+                                전체 뉴스
+                            </a>
+
+                            <a th:each="entry : ${sectorMap}"
+                               th:href="@{/news(sector=${entry.key}, keyword=${keyword})}"
+                               class="newsSectorItem"
+                               th:classappend="${sector == entry.key} ? ' active' : ''"
+                               th:text="${entry.key}">
+                                섹터
+                            </a>
+                        </nav>
+                    </div>
                 </div>
-
-                <nav class="categoryNav categoryAccordion">
-                    <div class="accordionContent">
-                        <a th:href="@{/news(keyword=${keyword})}"
-                           class="navItem"
-                           th:classappend="${sector == null} ? ' active' : ''">
-                            <span class="navLabel">전체 뉴스</span>
-                        </a>
-                    </div>
-
-                    <div class="accordionContent" th:each="entry : ${sectorMap}">
-                        <a th:href="@{/news(sector=${entry.key}, keyword=${keyword})}"
-                           class="navItem sectorLink"
-                           th:classappend="${sector == entry.key} ? ' active' : ''">
-                            <span class="navLabel" th:text="${entry.key}">섹터</span>
-                        </a>
-                    </div>
-                </nav>
             </div>
         </aside>
 

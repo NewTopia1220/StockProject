@@ -5,7 +5,8 @@
 ══════════════════════════════════════ */
 
 .marketPage {
-    max-width: 1160px;
+    width: 100%;
+    max-width: none;
     margin: 0 auto;
 }
 
@@ -142,8 +143,8 @@
 /* ── 스플릿 레이아웃 ── */
 .marketSplit {
     display: grid;
-    grid-template-columns: 420px 1fr;
-    gap: 16px;
+    grid-template-columns: 410px 1fr;
+    gap: 14px;
     align-items: start;
 }
 
@@ -160,6 +161,29 @@
     border: 1px solid #e5e7eb;
     border-radius: 14px;
     overflow: hidden;
+    max-height: 500px;
+    display: flex;
+    flex-direction: column;
+}
+
+#stockListBody {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+}
+
+/* 스크롤바 디자인 */
+#stockListBody::-webkit-scrollbar {
+    width: 6px;
+}
+
+#stockListBody::-webkit-scrollbar-thumb {
+    background: #e5e7eb;
+    border-radius: 10px;
+}
+
+#stockListBody::-webkit-scrollbar-track {
+    background: transparent;
 }
 
 .listHeader {
@@ -343,7 +367,7 @@
 .emptyText { font-size: 14px; text-align: center; line-height: 1.6; }
 
 /* 선택 후 */
-.chartPanelContent { padding: 20px; }
+.chartPanelContent { padding: 16px 20px 20px; }
 
 .panelStockHeader {
     display: flex;

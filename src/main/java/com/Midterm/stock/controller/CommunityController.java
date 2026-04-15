@@ -78,10 +78,6 @@ public class CommunityController {
             return "redirect:/login";
         }
 
-        int pageSize = 3;
-        int start = (page - 1) * pageSize + 1;
-        int end = page * pageSize;
-
         String categoryParam = normalize(category);
         String themeParam = normalize(theme);
         String searchKeyword = normalize(keyword);
@@ -94,6 +90,20 @@ public class CommunityController {
         String themeName = convertCategoryParamToName(themeParam);
         boolean hasCategory = categoryName != null && !categoryName.isBlank() && !"전체".equals(categoryName) && !isPopularView;
         boolean hasKeyword = searchKeyword != null;
+
+        final int firstPageRegularCount = 2;
+        final int otherPageRegularCount = 4;
+
+        int start, end;
+
+        if (page <= 1) {
+            page = 1;
+            start = 1;
+            end = firstPageRegularCount;
+        } else {
+            start = firstPageRegularCount + ((page - 2) * otherPageRegularCount) + 1;
+            end = start + otherPageRegularCount - 1;
+        }
 
         ArrayList<CommunityDto> lists;
         int totalCount;
@@ -115,7 +125,14 @@ public class CommunityController {
             totalCount = communityBoardDao.getArticleCount();
         }
 
-        int totalPages = Math.max(1, (int) Math.ceil((double) totalCount / pageSize));
+        int totalPages;
+        if (totalCount <= firstPageRegularCount) {
+            totalPages = 1;
+        } else {
+            totalPages = 1 + (int) Math.ceil((double) (totalCount - firstPageRegularCount) / otherPageRegularCount);
+        }
+
+        page = Math.min(page, totalPages);
 
         ArrayList<Map<String, Object>> popularCategories = communityExtraDao.getPopularThemeCategories();
         for (Map<String, Object> item : popularCategories) {
@@ -641,6 +658,7 @@ public class CommunityController {
             return "platform";
         } else if ("엔터·미디어".equals(categoryName)) {
             return "entertainment";
+
         } else if ("자동차·모빌리티".equals(categoryName)) {
             return "mobility";
         }

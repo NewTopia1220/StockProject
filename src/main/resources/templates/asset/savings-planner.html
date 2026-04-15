@@ -6,16 +6,14 @@
     <title>Stoxle - 저축 플래너</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
-
+    <link rel="stylesheet" th:href="@{/css/asset/savings-planner.css}">
 </head>
-
 
 <body class="withMainHeader">
 <div th:replace="~{fragments/header :: header('asset/dashboard')}"></div>
 
 <div class="pageContainer">
     <div class="app-container">
-        <!-- 좌측 사이드바 -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -57,6 +55,7 @@
                     </li>
                 </ul>
             </nav>
+
             <div class="sidebar-user">
                 <div class="user-info">
                     <div class="user-avatar" id="userAvatar">김</div>
@@ -68,16 +67,13 @@
             </div>
         </aside>
 
-        <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <div class="content-wrapper">
-                <!-- 헤더 -->
                 <div class="page-header">
                     <h1>저축 플래너</h1>
                     <p class="page-subtitle">목표를 설정하고 달성 계획을 세워보세요</p>
                 </div>
 
-                <!-- 경고 배너 -->
                 <div class="alert-banner warning" id="alertBanner">
                     <div class="alert-icon warning">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -88,24 +84,28 @@
                     </div>
                     <div>
                         <h4 class="alert-title warning" th:text="${assetDto.toneTitle}">저축 목표를 입력하세요</h4>
-                        <p class="alert-description">
-                            <p class="resultMessage" th:text="${assetDto.message}">저축 목표를 입력하세요</p>
-                        </p>
+                        <p class="alert-description resultMessage" th:text="${assetDto.message}">저축 목표를 입력하세요</p>
                     </div>
                 </div>
 
-                <!-- 시뮬레이터 -->
-                <div class="card">
-                    <div class="simulator-header">
-                        <div>
-                            <h3 class="simulator-title">저축 목표 시뮬레이터</h3>
-                            <p class="simulator-subtitle">목표 금액과 기간을 입력하여 필요한 월 저축액을 확인하세요</p>
+                <div class="card planner-card">
+                    <div class="planner-card-header">
+                        <div class="simulator-header">
+                            <div>
+                                <h3 class="simulator-title">저축 목표 시뮬레이터</h3>
+                                <p class="simulator-subtitle">목표 금액과 기간을 입력하여 필요한 월 저축액을 확인하세요</p>
+                            </div>
                         </div>
+
+                        <button type="submit" form="plannerForm" class="btn btn-primary planner-submit-btn">
+                            분석하기 및 저장
+                        </button>
                     </div>
 
-                    <form th:action="@{/asset/savings-planner/analyze}" th:object="${assetDto}" method="post">
+                    <form id="plannerForm" th:action="@{/asset/savings-planner/analyze}" th:object="${assetDto}" method="post">
                         <input type="hidden" th:field="*{monthlyExpense}" th:value="${assetDto.monthlyExpense}" />
-                        <div class="input-grid">
+
+                        <div class="input-grid input-grid-two">
                             <div class="input-group">
                                 <label class="input-label">목표 금액</label>
                                 <div class="input-wrapper">
@@ -123,7 +123,7 @@
                             </div>
                         </div>
 
-                        <div class="input-grid">
+                        <div class="input-grid input-grid-two">
                             <div class="input-group">
                                 <label class="input-label">현재 자산</label>
                                 <div class="input-wrapper">
@@ -141,9 +141,8 @@
                             </div>
                         </div>
 
-
-                        <div class="input-grid" style="display: flex; gap: 16px;">
-                            <div class="input-group" style="flex: 1;">
+                        <div class="input-grid input-grid-three">
+                            <div class="input-group">
                                 <label class="input-label">나이</label>
                                 <div class="input-wrapper">
                                     <input type="number" id="age" th:field="*{age}" class="input-field" min="1" max="100" placeholder="1" required>
@@ -151,10 +150,10 @@
                                 </div>
                             </div>
 
-                            <div class="input-group" style="flex: 1;">
+                            <div class="input-group">
                                 <label class="input-label">직업 유형</label>
                                 <div class="input-wrapper">
-                                    <select th:field="*{jobType}" class="input-field" style="width: 100%; background: white;">
+                                    <select th:field="*{jobType}" class="input-field planner-select">
                                         <option value="student">학생</option>
                                         <option value="employee">직장인</option>
                                         <option value="professional">전문직</option>
@@ -164,10 +163,10 @@
                                 </div>
                             </div>
 
-                            <div class="input-group" style="flex: 1;">
+                            <div class="input-group">
                                 <label class="input-label">투자 성향</label>
                                 <div class="input-wrapper">
-                                    <select th:field="*{riskPreference}" class="input-field" style="width: 100%; background: white;">
+                                    <select th:field="*{riskPreference}" class="input-field planner-select">
                                         <option value="low">안정형 (저위험)</option>
                                         <option value="medium">중립형 (중위험)</option>
                                         <option value="high">공격형 (고위험)</option>
@@ -175,25 +174,19 @@
                                 </div>
                             </div>
                         </div>
-
-                        <div style="margin-top: 20px; margin-bottom: 20px; text-align: right;">
-                            <button type="submit" class="btn-analyze" style="padding: 10px 20px; background: #15164D; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                                분석하기 및 저장
-                            </button>
-                        </div>
                     </form>
-
 
                     <div class="result-box">
                         <div class="result-content">
                             <div>
                                 <p class="result-label">매월 필요한 저축액</p>
                                 <h2 class="result-value">
-                                    <span id="monthlyRequired" th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 0, 'COMMA') + '원'}">저축 시뮬레이터를 입력하세요</span>
+                                    <span id="monthlyRequired" th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 0, 'COMMA')}">100,000</span>
+                                    <span class="result-unit">원</span>
                                 </h2>
                             </div>
                             <div class="result-icon">
-                                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                     <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
                                 </svg>
                             </div>
@@ -201,10 +194,6 @@
                     </div>
                 </div>
 
-
-
-
-                <!-- Gap Analysis -->
                 <div class="card">
                     <h3 class="card-title-section">재무 현황 분석</h3>
 
@@ -212,16 +201,14 @@
                         <div class="analysis-item">
                             <span class="analysis-label">월 수입</span>
                             <span class="analysis-value primary" id="displayIncome"
-                                  th:text="${'+' + #numbers.formatInteger(assetDto.monthlyIncome, 0, 'COMMA') + '원'}">0원</span>
+                                  th:text="${'+' + #numbers.formatInteger(assetDto.monthlyIncome, 0, 'COMMA') + '원'}">+0원</span>
                         </div>
-
 
                         <div class="analysis-item">
                             <span class="analysis-label">월 지출</span>
                             <span class="analysis-value"
-                                  th:text="${'-' + #numbers.formatInteger(currentMonthSpending, 0, 'COMMA') + '원'}">0원</span>
+                                  th:text="${'-' + #numbers.formatInteger(currentMonthSpending, 0, 'COMMA') + '원'}">-0원</span>
                         </div>
-
 
                         <div class="analysis-item highlight">
                             <span class="analysis-label strong">월 저축 가능 금액</span>
@@ -230,102 +217,97 @@
                         </div>
 
                         <div class="analysis-item highlight">
-                            <span class="analysis-label strong">월 필요 저축액</span>  <!--목표 달성 필요 금액-->
+                            <span class="analysis-label strong">월 필요 저축액</span>
                             <span class="analysis-value primary" id="requiredAmount"
                                   th:text="${#numbers.formatInteger(assetDto.requiredMonthlySaving, 0, 'COMMA')} + '원'">입력하세요</span>
                         </div>
 
-                        <div class="analysis-item highlight warning" id="gapItem">
+                        <div class="analysis-item warning" id="gapItem">
                             <span class="analysis-label strong"
                                   th:text="${assetDto.goalGap < 0 ? '목표보다 초과 금액' : '목표까지 부족 금액'}">입력하세요</span>
-                            <span class="analysis-value accent id=gapValue"
-                                  th:text="${assetDto.goalGap < 0 ? '+' + #numbers.formatInteger(assetDto.goalGap*-1, 0, 'COMMA') : #numbers.formatInteger(assetDto.goalGap*-1, 0, 'COMMA')} + '원'"></span>
+                            <span class="analysis-value accent" id="gapValue"
+                                  th:text="${assetDto.goalGap < 0 ? '+' + #numbers.formatInteger(assetDto.goalGap * -1, 0, 'COMMA') : #numbers.formatInteger(assetDto.goalGap * -1, 0, 'COMMA')} + '원'">0원</span>
                         </div>
+                    </div>
 
-
-
-                        <div class="analysis-result-wrapper">
-
-                            <div class="result-banner">
-                                <div class="banner-icon">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
-                                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                                    </svg>
-                                </div>
-                                <div class="banner-content">
-                                    <span class="banner-label">달성 여부</span>
-                                    <span class="banner-badge">AI 예측 - </span>
-                                    <strong class="banner-text" th:text="${assetDto.modelPredictionLabel}"></strong>
-                                    <span class="banner-sub" th:text="${#numbers.formatDecimal(assetDto.modelProbability * 100, 1, 2)} + '%'"></span>
-                                </div>
+                    <div class="analysis-result-wrapper">
+                        <div class="result-banner">
+                            <div class="banner-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <polyline points="12 6 12 12 16 14"></polyline>
+                                </svg>
                             </div>
-
-                            <div class="result-banner">
-                                <div class="banner-icon">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
-                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                    </svg>
-                                </div>
-                                <div class="banner-content">
-                                    <span class="banner-label">분석 결과</span>
-                                    <span class="banner-badge">분석 톤 - </span>
-                                    <strong class="banner-text" th:text="${assetDto.toneTitle}"></strong>
-                                    <span class="banner-sub" th:text="${#numbers.formatInteger(assetDto.monthlySaving, 0, 'COMMA')} + '원'"></span>
-                                </div>
+                            <div class="banner-content">
+                                <span class="banner-label">달성 여부</span>
+                                <span class="banner-badge">AI 예측</span>
+                                <strong class="banner-text" th:text="${assetDto.modelPredictionLabel}">달성 가능</strong>
+                                <span class="banner-sub" th:text="${#numbers.formatDecimal(assetDto.modelProbability * 100, 1, 2)} + '%'">94.58%</span>
                             </div>
                         </div>
 
+                        <div class="result-banner">
+                            <div class="banner-icon">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4f46e5" stroke-width="2">
+                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                                </svg>
+                            </div>
+                            <div class="banner-content">
+                                <span class="banner-label">분석 결과</span>
+                                <span class="banner-badge">분석 톤</span>
+                                <strong class="banner-text" th:text="${assetDto.toneTitle}">현재 흐름이 꽤 좋은 편이에요</strong>
+                                <span class="banner-sub" th:text="${#numbers.formatInteger(assetDto.monthlySaving, 0, 'COMMA')} + '원'">852,800원</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-
-                <div class="card">
-                    <div class="card-title-section">
+                <div class="card history-card">
+                    <div class="history-header">
                         <h3>최근 자산 분석 이력</h3>
+                        <button type="button" class="history-more-btn" onclick="toggleHistory()">더보기</button>
                     </div>
 
-                    <div class="transaction-list">
-                        <div class="transaction-item" th:if="${historyList == null or #lists.isEmpty(historyList)}">
-                            <p style="width: 100%; text-align: center; color: #9ca3af; padding: 20px 0;">아직 저장된 분석 이력이 없습니다.</p>
+                    <div id="historyList" class="history-list collapsed">
+                        <div class="history-item" th:if="${historyList == null or #lists.isEmpty(historyList)}">
+                            <p class="history-empty">아직 저장된 분석 이력이 없습니다.</p>
                         </div>
 
-                        <div class="transaction-item" th:each="item : ${historyList}">
-                            <div class="transaction-info">
-                                <div class="transaction-icon">
-                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <path d="M21.21 15.89A10 10 0 1 1 8 2.83"/>
-                                        <path d="M22 12A10 10 0 0 0 12 2v10z"/>
+                        <div class="history-item" th:each="item : ${historyList}">
+                            <div class="history-left">
+                                <div class="history-icon">
+                                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M12 8v5l3 3"></path>
+                                        <circle cx="12" cy="12" r="10"></circle>
                                     </svg>
                                 </div>
-                                <div>
-                                    <p class="transaction-title">
+
+                                <div class="history-info">
+                                    <p class="history-goal">
                                         <span th:text="${#numbers.formatInteger(item.goalAmount, 0, 'COMMA')} + '원'">0원</span> 목표
                                     </p>
-                                    <p class="transaction-meta">
-                                        <span th:text="'기간: ' + ${item.goalMonths} + '개월'"></span> •
+                                    <p class="history-meta">
+                                        <span th:text="'기간: ' + ${item.goalMonths} + '개월'">기간: 2개월</span>
+                                        <span> • </span>
                                         <span th:text="${item.createdAt}">2026-04-01</span>
                                     </p>
                                 </div>
                             </div>
 
-                            <div style="text-align: right;">
-                                <p class="transaction-amount"
+                            <div class="history-right">
+                                <p class="history-status"
                                    th:text="${item.predictionLabel}"
-                                   th:classappend="${item.prediction == 1 ? 'positive' : 'negative'}">
-                                </p>
-                                <p class="transaction-meta" style="font-size: 11px;"
-                                   th:text="'현재: ' + ${#numbers.formatInteger(item.currentAsset, 0, 'COMMA')} + '원'">
-                                </p>
+                                   th:classappend="${item.prediction == 1 ? 'positive' : 'negative'}">목표에 도달할 가능성이 있어요</p>
+                                <p class="history-asset"
+                                   th:text="'현재: ' + ${#numbers.formatInteger(item.currentAsset, 0, 'COMMA')} + '원'">현재: 50,000원</p>
                             </div>
                         </div>
                     </div>
                 </div>
-
 
             </div>
         </main>
     </div>
 </div>
 </body>
-<script src="/js/asset/savings-planner.js"></script>
 </html>

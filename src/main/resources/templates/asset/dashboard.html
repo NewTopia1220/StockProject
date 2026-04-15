@@ -7,17 +7,17 @@
 
     <link rel="stylesheet" th:href="@{/css/header.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
+    <link rel="stylesheet" th:href="@{/css/asset/dashboard.css}">
 
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
     <script th:src="@{/js/asset/dashboard.js}" defer></script>
 </head>
 
-
 <body class="withMainHeader">
 <div th:replace="~{fragments/header :: header('asset/dashboard')}"></div>
+
 <div class="pageContainer">
     <div class="app-container">
-        <!-- 좌측 사이드바 -->
         <aside class="sidebar">
             <div class="sidebar-header">
                 <div class="logo">
@@ -71,13 +71,10 @@
             </div>
         </aside>
 
-        <!-- 메인 콘텐츠 -->
         <main class="main-content">
             <div class="content-wrapper">
-
                 <div class="page-header">
-                    <div class="month-selector" style="display: flex; align-items: center; gap: 15px;">
-
+                    <div class="month-selector" style="display: flex; align-items: center; gap: 10px;">
                         <div th:unless="${hasPrevData}" style="color: #ccc; cursor: not-allowed; opacity: 0.5;">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="15 18 9 12 15 6"></polyline>
@@ -93,7 +90,7 @@
                             </svg>
                         </a>
 
-                        <h1 style="margin: 0; min-width: 150px; text-align: center;">
+                        <h1 style="margin: 0; min-width: 126px; text-align: center;">
                             <span th:text="|${selectedYear}년 ${selectedMonth}월|">2026년 4월</span>
                         </h1>
 
@@ -111,102 +108,103 @@
                                 <polyline points="9 18 15 12 9 6"></polyline>
                             </svg>
                         </div>
-
                     </div>
 
                     <p class="page-subtitle" th:text="|${selectedYear}년 ${selectedMonth}월의 재무 상태를 확인하세요|"></p>
                 </div>
 
-                <!-- 상단 요약 카드 -->
-                <div class="summary-grid">
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <p class="card-label">이번 달 총 지출</p>
-                                <h2 class="card-amount">
-                                    <span class="amount-value" th:text="${#numbers.formatInteger(currentMonthSpending, 0, 'COMMA')}">0</span>
-                                    <span class="amount-unit">원</span>
-                                </h2>
-                            </div>
-                            <div class="card-icon primary">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
-                                    <line x1="1" y1="10" x2="23" y2="10"/>
-                                </svg>
-                            </div>
+                <div class="dashboard-top-layout">
+                    <div class="card savings-card">
+                        <div class="card-title-section">
+                            <h3>저축 목표</h3>
+                            <p class="card-subtitle" th:text="${latestAnalysis.goalMonths} + '개월 내 ' + ${#numbers.formatInteger(latestAnalysis.goalAmount, 0, 'COMMA')} + '원 모으기'">3년 내 1억원 모으기</p>
                         </div>
 
-
-                        <div class="card-footer">
-                            <div class="badge" th:classappend="${isIncreased} ? 'badge-danger' : 'badge-success'">
-                                <svg th:if="${isIncreased}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="7" y1="17" x2="17" y2="7"/><polyline points="7 7 17 7 17 17"/>
-                                </svg>
-                                <svg th:unless="${isIncreased}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="17" y1="7" x2="7" y2="17"/><polyline points="17 17 7 17 7 7"/>
-                                </svg>
-                                <span th:text="${diffRate} + '%'">0%</span>
+                        <div class="savings-content">
+                            <div class="gauge-chart">
+                                <canvas id="savingsGauge" width="300" height="150" th:data-rate="${goalAchievementRate}"></canvas>
+                                <div class="gauge-center">
+                                    <span class="gauge-percentage" th:text="${goalAchievementRate} + '%'">0%</span>
+                                    <span class="gauge-label">달성률</span>
+                                </div>
                             </div>
-                            <span class="badge-text" th:text="${isIncreased} ? '전월 대비 증가' : '전월 대비 감소'">전월 대비</span>
+
+                            <div class="savings-stats">
+                                <div class="stat-item">
+                                    <p class="stat-label">현재 자산</p>
+                                    <p class="stat-value" th:text="${#numbers.formatInteger(latestAnalysis.currentAsset, 0, 'COMMA')} + '원'">0원</p>
+                                </div>
+                                <div class="stat-item">
+                                    <p class="stat-label">목표 금액</p>
+                                    <p class="stat-value" th:text="${#numbers.formatInteger(latestAnalysis.goalAmount, 0, 'COMMA')} + '원'">0원</p>
+                                </div>
+                                <div class="stat-item">
+                                    <p class="stat-label">월 필요 저축액</p>
+                                    <p class="stat-value accent" th:text="${#numbers.formatInteger(latestAnalysis.requiredMonthlySaving, 0, 'COMMA')} + '원'">0원</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="card">
-                        <div class="card-header">
-                            <div>
-                                <p class="card-label">소득 대비 지출</p>
-                                <h2 class="card-amount">
-                                    <span class="amount-value" th:text="${spendingRate}">0</span>
-                                    <span class="amount-unit">%</span>
-                                </h2>
+                    <div class="summary-grid summary-grid-vertical">
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="card-label">이번 달 총 지출</p>
+                                    <h2 class="card-amount">
+                                        <span class="amount-value" th:text="${#numbers.formatInteger(currentMonthSpending, 0, 'COMMA')}">0</span>
+                                        <span class="amount-unit">원</span>
+                                    </h2>
+                                </div>
+                                <div class="card-icon primary">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <rect x="1" y="4" width="22" height="16" rx="2" ry="2"/>
+                                        <line x1="1" y1="10" x2="23" y2="10"/>
+                                    </svg>
+                                </div>
                             </div>
-                            <div class="card-icon primary">
-                                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                </svg>
+
+                            <div class="card-footer">
+                                <div class="badge" th:classappend="${isIncreased} ? 'badge-danger' : 'badge-success'">
+                                    <svg th:if="${isIncreased}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="7" y1="17" x2="17" y2="7"></line>
+                                        <polyline points="7 7 17 7 17 17"></polyline>
+                                    </svg>
+                                    <svg th:unless="${isIncreased}" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="17" y1="7" x2="7" y2="17"></line>
+                                        <polyline points="17 17 7 17 7 7"></polyline>
+                                    </svg>
+                                    <span th:text="${diffRate} + '%'">0%</span>
+                                </div>
+                                <span class="badge-text" th:text="${isIncreased} ? '전월 대비 증가' : '전월 대비 감소'">전월 대비</span>
                             </div>
                         </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" th:style="'width: ' + ${spendingRate} + '%'"></div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <div>
+                                    <p class="card-label">소득 대비 지출</p>
+                                    <h2 class="card-amount">
+                                        <span class="amount-value" th:text="${spendingRate}">0</span>
+                                        <span class="amount-unit">%</span>
+                                    </h2>
+                                </div>
+                                <div class="card-icon primary">
+                                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <div class="progress-bar">
+                                <div class="progress-fill" th:style="'width: ' + ${spendingRate} + '%'"></div>
+                            </div>
+
+                            <p class="card-footer-text"
+                               th:text="'월 소득 ' + ${#numbers.formatInteger(currentMonthIncome, 3, 'COMMA')} + '원 중 ' + ${#numbers.formatInteger(currentMonthSpending, 3, 'COMMA')} + '원 사용'"></p>
                         </div>
-                        <p class="card-footer-text"
-                           th:text="'월 소득 ' + ${#numbers.formatInteger(currentMonthIncome, 3, 'COMMA')} + '원 중 ' + ${#numbers.formatInteger(currentMonthSpending, 3, 'COMMA')} + '원 사용'"></p>
                     </div>
                 </div>
-
-                <!-- 저축 목표 게이지 -->
-                <div class="card savings-card">
-                    <div class="card-title-section">
-                        <h3>저축 목표</h3>
-                        <p class="card-subtitle" th:text="${latestAnalysis.goalMonths} + '개월 내 ' + ${#numbers.formatInteger(latestAnalysis.goalAmount, 0, 'COMMA')} + '원 모으기'">3년 내 1억원 모으기</p>
-                    </div>
-
-                    <div class="savings-content">
-                        <div class="gauge-chart">
-                            <canvas id="savingsGauge" width="300" height="150" th:data-rate="${goalAchievementRate}"></canvas>
-                            <div class="gauge-center">
-                                <span class="gauge-percentage" th:text="${goalAchievementRate} + '%'">0%</span>
-                                <span class="gauge-label">달성률</span>
-                            </div>
-                        </div>
-
-                        <div class="savings-stats">
-                            <div class="stat-item">
-                                <p class="stat-label">현재 자산</p>
-                                <p class="stat-value" th:text="${#numbers.formatInteger(latestAnalysis.currentAsset, 0, 'COMMA')} + '원'">0원</p>
-                            </div>
-                            <div class="stat-item">
-                                <p class="stat-label">목표 금액</p>
-                                <p class="stat-value" th:text="${#numbers.formatInteger(latestAnalysis.goalAmount, 0, 'COMMA')} + '원'">0원</p>
-                            </div>
-                            <div class="stat-item">
-                                <p class="stat-label">월 필요 저축액</p>
-                                <p class="stat-value accent" th:text="${#numbers.formatInteger(latestAnalysis.requiredMonthlySaving, 0, 'COMMA')} + '원'">0원</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
 
                 <div id="transactionModal" class="modal-overlay" style="display: none;">
                     <div class="card modal-content">
@@ -223,6 +221,7 @@
                                         <input type="text" id="vendor" class="input-field" placeholder="예: 쿠팡, 스타벅스" required>
                                     </div>
                                 </div>
+
                                 <div class="input-group">
                                     <label class="input-label">결제 금액</label>
                                     <div class="input-wrapper">
@@ -230,6 +229,7 @@
                                         <span class="input-unit">원</span>
                                     </div>
                                 </div>
+
                                 <div class="input-group" style="grid-column: span 2;">
                                     <label class="input-label">구매일</label>
                                     <div class="input-wrapper">
@@ -238,10 +238,9 @@
                                 </div>
                             </div>
 
-
                             <input type="hidden" id="userId" th:value="${user_id}">
 
-                            <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 10px;">
+                            <div style="display: flex; gap: 7px; justify-content: flex-end; margin-top: 7px;">
                                 <button type="button" class="btn btn-cancel" onclick="closeModal()">취소</button>
                                 <button type="submit" class="btn btn-primary">지출 기록하기</button>
                             </div>
@@ -249,25 +248,19 @@
                     </div>
                 </div>
 
-
-                <div class="add-section" style="margin: 20px 0;">
+                <div class="add-section" style="margin: 10px 0;">
                     <button type="button" onclick="openModal()" class="add-transaction-btn">
                         + 이번 달 지출 내역을 추가할까요?
                     </button>
                 </div>
 
-
-<!--                // 월별 지출추이-->
                 <div class="card">
                     <h3>월별 지출 추이</h3>
-                    <canvas id="monthlyChart" th:attr="data-trend=${trendJson}, data-selected-month=${selectedMonth}" ></canvas>
+                    <canvas id="monthlyChart" th:attr="data-trend=${trendJson}, data-selected-month=${selectedMonth}"></canvas>
                 </div>
-
-
             </div>
         </main>
     </div>
 </div>
-
 </body>
 </html>
