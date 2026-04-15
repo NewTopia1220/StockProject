@@ -694,6 +694,11 @@ async function initMainChart() {
             height: 360,
             style: { fontFamily: 'inherit' }
         },
+        plotOptions: {
+            series: {
+                animation: false
+            }
+        },
         rangeSelector: isIntraday ? { enabled: false } : {
             selected: 1,
             inputEnabled: false,

@@ -591,6 +591,11 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                 }
             }
         },
+        plotOptions: {
+            series: {
+                animation: false
+            }
+        },
         credits: { enabled: false },
         rangeSelector: (compact || isIntraday) ? { enabled: false } : {
             selected: 1,

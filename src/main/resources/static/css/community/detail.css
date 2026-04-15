@@ -436,6 +436,72 @@
     word-break: keep-all;
 }
 
+.commentEditForm {
+    margin-top: 10px;
+    padding: 12px;
+}
+
+.commentEditForm textarea {
+    width: 100%;
+    min-height: 92px;
+    resize: vertical;
+    border: 1px solid #d4ddeb;
+    border-radius: 14px;
+    padding: 12px 14px;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: #25314f;
+    font-size: 13px;
+    line-height: 1.6;
+    outline: none;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.commentEditForm textarea:focus {
+    border-color: #3182F6;
+    box-shadow: 0 0 0 4px rgba(49, 130, 246, 0.12);
+}
+
+.commentActionRow {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.commentActionBtn {
+    min-width: 78px;
+    height: 36px;
+    padding: 0 14px;
+    border: none;
+    border-radius: 10px;
+    background: #3182F6;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.2s ease, background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    box-shadow: 0 8px 16px rgba(49, 130, 246, 0.18);
+}
+
+.commentActionBtn:hover {
+    background: #1f72eb;
+    transform: translateY(-1px);
+}
+
+.commentActionBtn.ghost {
+    border: 1px solid #d6dfef;
+    background: #ffffff;
+    color: #43506d;
+    box-shadow: none;
+}
+
+.commentActionBtn.ghost:hover {
+    border-color: #bfcbe1;
+    background: #f8fbff;
+    color: #24324f;
+}
+
 .profileTop {
     display: flex;
     align-items: center;
@@ -695,8 +761,18 @@
     }
 
     .commentSubmitButton,
+    .commentActionBtn,
     .analysisLink {
         width: 100%;
+    }
+
+    .commentEditForm {
+        padding: 10px;
+    }
+
+    .commentActionRow {
+        width: 100%;
+        flex-direction: column;
     }
 
     .profileInfo strong {

@@ -123,7 +123,7 @@ document.addEventListener("DOMContentLoaded", function () {
 const bannedWords = [
     "시발", "병신", "개새끼", "뒤져", "뒤질", "뒤졌", "존나", "십창",
     "맘충", "여적여", "개줌마", "빨갱이", "찍어야", "낙선시켜",
-    "좌파", "우파", "정치충", "종북", "느금", "개비", "니애미"
+    "좌파", "우파", "정치충", "종북", "느금", "개비", "니애미","바보"
 ];
 
 function findBannedWord(...values) {
