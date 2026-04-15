@@ -553,7 +553,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         data: ohlc,
         color: '#3b82f6', upColor: '#ef4444',
         lineColor: '#3b82f6', upLineColor: '#ef4444',
-
+        animation: false,
         lineWidth: 5,
 
         // 캔들 몸통 너비 (굵기)
@@ -722,7 +722,8 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
                 type: 'column', name: '거래량',
                 data: vol, yAxis: 1,
                 color: '#e5e7eb',
-                dataGrouping: { enabled: false }
+                dataGrouping: { enabled: false },
+                animation: false
             }
         ],
         responsive: {
