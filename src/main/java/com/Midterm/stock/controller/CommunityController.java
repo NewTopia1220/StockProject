@@ -91,16 +91,23 @@ public class CommunityController {
         boolean hasCategory = categoryName != null && !categoryName.isBlank() && !"전체".equals(categoryName) && !isPopularView;
         boolean hasKeyword = searchKeyword != null;
 
-        final int firstPageRegularCount = 2;
+        // 전체 게시판인지 그 외 게시판인지
+        boolean isDefaultBoardView = !isPopularView && !hasCategory && !hasKeyword;
+
+        // 첫 페이지 일반글 개수 설정 (전체 = 2, 그 외 = 4)
+        final int firstPageRegularCount = isDefaultBoardView ? 2 : 4;
         final int otherPageRegularCount = 4;
 
         int start, end;
 
         if (page <= 1) {
             page = 1;
+
+            // 1페이지는 위에서 정한 firstPageRegularCount만큼
             start = 1;
             end = firstPageRegularCount;
         } else {
+            // 2페이지부터는 4개씩 끊어서
             start = firstPageRegularCount + ((page - 2) * otherPageRegularCount) + 1;
             end = start + otherPageRegularCount - 1;
         }
@@ -109,29 +116,37 @@ public class CommunityController {
         int totalCount;
 
         if (isPopularView) {
+            // 인기글 게시판
             lists = communityBoardDao.getPopularArticles(themeName, searchKeyword, start, end);
             totalCount = communityBoardDao.getPopularArticleCount(themeName, searchKeyword);
         } else if (hasCategory && hasKeyword) {
+            // 카테고리 + 검색어가 같이 있을 때
             lists = communityBoardDao.getArticlesByCategoryAndKeyword(categoryName, searchKeyword, start, end);
             totalCount = communityBoardDao.getArticleCountByCategoryAndKeyword(categoryName, searchKeyword);
         } else if (hasCategory) {
+            // 특정 카테고리 게시판만
             lists = communityBoardDao.getArticlesByCategory(categoryName, start, end);
             totalCount = communityBoardDao.getArticleCountByCategory(categoryName);
         } else if (hasKeyword) {
+            // 검색 결과만
             lists = communityBoardDao.searchArticles(searchKeyword, start, end);
             totalCount = communityBoardDao.getArticleCountByKeyword(searchKeyword);
         } else {
+            // 전체 게시판
             lists = communityBoardDao.getArticles(start, end);
             totalCount = communityBoardDao.getArticleCount();
         }
 
         int totalPages;
+
+        // 이후 페이지는 4개씩 계산
         if (totalCount <= firstPageRegularCount) {
             totalPages = 1;
         } else {
             totalPages = 1 + (int) Math.ceil((double) (totalCount - firstPageRegularCount) / otherPageRegularCount);
         }
 
+        // 현재 페이지가 총 페이지 수를 넘지 않도록
         page = Math.min(page, totalPages);
 
         ArrayList<Map<String, Object>> popularCategories = communityExtraDao.getPopularThemeCategories();
@@ -141,7 +156,7 @@ public class CommunityController {
         }
 
         List<Map<String, Object>> popularPriceItems = buildPopularPriceItems(popularCategories);
-        ArrayList<CommunityDto> featuredPosts = (page == 1 && !isPopularView && !hasCategory && !hasKeyword)
+        ArrayList<CommunityDto> featuredPosts = (page == 1 && isDefaultBoardView)
                 ? communityBoardDao.getFeaturedArticles(2)
                 : new ArrayList<>();
 
