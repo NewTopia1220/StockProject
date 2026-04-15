@@ -58,7 +58,13 @@ function bindNotificationToggles() {
                     if (!data.ok) {
                         this.checked = !this.checked;
                         alert('Unable to update the notification setting.');
+                        return;
                     }
+
+                    // 알림창 기능
+                    window.dispatchEvent(new CustomEvent('stoxle-notification-setting-change', {
+                        detail: { type, status }
+                    }));
                 })
                 .catch(() => {
                     this.checked = !this.checked;

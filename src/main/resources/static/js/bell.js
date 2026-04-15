@@ -1,17 +1,21 @@
 let badgeRefreshTimer = null;
-let alertToastHost = null;
 let alertToastInitialized = false;
 let latestSeenAlertId = null;
+// 알림창 기능
+let alertTypePreferences = {
+    stock: true,
+    comment: true
+};
 
-const ALERT_TOAST_LIMIT = 3;
-const ALERT_TOAST_DURATION = 5000;
 const ALERT_POLL_INTERVAL = 5000;
+const ALERT_NOTIFICATION_CLOSE_DELAY = 7000;
+const ALERT_NOTIFICATION_TAG_PREFIX = 'stoxle-alert-';
 
 function createAlertPollingTask(task) {
     let running = false;
 
     return async () => {
-        if (running || document.hidden) {
+        if (running) {
             return;
         }
 
@@ -29,7 +33,7 @@ function initAlertPanel() {
     const alertPanel = document.getElementById('alertPanel');
     if (!bellBtn || !alertPanel) return;
 
-    ensureAlertToastHost();
+    initSystemNotificationControls();
     const refreshBadgeTask = createAlertPollingTask(refreshBadge);
 
     bellBtn.addEventListener('click', async (e) => {
@@ -49,12 +53,14 @@ function initAlertPanel() {
     });
 
     document.addEventListener('visibilitychange', () => {
+        updateNotificationPermissionUi();
         if (!document.hidden) {
             refreshBadgeTask();
         }
     });
 
     window.addEventListener('focus', () => {
+        updateNotificationPermissionUi();
         refreshBadgeTask();
     });
 
@@ -98,6 +104,7 @@ async function refreshBadge() {
         const badge = document.getElementById('bellBadge');
         if (!badge) return;
 
+        syncAlertTypePreferences(data.notifySettings);
         handleAlertToasts(data.alerts || []);
 
         if (data.unreadCount > 0) {
@@ -109,16 +116,185 @@ async function refreshBadge() {
     } catch (e) {}
 }
 
-function ensureAlertToastHost() {
-    if (alertToastHost) {
-        return alertToastHost;
+function canUseBrowserNotifications() {
+    return 'Notification' in window
+        && (window.isSecureContext
+            || location.hostname === 'localhost'
+            || location.hostname === '127.0.0.1'
+            || location.hostname === '[::1]');
+}
+
+function getBrowserNotificationState() {
+    if (!canUseBrowserNotifications()) {
+        return 'unsupported';
     }
 
-    alertToastHost = document.createElement('div');
-    alertToastHost.id = 'alertToastHost';
-    alertToastHost.className = 'alertToastHost';
-    document.body.appendChild(alertToastHost);
-    return alertToastHost;
+    return Notification.permission;
+}
+
+function isBrowserNotificationGranted() {
+    return getBrowserNotificationState() === 'granted';
+}
+
+function initSystemNotificationControls() {
+    const permissionBtn = document.getElementById('alertPermissionBtn');
+    if (permissionBtn) {
+        permissionBtn.addEventListener('click', async (event) => {
+            event.stopPropagation();
+            const granted = await requestSystemNotificationPermission();
+            if (granted) {
+                showPermissionConfirmationNotification();
+            }
+        });
+    }
+
+    window.addEventListener('stoxle-notification-setting-change', (event) => {
+        syncAlertTypePreferences(event.detail);
+    });
+
+    updateNotificationPermissionUi();
+}
+
+function syncAlertTypePreferences(settings) {
+    if (!settings || typeof settings !== 'object') {
+        return;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'stock')) {
+        alertTypePreferences.stock = settings.stock === true || settings.stock === 1;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(settings, 'comment')) {
+        alertTypePreferences.comment = settings.comment === true || settings.comment === 1;
+    }
+
+    updateNotificationPermissionUi();
+}
+
+function isAlertTypeEnabled(alert) {
+    const preferenceKey = alert?.alertType === '댓글' ? 'comment' : 'stock';
+    return alertTypePreferences[preferenceKey] !== false;
+}
+
+async function requestSystemNotificationPermission() {
+    if (!canUseBrowserNotifications()) {
+        updateNotificationPermissionUi();
+        return false;
+    }
+
+    if (Notification.permission === 'granted') {
+        updateNotificationPermissionUi();
+        return true;
+    }
+
+    if (Notification.permission === 'denied') {
+        updateNotificationPermissionUi();
+        return false;
+    }
+
+    try {
+        const permission = await Notification.requestPermission();
+        updateNotificationPermissionUi();
+        return permission === 'granted';
+    } catch (e) {
+        updateNotificationPermissionUi();
+        return false;
+    }
+}
+
+function updateNotificationPermissionUi() {
+    const permissionBar = document.getElementById('alertPermissionBar');
+    const permissionText = document.getElementById('alertPermissionText');
+    const permissionBtn = document.getElementById('alertPermissionBtn');
+    if (!permissionBar || !permissionText || !permissionBtn) {
+        return;
+    }
+
+    const permission = getBrowserNotificationState();
+    permissionBar.dataset.permission = permission;
+    permissionBtn.hidden = false;
+    permissionBtn.disabled = false;
+
+    if (permission === 'granted') {
+        if (!alertTypePreferences.stock && !alertTypePreferences.comment) {
+            permissionText.textContent = '브라우저 알림은 켜져 있지만, 마이페이지에서 알림이 모두 꺼져 있어 PC 알림이 표시되지 않습니다.';
+        } else if (!alertTypePreferences.stock || !alertTypePreferences.comment) {
+            permissionText.textContent = '브라우저 알림이 켜져 있습니다. 마이페이지에서 켜둔 항목만 PC 알림으로 표시됩니다.';
+        } else {
+            permissionText.textContent = '브라우저 알림이 켜져 있습니다. 새 알림이 PC 알림으로 표시됩니다.';
+        }
+        permissionBtn.textContent = '사용 중';
+        permissionBtn.disabled = true;
+        return;
+    }
+
+    if (permission === 'denied') {
+        permissionText.textContent = '브라우저 알림이 차단되어 있습니다. 주소창의 사이트 권한에서 알림을 허용해 주세요.';
+        permissionBtn.textContent = '설정 확인';
+        permissionBtn.disabled = true;
+        return;
+    }
+
+    if (permission === 'unsupported') {
+        permissionText.textContent = '브라우저 알림은 HTTPS 또는 localhost 환경에서만 사용할 수 있습니다.';
+        permissionBtn.hidden = true;
+        return;
+    }
+
+    permissionText.textContent = '브라우저 알림을 켜면 사이트를 열어둔 상태에서 PC 알림으로 받을 수 있습니다.';
+    permissionBtn.textContent = '브라우저 알림 켜기';
+}
+
+function showPermissionConfirmationNotification() {
+    showSystemNotification({
+        id: 'permission-preview',
+        title: '브라우저 알림 활성화',
+        message: '이제 새 알림이 PC 알림으로 표시됩니다.',
+        force: true
+    });
+}
+
+function shouldShowSystemNotification(alert) {
+    if (!isBrowserNotificationGranted()) {
+        return false;
+    }
+
+    if (!alert?.force && !isAlertTypeEnabled(alert)) {
+        return false;
+    }
+
+    return true;
+}
+
+function showSystemNotification(alert) {
+    if (!shouldShowSystemNotification(alert)) {
+        return;
+    }
+
+    const title = alert?.title || alert?.stockName || '새 알림';
+    const body = alert?.message || '';
+    const tagId = alert?.id != null ? String(alert.id) : Date.now().toString();
+
+    try {
+        const notification = new Notification(title, {
+            body,
+            tag: ALERT_NOTIFICATION_TAG_PREFIX + tagId
+        });
+
+        notification.onclick = () => {
+            notification.close();
+            window.focus();
+
+            if (alert?.link) {
+                const targetUrl = new URL(alert.link, window.location.origin).href;
+                if (location.href !== targetUrl) {
+                    location.href = targetUrl;
+                }
+            }
+        };
+
+        window.setTimeout(() => notification.close(), ALERT_NOTIFICATION_CLOSE_DELAY);
+    } catch (e) {}
 }
 
 function handleAlertToasts(alerts) {
@@ -146,7 +322,9 @@ function handleAlertToasts(alerts) {
     );
 
     if (newAlerts.length > 0) {
-        newAlerts.forEach(showAlertToast);
+        newAlerts.forEach(alert => {
+            showSystemNotification(alert);
+        });
         latestSeenAlertId = Number(newAlerts[newAlerts.length - 1].id);
         return;
     }
@@ -155,77 +333,6 @@ function handleAlertToasts(alerts) {
         Number(latestSeenAlertId || 0),
         Number(sortedAlerts[sortedAlerts.length - 1].id)
     );
-}
-
-function showAlertToast(alert) {
-    const host = ensureAlertToastHost();
-    while (host.children.length >= ALERT_TOAST_LIMIT) {
-        host.firstElementChild?.remove();
-    }
-
-    const toast = document.createElement('button');
-    toast.type = 'button';
-    toast.className = 'alertToast';
-
-    const variantClass = alert.alertType === '상승' ? 'up' : (alert.alertType === '하락' ? 'down' : 'comment');
-    const title = escapeHtml(alert.title || alert.stockName || '새 알림');
-    const message = escapeHtml(alert.message || '');
-    const time = escapeHtml(formatAlertTime(alert.createdAt));
-    const badgeLabel = alert.alertType === '댓글' ? '댓' : (alert.alertType === '상승' ? '상' : '하');
-    const eyebrow = alert.alertType === '댓글' ? '새 댓글 알림' : '주가 변동 알림';
-
-    toast.innerHTML = `
-        <span class="alertToastAccent ${variantClass}"></span>
-        <span class="alertToastAvatar ${variantClass}">${badgeLabel}</span>
-        <span class="alertToastBody">
-            <span class="alertToastMeta">
-                <span class="alertToastEyebrow">${eyebrow}</span>
-            </span>
-            <span class="alertToastTitle">${title}</span>
-            <span class="alertToastMessage">${message}</span>
-            <span class="alertToastTime">${time}</span>
-        </span>
-        <span class="alertToastClose" aria-hidden="true">×</span>
-    `;
-
-    toast.addEventListener('click', () => {
-        removeAlertToast(toast);
-        if (alert.link) {
-            location.href = alert.link;
-        }
-    });
-
-    toast.querySelector('.alertToastClose')?.addEventListener('click', (event) => {
-        event.stopPropagation();
-        removeAlertToast(toast);
-    });
-
-    host.appendChild(toast);
-
-    requestAnimationFrame(() => toast.classList.add('show'));
-    window.setTimeout(() => removeAlertToast(toast), ALERT_TOAST_DURATION);
-}
-
-function removeAlertToast(toast) {
-    if (!toast || !toast.isConnected) {
-        return;
-    }
-
-    toast.classList.remove('show');
-    window.setTimeout(() => {
-        if (toast.isConnected) {
-            toast.remove();
-        }
-    }, 220);
-}
-
-function escapeHtml(value) {
-    return String(value)
-        .replaceAll('&', '&amp;')
-        .replaceAll('<', '&lt;')
-        .replaceAll('>', '&gt;')
-        .replaceAll('"', '&quot;')
-        .replaceAll("'", '&#39;');
 }
 
 async function loadAlertPanel() {

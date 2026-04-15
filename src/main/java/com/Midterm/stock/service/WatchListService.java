@@ -77,9 +77,15 @@ public class WatchListService {
             .map(this::toAlertItem)
             .collect(Collectors.toList());
 
+        // 알림창 기능
+        Map<String, Boolean> notifySettings = new HashMap<>();
+        notifySettings.put("stock", isNotifyEnabled(userNum));
+        notifySettings.put("comment", isCommentNotifyEnabled(userNum));
+
         Map<String, Object> result = new HashMap<>();
         result.put("unreadCount", unreadCount);
         result.put("alerts", items);
+        result.put("notifySettings", notifySettings);
         return result;
     }
 
