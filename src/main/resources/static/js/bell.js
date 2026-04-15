@@ -2,6 +2,7 @@ let badgeRefreshTimer = null;
 let alertToastInitialized = false;
 let latestSeenAlertId = null;
 let latestAlertItems = [];
+let pendingBadgeAlertIds = new Set();
 // 알림창 기능
 let alertTypePreferences = {
     stock: true,
@@ -50,7 +51,7 @@ function initAlertPanel() {
             if (activeTab === 'history') {
                 await loadAlertPanel();
                 await fetch('/api/alerts/read', { method: 'POST' });
-                document.getElementById('bellBadge')?.classList.remove('show');
+                acknowledgeVisibleAlerts();
             } else {
                 await loadWatchlistPanel();
             }
@@ -91,7 +92,7 @@ function initAlertPanel() {
             if (type === 'history') {
                 await loadAlertPanel();
                 await fetch('/api/alerts/read', { method: 'POST' });
-                document.getElementById('bellBadge')?.classList.remove('show');
+                acknowledgeVisibleAlerts();
             } else {
                 await loadWatchlistPanel();
             }
@@ -101,7 +102,7 @@ function initAlertPanel() {
     document.getElementById('alertReadAllBtn')?.addEventListener('click', async () => {
         await fetch('/api/alerts/read', { method: 'POST' });
         document.querySelectorAll('.alertItem').forEach(el => el.classList.remove('unread'));
-        document.getElementById('bellBadge')?.classList.remove('show');
+        acknowledgeVisibleAlerts();
     });
 
     refreshBadgeTask();
@@ -120,14 +121,8 @@ async function refreshBadge() {
         syncAlertTypePreferences(data.notifySettings);
         latestAlertItems = Array.isArray(data.alerts) ? data.alerts : [];
         handleAlertToasts(latestAlertItems);
+        syncPendingBadgeAlerts(latestAlertItems);
         updateBellBadge(latestAlertItems);
-
-        if (data.unreadCount > 0) {
-            badge.textContent = data.unreadCount > 99 ? '99+' : data.unreadCount;
-            badge.classList.add('show');
-        } else {
-            badge.classList.remove('show');
-        }
     } catch (e) {}
 }
 
@@ -197,7 +192,11 @@ function getVisibleUnreadCount(alerts) {
         return 0;
     }
 
-    return alerts.filter(alert => !alert?.read && isAlertTypeEnabled(alert)).length;
+    return alerts.filter(alert =>
+        alert?.id != null
+        && pendingBadgeAlertIds.has(Number(alert.id))
+        && isAlertTypeEnabled(alert)
+    ).length;
 }
 
 function updateBellBadge(alerts) {
@@ -214,6 +213,45 @@ function updateBellBadge(alerts) {
     }
 
     badge.classList.remove('show');
+}
+
+function syncPendingBadgeAlerts(alerts) {
+    if (!Array.isArray(alerts)) {
+        return;
+    }
+
+    const currentAlertsById = new Map();
+    alerts.forEach(alert => {
+        if (alert?.id == null) {
+            return;
+        }
+
+        const numericId = Number(alert.id);
+        if (!Number.isFinite(numericId)) {
+            return;
+        }
+
+        currentAlertsById.set(numericId, alert);
+        if (!alert.read) {
+            pendingBadgeAlertIds.add(numericId);
+        }
+    });
+
+    Array.from(pendingBadgeAlertIds).forEach(alertId => {
+        const currentAlert = currentAlertsById.get(alertId);
+        if (!currentAlert || currentAlert.read) {
+            pendingBadgeAlertIds.delete(alertId);
+        }
+    });
+}
+
+function acknowledgeVisibleAlerts() {
+    pendingBadgeAlertIds.clear();
+    latestAlertItems = latestAlertItems.map(alert => ({
+        ...alert,
+        read: true
+    }));
+    updateBellBadge(latestAlertItems);
 }
 
 async function requestSystemNotificationPermission() {

@@ -141,7 +141,7 @@ public class CommunityController {
         }
 
         List<Map<String, Object>> popularPriceItems = buildPopularPriceItems(popularCategories);
-        ArrayList<CommunityDto> featuredPosts = (!isPopularView && !hasCategory && !hasKeyword)
+        ArrayList<CommunityDto> featuredPosts = (page == 1 && !isPopularView && !hasCategory && !hasKeyword)
                 ? communityBoardDao.getFeaturedArticles(2)
                 : new ArrayList<>();
 
