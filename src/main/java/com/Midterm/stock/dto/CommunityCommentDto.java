@@ -12,6 +12,10 @@ public class CommunityCommentDto {
     private Timestamp created_at;
     private Timestamp updated_at;
 
+    /* 내가 작성한 게시글과 댓글을 확인할 수 있도록 */
+    private String boardTitle;
+    private int boardWriterUserNum;
+
     public int getComment_id() {
         return comment_id;
     }
@@ -84,5 +88,21 @@ public class CommunityCommentDto {
 
     public void setUpdated_at(Timestamp updated_at) {
         this.updated_at = updated_at;
+    }
+
+    public String getBoardTitle() {
+        return boardTitle;
+    }
+
+    public void setBoardTitle(String boardTitle) {
+        this.boardTitle = boardTitle;
+    }
+
+    public int getBoardWriterUserNum() {
+        return boardWriterUserNum;
+    }
+
+    public void setBoardWriterUserNum(int boardWriterUserNum) {
+        this.boardWriterUserNum = boardWriterUserNum;
     }
 }

@@ -561,6 +561,54 @@ public class CommunityBoardDao {
         return count;
     }
 
+    // 사용자별 게시글, 댓글 확인 기능
+    public ArrayList<CommunityDto> getArticlesByUserNum(int user_num) {
+        connect();
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+
+        String sql = "select c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
+                + "c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, "
+                + "c.created_at, c.updated_at, count(cc.comment_id) as comment_count "
+                + "from community_board c "
+                + "join users u on c.user_num = u.num "
+                + "left join community_comment cc on c.board_id = cc.board_id "
+                + "where c.user_num = ? "
+                + "group by c.board_id, c.user_num, u.name, u.email, "
+                + "c.category, c.title, c.news_link, c.content, c.view_count, "
+                + "c.like_count, c.created_at, c.updated_at "
+                + "order by c.created_at desc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setContent(rs.getString("content"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return lists;
+    }
+
     public int insertArticle(CommunityDto dto) {
         connect();
         int count = -1;

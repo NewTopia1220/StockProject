@@ -45,7 +45,7 @@ body {
     border-radius: 18px;
     box-shadow: var(--shadow);
     padding: 18px 24px;
-    min-height: 110px;
+    min-height: 80px;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -1122,7 +1122,7 @@ a.t-item:hover span {
     }
 
     .stockPriceRow strong {
-        font-size: 24px;
+        font-size: 22px;
     }
 
     #mainChart {

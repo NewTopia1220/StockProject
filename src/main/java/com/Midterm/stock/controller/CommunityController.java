@@ -3,12 +3,14 @@ package com.Midterm.stock.controller;
 import com.Midterm.stock.dto.CommunityCommentDto;
 import com.Midterm.stock.dto.CommunityDto;
 import com.Midterm.stock.dto.StockResponseDto;
+import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.entity.StockAlert;
 import com.Midterm.stock.repository.StockAlertRepository;
 import com.Midterm.stock.repository.community.CommunityBoardDao;
 import com.Midterm.stock.repository.community.CommunityCommentDao;
 import com.Midterm.stock.repository.community.CommunityExtraDao;
 import com.Midterm.stock.repository.community.CommunityLikeDao;
+import com.Midterm.stock.repository.UserDao;
 import com.Midterm.stock.service.WatchListService;
 import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
@@ -56,6 +58,9 @@ public class CommunityController {
 
     @Autowired
     private CommunityExtraDao communityExtraDao;
+
+    @Autowired
+    private UserDao userDao;
 
     @Autowired
     private StockAlertRepository stockAlertRepository;
@@ -502,6 +507,48 @@ public class CommunityController {
 
         communityBoardDao.updateArticle(dto);
         return "redirect:/community/detail?board_id=" + dto.getBoard_id();
+    }
+
+    // 사용자별 게시글, 댓글 확인 가능
+    @GetMapping("/activity")
+    public String activity(@RequestParam(value = "user_num", required = false) Integer userNum,
+                           @RequestParam(value = "tab", defaultValue = "posts") String tab,
+                           HttpSession session,
+                           Model model) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        int targetUserNum = (userNum != null) ? userNum : loginNum;
+        boolean isMyActivity = targetUserNum == loginNum;
+
+        UserDto activityUser = userDao.getUserInfo(targetUserNum);
+        if (activityUser == null) {
+            return "redirect:/community";
+        }
+
+        String currentTab = normalize(tab);
+        if (currentTab == null ||
+                (!currentTab.equals("posts") && !currentTab.equals("comments") && !currentTab.equals("replies"))) {
+            currentTab = "posts";
+        }
+
+        ArrayList<CommunityDto> posts = communityBoardDao.getArticlesByUserNum(targetUserNum);
+        ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByUserNum(targetUserNum);
+        ArrayList<CommunityCommentDto> replies = communityCommentDao.getCommentsOnUserBoards(targetUserNum);
+
+        model.addAttribute("activityUser", activityUser);
+        model.addAttribute("activityPosts", posts);
+        model.addAttribute("activityComments", comments);
+        model.addAttribute("activityReplies", replies);
+        model.addAttribute("currentTab", currentTab);
+        model.addAttribute("isMyActivity", isMyActivity);
+        model.addAttribute("targetUserNum", targetUserNum);
+        model.addAttribute("currentPage", "community");
+
+        return "community/activity";
     }
 
     private static final List<String> BANNED_WORDS = List.of(
