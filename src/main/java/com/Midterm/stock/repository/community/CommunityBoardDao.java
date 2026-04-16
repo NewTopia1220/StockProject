@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 import java.sql.*;
 import java.util.ArrayList;
+import java.util.List;
 
 @Repository
 public class CommunityBoardDao {
@@ -568,14 +569,15 @@ public class CommunityBoardDao {
 
         String sql = "select c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
                 + "c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, "
-                + "c.created_at, c.updated_at, count(cc.comment_id) as comment_count "
+                + "c.created_at, c.updated_at, nvl(cc.comment_count, 0) as comment_count "
                 + "from community_board c "
                 + "join users u on c.user_num = u.num "
-                + "left join community_comment cc on c.board_id = cc.board_id "
+                + "left join ( "
+                + "    select board_id, count(*) as comment_count "
+                + "    from community_comment "
+                + "    group by board_id "
+                + ") cc on c.board_id = cc.board_id "
                 + "where c.user_num = ? "
-                + "group by c.board_id, c.user_num, u.name, u.email, "
-                + "c.category, c.title, c.news_link, c.content, c.view_count, "
-                + "c.like_count, c.created_at, c.updated_at "
                 + "order by c.created_at desc";
 
         try {
@@ -595,6 +597,7 @@ public class CommunityBoardDao {
                 dto.setContent(rs.getString("content"));
                 dto.setView_count(rs.getInt("view_count"));
                 dto.setLike_count(rs.getInt("like_count"));
+                dto.setComment_count(rs.getInt("comment_count"));
                 dto.setCreated_at(rs.getTimestamp("created_at"));
                 dto.setUpdated_at(rs.getTimestamp("updated_at"));
                 dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
@@ -845,5 +848,81 @@ public class CommunityBoardDao {
         } catch (SQLException e) {
             e.printStackTrace();
         }
+    }
+
+    public ArrayList<CommunityDto> getArticlesByUserNumAndCategory(int user_num, String category) {
+        connect();
+        ArrayList<CommunityDto> lists = new ArrayList<>();
+
+        String sql = "select c.board_id, c.user_num, u.name as user_name, u.email as user_email, "
+                + "c.category, c.title, c.news_link, c.content, c.view_count, c.like_count, "
+                + "c.created_at, c.updated_at, nvl(cc.comment_count, 0) as comment_count "
+                + "from community_board c "
+                + "join users u on c.user_num = u.num "
+                + "left join ( "
+                + "    select board_id, count(*) as comment_count "
+                + "    from community_comment "
+                + "    group by board_id "
+                + ") cc on c.board_id = cc.board_id "
+                + "where c.user_num = ? and c.category = ? "
+                + "order by c.created_at desc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            pstmt.setString(2, category);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityDto dto = new CommunityDto();
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setCategory(rs.getString("category"));
+                dto.setTitle(rs.getString("title"));
+                dto.setNews_link(rs.getString("news_link"));
+                dto.setContent(rs.getString("content"));
+                dto.setView_count(rs.getInt("view_count"));
+                dto.setLike_count(rs.getInt("like_count"));
+                dto.setComment_count(rs.getInt("comment_count"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                dto.setTagNames(communityTagDao.getTagNamesByBoardId(rs.getInt("board_id")));
+                lists.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return lists;
+    }
+
+    public ArrayList<String> getUserActivityCategories(int user_num) {
+        connect();
+        ArrayList<String> categories = new ArrayList<>();
+
+        String sql = "select distinct category "
+                + "from community_board "
+                + "where user_num = ? "
+                + "order by category";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                categories.add(rs.getString("category"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return categories;
     }
 }

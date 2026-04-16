@@ -375,6 +375,7 @@ public class CommunityController {
 
     @PostMapping("/comment/delete")
     public String deleteComment(@RequestParam("comment_id") int commentId,
+                                @RequestParam(value = "returnUrl", required = false) String returnUrl,
                                 HttpSession session) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
@@ -389,11 +390,27 @@ public class CommunityController {
             return "redirect:/community";
         }
 
+        /*  내 댓글만 삭제
+
         if (comment.getUser_num() != loginNum) {
+            return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+        }  */
+
+        // 권한 확대 => 내 게시글에 있는 다른 사람 댓글까지 삭제 가능
+        CommunityDto board = communityBoardDao.getArticle(comment.getBoard_id());
+        boolean isCommentWriter = comment.getUser_num() == loginNum;
+        boolean isBoardOwner = board != null && board.getUser_num() == loginNum;
+
+        if (!isCommentWriter && !isBoardOwner) {
             return "redirect:/community/detail?board_id=" + comment.getBoard_id();
         }
 
         communityCommentDao.deleteComment(commentId);
+
+        if (returnUrl != null && !returnUrl.isBlank()) {
+            return "redirect:" + returnUrl;
+        }
+
         return "redirect:/community/detail?board_id=" + comment.getBoard_id();
     }
 
@@ -513,10 +530,12 @@ public class CommunityController {
     @GetMapping("/activity")
     public String activity(@RequestParam(value = "user_num", required = false) Integer userNum,
                            @RequestParam(value = "tab", defaultValue = "posts") String tab,
+                           @RequestParam(value = "category", required = false) String category,
                            HttpSession session,
                            Model model) {
         Integer loginNum = (Integer) session.getAttribute("loginNum");
         String loginUser = (String) session.getAttribute("loginUser");
+
         if (loginUser == null || loginNum == null) {
             return "redirect:/login";
         }
@@ -529,24 +548,42 @@ public class CommunityController {
             return "redirect:/community";
         }
 
-        String currentTab = normalize(tab);
-        if (currentTab == null ||
-                (!currentTab.equals("posts") && !currentTab.equals("comments") && !currentTab.equals("replies"))) {
-            currentTab = "posts";
-        }
+        String currentTab = (tab == null || tab.isBlank()) ? "posts" : tab;
+        String selectedCategory = (category == null || category.isBlank() || "all".equals(category)) ? null : category;
 
-        ArrayList<CommunityDto> posts = communityBoardDao.getArticlesByUserNum(targetUserNum);
-        ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByUserNum(targetUserNum);
-        ArrayList<CommunityCommentDto> replies = communityCommentDao.getCommentsOnUserBoards(targetUserNum);
+        int articleCount = communityBoardDao.getArticleCountByUserNum(targetUserNum);
+        int myCommentCount = communityCommentDao.getCommentCountByUserNum(targetUserNum);
+        int receivedCommentCount = communityCommentDao.getReceivedCommentCountByBoardOwner(targetUserNum);
+
+
+        ArrayList<CommunityDto> posts = (selectedCategory == null)
+                ? communityBoardDao.getArticlesByUserNum(targetUserNum)
+                : communityBoardDao.getArticlesByUserNumAndCategory(targetUserNum, selectedCategory);
+
+        ArrayList<CommunityCommentDto> comments = (selectedCategory == null)
+                ? communityCommentDao.getCommentsByUserNum(targetUserNum)
+                : communityCommentDao.getCommentsByUserNumAndCategory(targetUserNum, selectedCategory);
+
+        ArrayList<CommunityCommentDto> replies = (selectedCategory == null)
+                ? communityCommentDao.getCommentsOnUserBoards(targetUserNum)
+                : communityCommentDao.getCommentsOnUserBoardsByCategory(targetUserNum, selectedCategory);
+
+        List<String> activityCategories = communityBoardDao.getUserActivityCategories(targetUserNum);
 
         model.addAttribute("activityUser", activityUser);
         model.addAttribute("activityPosts", posts);
         model.addAttribute("activityComments", comments);
         model.addAttribute("activityReplies", replies);
+        model.addAttribute("activityCategories", activityCategories);
+        model.addAttribute("selectedCategory", selectedCategory == null ? "all" : selectedCategory);
         model.addAttribute("currentTab", currentTab);
         model.addAttribute("isMyActivity", isMyActivity);
         model.addAttribute("targetUserNum", targetUserNum);
         model.addAttribute("currentPage", "community");
+
+        model.addAttribute("articleCount", articleCount);
+        model.addAttribute("myCommentCount", myCommentCount);
+        model.addAttribute("receivedCommentCount", receivedCommentCount);
 
         return "community/activity";
     }

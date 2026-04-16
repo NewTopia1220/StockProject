@@ -203,6 +203,12 @@
                         <span>댓글</span>
                         <strong th:text="${userCommentCount} + '개'">0개</strong>
                     </div>
+
+                    <a class="profileActivityBtn"
+                       th:href="@{/community/activity(user_num=${dto.user_num}, tab='posts')}"
+                       th:text="${isOwner} ? '내 활동 보기' : '작성자 활동 보기'">
+                        작성자 활동 보기
+                    </a>
                 </div>
             </section>
 

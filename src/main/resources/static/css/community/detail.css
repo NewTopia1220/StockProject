@@ -137,6 +137,29 @@
     font-size: 18px;
 }
 
+.profileActivityBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 38px;
+    margin-top: 12px;
+    border: 1px solid #dbe3f2;
+    border-radius: 12px;
+    background: #f8fbff;
+    color: var(--primary-dark, #15164D);
+    font-size: 13px;
+    font-weight: 800;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.profileActivityBtn:hover {
+    background: #eef4ff;
+    border-color: #cdd8ef;
+    color: var(--primary-main, #3182F6);
+}
+
 .writerMeta {
     display: flex;
     flex-direction: column;
@@ -586,8 +609,13 @@
     padding-bottom: 0;
 }
 
+/* 말 줄임표 사용 가능하도록 */
 .relatedItem strong {
     display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
     color: #1d234f;
     font-size: 13px;
     line-height: 1.35;
