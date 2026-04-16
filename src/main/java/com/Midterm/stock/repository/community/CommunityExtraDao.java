@@ -45,13 +45,23 @@ public class CommunityExtraDao {
 
     // 뉴스 링크로 뉴스 제목 조회
     public String getNewsTitleByLink(String newsLink) {
+        if (newsLink == null || newsLink.isBlank()) {
+            return null;
+        }
+
         connect();
         String title = null;
-        String sql = "select title from news_data where link = ?";
+        String sql = "select title from ( "
+                + " select title from news_data where trim(link) = ? "
+                + " union all "
+                + " select title from news_data_sec where trim(link) = ? "
+                + " ) where rownum = 1";
 
         try {
             pstmt = conn.prepareStatement(sql);
-            pstmt.setString(1, newsLink);
+            String normalizedLink = newsLink.trim();
+            pstmt.setString(1, normalizedLink);
+            pstmt.setString(2, normalizedLink);
             rs = pstmt.executeQuery();
 
             if (rs.next()) {

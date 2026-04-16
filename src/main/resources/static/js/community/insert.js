@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", function () {
     const newsSearchResult = document.getElementById("newsSearchResult");
     const selectedNewsBox = document.getElementById("selectedNewsBox");
     const newsLinkInput = document.getElementById("newsLink");
+    const communityWriteForm = document.forms["communityWriteForm"];
 
     let searchTimer = null;
 
@@ -118,6 +119,20 @@ document.addEventListener("DOMContentLoaded", function () {
             }, 250);
         });
     }
+
+    if (communityWriteForm) {
+        ["category", "title", "content", "tagNames"].forEach(function (fieldName) {
+            const field = communityWriteForm[fieldName];
+            if (!field) {
+                return;
+            }
+
+            field.addEventListener("input", syncCommunityWriteSubmitState);
+            field.addEventListener("change", syncCommunityWriteSubmitState);
+        });
+
+        syncCommunityWriteSubmitState();
+    }
 });
 
 const bannedWords = [
@@ -139,20 +154,124 @@ function findBannedWord(...values) {
     return null;
 }
 
+function getCommunityWriteForm() {
+    return document.forms["communityWriteForm"] || null;
+}
+
+function isCommunityWriteFormValid(form) {
+    const targetForm = form || getCommunityWriteForm();
+    if (!targetForm) {
+        return false;
+    }
+
+    if (!targetForm.category || targetForm.category.value === "") {
+        return false;
+    }
+
+    if (!targetForm.title || targetForm.title.value.trim() === "") {
+        return false;
+    }
+
+    if (!targetForm.content || targetForm.content.value.trim() === "") {
+        return false;
+    }
+    return true;
+}
+
+function syncCommunityWriteSubmitState() {
+    const form = getCommunityWriteForm();
+    const submitButton = document.getElementById("cwSubmitBtn");
+    if (!form || !submitButton) {
+        return;
+    }
+
+    if (form.dataset.submitting === "true") {
+        return;
+    }
+
+    const isReady = isCommunityWriteFormValid(form);
+    submitButton.disabled = !isReady;
+    submitButton.classList.toggle("isReady", isReady);
+}
+
+function showCommunityActionOverlay(message) {
+    if (document.getElementById("communityActionOverlay")) {
+        return;
+    }
+
+    const overlay = document.createElement("div");
+    overlay.id = "communityActionOverlay";
+    overlay.setAttribute("aria-live", "polite");
+    overlay.style.cssText = [
+        "position:fixed",
+        "inset:0",
+        "background:rgba(15,23,42,0.24)",
+        "display:flex",
+        "align-items:center",
+        "justify-content:center",
+        "z-index:9999"
+    ].join(";");
+
+    const panel = document.createElement("div");
+    panel.style.cssText = [
+        "min-width:220px",
+        "padding:28px 36px",
+        "border-radius:16px",
+        "background:#ffffff",
+        "box-shadow:0 18px 40px rgba(15,23,42,0.18)",
+        "color:#111827",
+        "font-size:14px",
+        "font-weight:700",
+        "text-align:center"
+    ].join(";");
+    panel.textContent = message;
+
+    overlay.appendChild(panel);
+    document.body.appendChild(overlay);
+}
+
+function setCommunityWriteSubmittingState(isSubmitting) {
+    const form = getCommunityWriteForm();
+    const submitButton = document.getElementById("cwSubmitBtn");
+    if (!form || !submitButton) {
+        return;
+    }
+
+    form.dataset.submitting = isSubmitting ? "true" : "false";
+    submitButton.disabled = isSubmitting || !isCommunityWriteFormValid(form);
+    submitButton.classList.toggle("isReady", !isSubmitting && isCommunityWriteFormValid(form));
+    submitButton.classList.toggle("isSubmitting", isSubmitting);
+    submitButton.textContent = isSubmitting ? "작성 중..." : "작성";
+
+    if (isSubmitting) {
+        showCommunityActionOverlay("게시글을 작성하고 있어요...");
+    }
+}
+
 function check() {
-    const communityWriteForm = document.forms["communityWriteForm"];
+    const communityWriteForm = getCommunityWriteForm();
+    if (!communityWriteForm) {
+        return false;
+    }
+
+    if (communityWriteForm.dataset.submitting === "true") {
+        return false;
+    }
 
     if (communityWriteForm.category.value === "") {
+        syncCommunityWriteSubmitState();
         alert("카테고리를 선택해주세요.");
         return false;
     }
 
     if (communityWriteForm.title.value.trim() === "") {
+        syncCommunityWriteSubmitState();
         alert("제목을 입력해주세요.");
         return false;
     }
 
     if (communityWriteForm.content.value.trim() === "") {
+        syncCommunityWriteSubmitState();
         alert("내용을 입력해주세요.");
         return false;
     }
@@ -164,9 +283,11 @@ function check() {
     );
 
     if (bannedWord) {
+        syncCommunityWriteSubmitState();
         alert("금지어가 포함되어 있습니다: " + bannedWord);
         return false;
     }
 
+    setCommunityWriteSubmittingState(true);
     return true;
 }

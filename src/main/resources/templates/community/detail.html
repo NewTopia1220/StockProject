@@ -60,6 +60,7 @@
                                 </button>
 
                                 <form th:if="${isOwner}"
+                                      class="postDeleteForm"
                                       th:action="@{/community/delete}" method="post"
                                       onsubmit="return confirm('정말 삭제하시겠습니까?');">
                                     <input type="hidden" name="board_id" th:value="${dto.board_id}">

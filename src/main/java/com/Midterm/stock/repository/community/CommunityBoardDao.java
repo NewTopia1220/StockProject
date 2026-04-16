@@ -703,7 +703,33 @@ public class CommunityBoardDao {
         }
     }
 
+    public Integer getArticleOwnerNum(int board_id) {
+        connect();
+        Integer ownerNum = null;
+        String sql = "select user_num from community_board where board_id = ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, board_id);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                ownerNum = rs.getInt("user_num");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return ownerNum;
+    }
+
     public int updateArticle(CommunityDto dto) {
+        return updateArticle(dto, true);
+    }
+
+    public int updateArticle(CommunityDto dto, boolean refreshTags) {
         connect();
         int count = -1;
         String sql = "update community_board "
@@ -719,7 +745,7 @@ public class CommunityBoardDao {
             pstmt.setInt(5, dto.getBoard_id());
             count = pstmt.executeUpdate();
 
-            if (count > 0) {
+            if (count > 0 && refreshTags) {
                 communityTagDao.deleteBoardTags(dto.getBoard_id());
                 communityTagDao.saveTags(dto.getBoard_id(), dto.getTagNames());
             }
