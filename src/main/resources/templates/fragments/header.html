@@ -14,11 +14,10 @@
                 <a class="brandText" th:href="@{/stock}">Stoxle</a>
             </div>
 
-
             <div class="menu">
                 <th:block th:if="${session.loginUser == null}">
-                    <a th:href="@{/login}" class="menuBtn menuBtnOutline">로그인</a>
-                    <a th:href="@{/register}" class="menuBtn menuBtnFill">회원가입</a>
+                    <a th:href="@{/login}" class="utilLink">로그인</a>
+                    <a th:href="@{/register}" class="utilLink">회원가입</a>
                 </th:block>
 
                 <th:block th:if="${session.loginUser != null}">
@@ -37,6 +36,35 @@
                                     <span class="bellBadge" id="bellBadge">0</span>
                                 </button>
 
+<!-- 
+                    <div class="inlineAlert">
+                        <button type="button" class="utilTextBtn" id="bellBtn">알림</button>
+                        <span class="inlineBadge bellBadge" id="bellBadge">0</span>
+
+                        <div class="alertPanel" id="alertPanel">
+                            <div class="alertPanelTabs">
+                                <button class="alertTab active" data-tab="history" type="button">알림 내역</button>
+                                <button class="alertTab" data-tab="watchlist" type="button">관심종목 설정</button>
+                            </div>
+
+                            <div id="alertTabHistory">
+                                <div class="alertTabActions">
+                                    <button class="alertReadAllBtn" id="alertReadAllBtn" type="button">모두 읽음</button>
+                                </div>
+                                <div class="alertList" id="alertList">
+                                    <div class="alertEmpty">로딩 중...</div>
+                                </div>
+                            </div>
+
+                            <div id="alertTabWatchlist" style="display:none;">
+                                <div class="watchlistPanelNote">
+                                    등록된 종목은 ±3% 변동 시 알림을 받습니다
+                                </div>
+                                <div class="watchlistPanelList" id="watchlistPanelList">
+                                    <div class="alertEmpty">로딩 중...</div>
+                                </div>
+                            </div>
+-->
                                 <!-- 알림 드롭다운 패널 -->
                                 <div class="alertPanel" id="alertPanel">
 
@@ -87,8 +115,7 @@
         </div>
     </div>
 
-    <!-- 알림 패널 공통 JS (모든 페이지) -->
-    <script th:src="@{/js/bell.js}" defer></script>
+    <script th:src="@{/js/bell.js}"></script>
 
     <div class="categoryBar">
         <div class="inner categoryInner">

@@ -161,7 +161,7 @@ function initMonthlyChart() {
     const selectedMonth = Number(canvas.dataset.selectedMonth);
     const labels = trendData.map((item) => `${item.month}M`);
     const values = trendData.map((item) => item.total);
-    const backgroundColor = trendData.map((item) => item.month === selectedMonth ? '#3b82f6' : '#2f2f2f');
+    const backgroundColor = trendData.map((item) => item.month === selectedMonth ? '#3182F6' : '#d2d2d2');
 
     new Chart(canvas, {
         type: 'bar',

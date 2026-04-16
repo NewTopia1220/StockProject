@@ -3,12 +3,14 @@ package com.Midterm.stock.controller;
 import com.Midterm.stock.dto.CommunityCommentDto;
 import com.Midterm.stock.dto.CommunityDto;
 import com.Midterm.stock.dto.StockResponseDto;
+import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.entity.StockAlert;
 import com.Midterm.stock.repository.StockAlertRepository;
 import com.Midterm.stock.repository.community.CommunityBoardDao;
 import com.Midterm.stock.repository.community.CommunityCommentDao;
 import com.Midterm.stock.repository.community.CommunityExtraDao;
 import com.Midterm.stock.repository.community.CommunityLikeDao;
+import com.Midterm.stock.repository.UserDao;
 import com.Midterm.stock.service.WatchListService;
 import com.Midterm.stock.service.stock.StockPriceService;
 import jakarta.servlet.http.HttpSession;
@@ -58,6 +60,9 @@ public class CommunityController {
     private CommunityExtraDao communityExtraDao;
 
     @Autowired
+    private UserDao userDao;
+
+    @Autowired
     private StockAlertRepository stockAlertRepository;
 
     @Autowired
@@ -91,16 +96,23 @@ public class CommunityController {
         boolean hasCategory = categoryName != null && !categoryName.isBlank() && !"전체".equals(categoryName) && !isPopularView;
         boolean hasKeyword = searchKeyword != null;
 
-        final int firstPageRegularCount = 2;
+        // 전체 게시판인지 그 외 게시판인지
+        boolean isDefaultBoardView = !isPopularView && !hasCategory && !hasKeyword;
+
+        // 첫 페이지 일반글 개수 설정 (전체 = 2, 그 외 = 4)
+        final int firstPageRegularCount = isDefaultBoardView ? 2 : 4;
         final int otherPageRegularCount = 4;
 
         int start, end;
 
         if (page <= 1) {
             page = 1;
+
+            // 1페이지는 위에서 정한 firstPageRegularCount만큼
             start = 1;
             end = firstPageRegularCount;
         } else {
+            // 2페이지부터는 4개씩 끊어서
             start = firstPageRegularCount + ((page - 2) * otherPageRegularCount) + 1;
             end = start + otherPageRegularCount - 1;
         }
@@ -109,29 +121,37 @@ public class CommunityController {
         int totalCount;
 
         if (isPopularView) {
+            // 인기글 게시판
             lists = communityBoardDao.getPopularArticles(themeName, searchKeyword, start, end);
             totalCount = communityBoardDao.getPopularArticleCount(themeName, searchKeyword);
         } else if (hasCategory && hasKeyword) {
+            // 카테고리 + 검색어가 같이 있을 때
             lists = communityBoardDao.getArticlesByCategoryAndKeyword(categoryName, searchKeyword, start, end);
             totalCount = communityBoardDao.getArticleCountByCategoryAndKeyword(categoryName, searchKeyword);
         } else if (hasCategory) {
+            // 특정 카테고리 게시판만
             lists = communityBoardDao.getArticlesByCategory(categoryName, start, end);
             totalCount = communityBoardDao.getArticleCountByCategory(categoryName);
         } else if (hasKeyword) {
+            // 검색 결과만
             lists = communityBoardDao.searchArticles(searchKeyword, start, end);
             totalCount = communityBoardDao.getArticleCountByKeyword(searchKeyword);
         } else {
+            // 전체 게시판
             lists = communityBoardDao.getArticles(start, end);
             totalCount = communityBoardDao.getArticleCount();
         }
 
         int totalPages;
+
+        // 이후 페이지는 4개씩 계산
         if (totalCount <= firstPageRegularCount) {
             totalPages = 1;
         } else {
             totalPages = 1 + (int) Math.ceil((double) (totalCount - firstPageRegularCount) / otherPageRegularCount);
         }
 
+        // 현재 페이지가 총 페이지 수를 넘지 않도록
         page = Math.min(page, totalPages);
 
         ArrayList<Map<String, Object>> popularCategories = communityExtraDao.getPopularThemeCategories();
@@ -141,7 +161,7 @@ public class CommunityController {
         }
 
         List<Map<String, Object>> popularPriceItems = buildPopularPriceItems(popularCategories);
-        ArrayList<CommunityDto> featuredPosts = (page == 1 && !isPopularView && !hasCategory && !hasKeyword)
+        ArrayList<CommunityDto> featuredPosts = (page == 1 && isDefaultBoardView)
                 ? communityBoardDao.getFeaturedArticles(2)
                 : new ArrayList<>();
 
@@ -290,7 +310,11 @@ public class CommunityController {
         String trimmedContent = content == null ? "" : content.trim();
         if (!trimmedContent.isEmpty()) {
             int result = communityCommentDao.insertComment(boardId, loginNum, trimmedContent);
-            if (result > 0 && article.getUser_num() != loginNum) {
+            if (result > 0 && isOwnArticleComment(article, loginNum)) {
+                return "redirect:/community/detail?board_id=" + boardId;
+            }
+
+            if (result > 0) {
 
                 boolean isCommentAlertEnabled = watchListService.isCommentNotifyEnabled(article.getUser_num());
                 System.out.println("댓글 알림 체크 - 작성자: " + article.getUser_num() + " | 상태: " + isCommentAlertEnabled);
@@ -467,6 +491,9 @@ public class CommunityController {
         if (dto.getTagNames() != null) {
             dto.setTagNames(dto.getTagNames().trim());
         }
+        if (dto.getNews_link() != null) {
+            dto.setNews_link(dto.getNews_link().trim());
+        }
 
         String bannedWord = findBannedWord(dto.getTitle(), dto.getContent(), dto.getTagNames());
 
@@ -480,6 +507,48 @@ public class CommunityController {
 
         communityBoardDao.updateArticle(dto);
         return "redirect:/community/detail?board_id=" + dto.getBoard_id();
+    }
+
+    // 사용자별 게시글, 댓글 확인 가능
+    @GetMapping("/activity")
+    public String activity(@RequestParam(value = "user_num", required = false) Integer userNum,
+                           @RequestParam(value = "tab", defaultValue = "posts") String tab,
+                           HttpSession session,
+                           Model model) {
+        Integer loginNum = (Integer) session.getAttribute("loginNum");
+        String loginUser = (String) session.getAttribute("loginUser");
+        if (loginUser == null || loginNum == null) {
+            return "redirect:/login";
+        }
+
+        int targetUserNum = (userNum != null) ? userNum : loginNum;
+        boolean isMyActivity = targetUserNum == loginNum;
+
+        UserDto activityUser = userDao.getUserInfo(targetUserNum);
+        if (activityUser == null) {
+            return "redirect:/community";
+        }
+
+        String currentTab = normalize(tab);
+        if (currentTab == null ||
+                (!currentTab.equals("posts") && !currentTab.equals("comments") && !currentTab.equals("replies"))) {
+            currentTab = "posts";
+        }
+
+        ArrayList<CommunityDto> posts = communityBoardDao.getArticlesByUserNum(targetUserNum);
+        ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByUserNum(targetUserNum);
+        ArrayList<CommunityCommentDto> replies = communityCommentDao.getCommentsOnUserBoards(targetUserNum);
+
+        model.addAttribute("activityUser", activityUser);
+        model.addAttribute("activityPosts", posts);
+        model.addAttribute("activityComments", comments);
+        model.addAttribute("activityReplies", replies);
+        model.addAttribute("currentTab", currentTab);
+        model.addAttribute("isMyActivity", isMyActivity);
+        model.addAttribute("targetUserNum", targetUserNum);
+        model.addAttribute("currentPage", "community");
+
+        return "community/activity";
     }
 
     private static final List<String> BANNED_WORDS = List.of(
@@ -496,6 +565,10 @@ public class CommunityController {
             }
         }
         model.addAttribute("selectedNewsTitle", selectedNewsTitle);
+    }
+
+    private boolean isOwnArticleComment(CommunityDto article, Integer loginNum) {
+        return article != null && loginNum != null && article.getUser_num() == loginNum;
     }
 
     private String findBannedWord(String... values) {

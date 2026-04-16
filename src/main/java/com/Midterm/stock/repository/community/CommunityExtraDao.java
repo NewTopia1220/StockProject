@@ -72,16 +72,20 @@ public class CommunityExtraDao {
         ArrayList<Map<String, String>> newsList = new ArrayList<>();
 
         String sql = "select * from ( "
-                + " select link, title, summary, pub_date "
-                + " from news_data "
-                + " where title like ? or summary like ? "
-                + " order by pub_date desc "
+                + "  select link, title, summary, pub_date from news_data "
+                + "  where title like ? or summary like ? "
+                + "  union all "
+                + "  select link, title, summary, pub_date from news_data_sec "
+                + "  where title like ? or summary like ? "
+                + "  order by pub_date desc "
                 + ") where rownum <= 5";
 
         try {
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, "%" + keyword + "%");
             pstmt.setString(2, "%" + keyword + "%");
+            pstmt.setString(3, "%" + keyword + "%"); // news_data_sec의 title
+            pstmt.setString(4, "%" + keyword + "%"); // news_data_sec의 summary
             rs = pstmt.executeQuery();
 
             while (rs.next()) {

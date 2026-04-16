@@ -3,8 +3,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const newsSearchResult = document.getElementById("newsSearchResult");
     const selectedNewsBox = document.getElementById("selectedNewsBox");
     const newsLinkInput = document.getElementById("newsLink");
-    const initialNewsLink = selectedNewsBox?.dataset.initialLink?.trim();
-    const initialNewsTitle = selectedNewsBox?.dataset.initialTitle?.trim();
+    const initialNewsLink = selectedNewsBox?.dataset.initialLink?.trim()
+        || newsLinkInput?.value?.trim()
+        || "";
+    const initialNewsTitle = selectedNewsBox?.dataset.initialTitle?.trim() || "";
 
     let searchTimer = null;
 
@@ -133,7 +135,7 @@ const bannedWords = [
     "시발", "병신", "개새끼", "뒤져", "뒤질", "뒤졌", "존나", "십창",
     "맘충", "여적여", "개줌마", "빨갱이", "찍어야", "낙선시켜",
     "좌파", "우파", "정치충", "종북", "느금", "개비", "니애미",
-    "샤갈", "ㅅㅂ", "썅", "tlqkf", "야발", "시바", "좇", "샹", "시앙"
+    "샤갈", "ㅅㅂ", "썅", "tlqkf", "야발", "시바", "좇", "샹", "시앙", "바보"
 ];
 
 function findBannedWord(...values) {

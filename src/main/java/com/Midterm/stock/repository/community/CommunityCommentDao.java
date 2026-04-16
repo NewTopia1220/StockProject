@@ -166,6 +166,92 @@ public class CommunityCommentDao {
         return dto;
     }
 
+    public ArrayList<CommunityCommentDto> getCommentsByUserNum(int user_num) {
+        connect();
+        ArrayList<CommunityCommentDto> comments = new ArrayList<>();
+
+        String sql = "select cc.comment_id, cc.board_id, cc.user_num, "
+                + "u.name as user_name, u.email as user_email, "
+                + "cb.title as board_title, cb.user_num as board_writer_user_num, "
+                + "cc.content, cc.created_at, cc.updated_at "
+                + "from community_comment cc "
+                + "join users u on cc.user_num = u.num "
+                + "join community_board cb on cc.board_id = cb.board_id "
+                + "where cc.user_num = ? "
+                + "order by cc.created_at desc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityCommentDto dto = new CommunityCommentDto();
+                dto.setComment_id(rs.getInt("comment_id"));
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setBoardTitle(rs.getString("board_title"));
+                dto.setBoardWriterUserNum(rs.getInt("board_writer_user_num"));
+                dto.setContent(rs.getString("content"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                comments.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return comments;
+    }
+
+    public ArrayList<CommunityCommentDto> getCommentsOnUserBoards(int boardOwnerUserNum) {
+        connect();
+        ArrayList<CommunityCommentDto> comments = new ArrayList<>();
+
+        String sql = "select cc.comment_id, cc.board_id, cc.user_num, "
+                + "u.name as user_name, u.email as user_email, "
+                + "cb.title as board_title, cb.user_num as board_writer_user_num, "
+                + "cc.content, cc.created_at, cc.updated_at "
+                + "from community_comment cc "
+                + "join users u on cc.user_num = u.num "
+                + "join community_board cb on cc.board_id = cb.board_id "
+                + "where cb.user_num = ? "
+                + "and cc.user_num <> ? "
+                + "order by cc.created_at desc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, boardOwnerUserNum);
+            pstmt.setInt(2, boardOwnerUserNum);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityCommentDto dto = new CommunityCommentDto();
+                dto.setComment_id(rs.getInt("comment_id"));
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setBoardTitle(rs.getString("board_title"));
+                dto.setBoardWriterUserNum(rs.getInt("board_writer_user_num"));
+                dto.setContent(rs.getString("content"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                comments.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return comments;
+    }
+
     public int updateComment(int comment_id, String content) {
         connect();
         int count = -1;

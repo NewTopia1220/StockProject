@@ -334,7 +334,7 @@
     height: 48px;
     border: none;
     border-radius: 18px;
-    background: #15164D;
+    background: #3182F6;
     color: #ffffff;
     display: inline-flex;
     align-items: center;
@@ -347,7 +347,7 @@
 }
 
 .btn-logout:hover {
-    background: #20266a;
+    background: #15164D;
 }
 
 /* 캘린더 확장용 */

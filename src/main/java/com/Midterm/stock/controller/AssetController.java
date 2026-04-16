@@ -296,13 +296,16 @@ public class AssetController {
             int previousAmount = previousMap.getOrDefault(category, 0);
 
             if (previousAmount > 0) { // 지난달 데이터가 있을 때만 계산
-                double rate = ((double) (currentAmount - previousAmount) / previousAmount) * 100;
+//                double rate = ((double) (currentAmount - previousAmount) / previousAmount) * 100;
+                double rate = (double)currentAmount / previousAmount ;
 
                 Map<String, Object> insight = new HashMap<>();
-                boolean isIncreased = rate >= 0;
+//                boolean isIncreased = rate >= 0;
+                boolean isIncreased = currentAmount > previousAmount;
 
                 insight.put("title", category + " 지출 " + (isIncreased ? "증가" : "감소"));
-                insight.put("desc", "지난달보다 " + category + " 지출이 " + Math.abs(Math.round(rate)) + "% " + (isIncreased ? "증가" : "감소") + "했습니다.");
+//                insight.put("desc", "지난달보다 " + category + " 지출이 " + Math.abs(Math.round(rate)) + "% " + (isIncreased ? "증가" : "감소") + "했습니다.");
+                insight.put("desc", "지난달보다 " + category + " 지출이 " + Math.round(rate * 10) / 10.0 + "배 " + (isIncreased ? "증가" : "감소") + "했습니다.");
                 insight.put("isWarning", isIncreased); // 증가 = 경고(빨강), 감소 = 긍정(파랑)
                 insight.put("absRate", Math.abs(rate)); // 정렬용
 
