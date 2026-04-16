@@ -1,811 +1,55 @@
 @charset "UTF-8";
 
 :root {
-    --primary:        #0E0F37;
-    --primary-navy:   #0E0F37;
-    --bg-page:        #f4f6fb;
-    --bg-light:       #f4f6fb;
-    --bg-card:        #ffffff;
-    --border:         #e5e7eb;
-    --border-color:   #e5e7eb;
-    --text-main:      #111827;
-    --text-sub:       #4b5563;
-    --text-muted:     #9ca3af;
-    --up-red:         #ef4444;
-    --down-blue:      #3b82f6;
-    --live-green:     #10b981;
-    --shadow:         0 4px 16px rgba(14,15,55,0.07);
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: "Pretendard", sans-serif;
+    --primary: var(--primary-dark);
+    --primary-navy: var(--primary-dark);
+    --bg-page: var(--bg-soft);
+    --bg-light: var(--bg-soft);
+    --bg-card: var(--bg-card);
+    --border: var(--line);
+    --border-color: var(--line);
+    --text-main: var(--text-main);
+    --text-sub: var(--text-sub);
+    --text-muted: var(--text-light);
+    --up-red: var(--danger-main);
+    --down-blue: var(--primary-main);
+    --live-green: #10b981;
+    --shadow: 0 4px 16px rgba(14, 15, 55, 0.07);
 }
 
 body {
     background: var(--bg-page);
     color: var(--text-main);
-    transition: background 0.3s, color 0.3s;
 }
 
-/* 페이지 래퍼 */
 .stockMainPage {
     width: 100%;
-    max-width: none;
+    max-width: 1280px;
     margin: 0 auto;
-    padding: 0 0 28px;
+    padding: 0 20px 28px;
     display: flex;
     flex-direction: column;
     gap: 14px;
 }
 
-/* 상단 지수 티커 */
+/* 상단 지수 카드 */
 .marketTicker {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 12px;
+    gap: 14px;
 }
 
 .tickerItem {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 18px 24px;
+    min-height: 110px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    gap: 8px;
-    min-height: 88px;
-    background: var(--bg-card);
-    border-radius: 14px;
-    padding: 16px 18px;
-    border: 1px solid var(--border);
-    box-shadow: var(--shadow);
-}
-
-.label {
-    display: inline-block;
-    margin-bottom: 6px;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-
-.valueGroup {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
     gap: 10px;
-}
-
-.valueGroup strong {
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text-main);
-}
-
-/* 차트 + AI 분석 */
-.stockTop {
-    display: grid;
-    grid-template-columns: minmax(0, 2.35fr) minmax(300px, 0.85fr);
-    gap: 9px;
-    align-items: start;
-}
-
-.chartBox {
-    background: var(--bg-card);
-    padding: 16px 16px 14px;
-    border-radius: 18px;
-    border: 1px solid var(--border);
-    min-height: 0;
-    box-shadow: var(--shadow);
-}
-
-.chartContainer {
-    position: relative;
-    width: 100%;
-    padding-bottom: 4px;
-}
-
-.analysisBox {
-    display: flex;
-    flex-direction: column;
-    gap: 9px;
-}
-
-.combinedAnalysis {
-    background: var(--bg-card);
-    padding: 14px;
-    border-radius: 18px;
-    border: 1px solid var(--border);
-    height: auto;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    box-shadow: var(--shadow);
-    min-height: 308px;
-}
-
-.boxHeader h2,
-.boxHeader h3 {
-    margin: 0 0 10px;
-    color: var(--text-main);
-    font-weight: 800;
-    line-height: 1.25;
-}
-
-.chartBox .boxHeader {
-    display: block;
-}
-
-.chartBox .boxHeader h2 {
-    font-size: 14px;
-    margin-bottom: 10px;
-}
-
-.analysisBox .boxHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-}
-
-.analysisBox .boxHeader h3 {
-    margin: 0;
-    font-size: 14px;
-}
-
-.statusBadge {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 0 0 auto;
-    font-size: 11px;
-    background: #ecfdf5;
-    color: #059669;
-    padding: 4px 9px;
-    border-radius: 999px;
-    font-weight: 700;
-    white-space: nowrap;
-    flex-shrink: 0;
-}
-
-.badge-bull {
-    background: #ecfdf5;
-    color: #059669;
-}
-
-.badge-bear {
-    background: #fef2f2;
-    color: #dc2626;
-}
-
-.badge-warn {
-    background: #fffbeb;
-    color: #d97706;
-}
-
-.aiArticleCount {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    background: var(--bg-page);
-    border-radius: 10px;
-    padding: 9px 12px;
-    font-size: 12px;
-    color: var(--text-muted);
-    border: 1px solid var(--border);
-}
-
-.aiArticleCount strong {
-    font-size: 15px;
-    font-weight: 800;
-    color: var(--text-main);
-}
-
-/* 게이지 바 */
-.gaugeWrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.gaugeLabel {
-    display: flex;
-    justify-content: space-between;
-    font-size: 12px;
-    font-weight: 700;
-    color: var(--text-main);
-}
-
-.gaugeBar {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-page);
-    border-radius: 999px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-}
-
-.gaugeFill {
-    height: 100%;
-    border-radius: 999px;
-    width: 0;
-    transition: width 1.5s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-.gaugeFill.positive {
-    background: linear-gradient(90deg, #f87171, var(--up-red));
-}
-
-.gaugeFill.negative {
-    background: linear-gradient(90deg, #60a5fa, var(--down-blue));
-}
-
-.gaugeFill.sentFill {
-    background: linear-gradient(90deg, #fbbf24, #f59e0b);
-}
-
-.gaugeRange {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    color: var(--text-muted);
-}
-
-.analysisDesc {
-    margin: 0;
-    font-size: 12px;
-    line-height: 1.55;
-    color: var(--text-sub);
-}
-
-/* 전광판 */
-.price-ticker-container {
-    overflow: hidden;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 10px 0;
-    box-shadow: var(--shadow);
-}
-
-.price-ticker-wrapper {
-    display: flex;
-    white-space: nowrap;
-    animation: tickerScroll 40s linear infinite;
-}
-
-.ticker-content {
-    display: flex;
-    align-items: center;
-}
-
-a.t-item,
-.t-item {
-    padding: 0 22px;
-    font-size: 13px;
-    border-right: 1px solid var(--border);
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-a.t-item:hover span {
-    color: var(--primary);
-}
-
-.t-item span {
-    color: var(--text-muted);
-    margin-right: 8px;
-}
-
-@keyframes tickerScroll {
-    0% {
-        transform: translateX(0);
-    }
-    100% {
-        transform: translateX(-50%);
-    }
-}
-
-/* 종목 정보 패널 */
-.stockInfoPanel {
-    padding: 8px 0 10px 0;
-    border-bottom: 1px solid var(--border);
-    margin-bottom: 8px;
-}
-
-.stockNameRow {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-bottom: 4px;
-}
-
-.stockNameRow #chartStockName {
-    font-size: 15px;
-    font-weight: 700;
-    color: var(--primary);
-}
-
-.stockCodeBadge {
-    font-size: 11px;
-    color: var(--text-muted);
-    background: var(--bg-page);
-    border: 1px solid var(--border);
-    padding: 2px 7px;
-    border-radius: 6px;
-    font-weight: 500;
-}
-
-.stockPriceRow {
-    display: flex;
-    align-items: baseline;
-    gap: 8px;
-    margin-bottom: 8px;
-}
-
-.stockPriceRow strong {
-    font-size: 22px;
-    font-weight: 800;
-    color: var(--text-main);
-    letter-spacing: -0.4px;
-}
-
-.stockPriceRow span {
-    font-size: 13px;
-    font-weight: 600;
-}
-
-.stockMetaRow {
-    display: flex;
-    gap: 14px;
-    font-size: 12px;
-    color: var(--text-muted);
-    flex-wrap: wrap;
-}
-
-.stockMetaRow span {
-    display: flex;
-    gap: 4px;
-    align-items: center;
-}
-
-.stockMetaRow strong {
-    font-weight: 600;
-    color: var(--text-main);
-}
-
-/* 검색창 */
-.searchWrapper {
-    position: relative;
-    width: 100%;
-}
-
-.searchWrapper input {
-    width: 100%;
-    padding: 8px 12px;
-    border: 1px solid #3182F6;
-    border-radius: 10px;
-    font-size: 13px;
-    color: var(--text-main);
-    background: var(--bg-card);
-    outline: none;
-    transition: border-color 0.2s;
-}
-
-.searchWrapper input:focus {
-    border-color: #15164D;
-}
-
-#searchDropdown {
-    position: absolute;
-    top: calc(100% + 4px);
-    left: 0;
-    right: 0;
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
-    z-index: 1000;
-    max-height: 250px;
-    overflow-y: auto;
-}
-
-.searchItem {
-    padding: 10px 14px;
-    cursor: pointer;
-    border-bottom: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    transition: background 0.15s;
-}
-
-.searchItem:last-child {
-    border-bottom: none;
-}
-
-.searchItem:hover {
-    background: var(--bg-page);
-}
-
-.searchItem .item-name {
-    font-weight: 600;
-    font-size: 14px;
-    color: var(--text-main);
-}
-
-.searchItem .item-market {
-    font-size: 11px;
-    color: var(--text-muted);
-    margin-left: 6px;
-    background: var(--bg-page);
-    padding: 1px 6px;
-    border-radius: 4px;
-}
-
-.searchItem .item-code {
-    font-size: 13px;
-    color: var(--text-muted);
-    font-family: monospace;
-}
-
-/* 차트 탭 */
-.chartTabs {
-    display: flex;
-    gap: 4px;
-    margin-bottom: 6px;
-}
-
-.chartTab {
-    padding: 5px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--border);
-    background: var(--bg-card);
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-muted);
-    cursor: pointer;
-    transition: all 0.15s;
-}
-
-.chartTab.active {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
-}
-
-.chartTab:hover:not(.active) {
-    border-color: var(--primary);
-    color: var(--primary);
-}
-
-/* 섹터 헤더 + 카드 */
-.sectorWrap {
-    margin-bottom: 2px;
-}
-
-.sector-header {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 0;
-}
-
-.sector-header h2 {
-    margin: 0;
-    font-size: 18px;
-    font-weight: 800;
-    color: var(--text-main);
-}
-
-.live-badge {
-    font-size: 11px;
-    color: var(--live-green);
-    background: #ecfdf5;
-    padding: 3px 8px;
-    border-radius: 6px;
-    font-weight: 700;
-}
-
-.sectorList {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.sectorList button {
-    border: 1px solid var(--border);
-    padding: 12px 24px;
-    border-radius: 12px;
-    background: var(--bg-card);
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--text-sub);
-}
-
-.sectorList button.active {
-    background: var(--primary);
-    color: #ffffff;
-    border-color: var(--primary);
-    box-shadow: 0 4px 12px rgba(14,15,55,0.15);
-}
-
-.sectorCardGrid {
-    display: grid;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 12px;
-}
-
-.sectorCard {
-    background: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px;
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    text-decoration: none;
-    color: inherit;
-    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
-    cursor: pointer;
-    box-shadow: var(--shadow);
-    position: relative;
-    overflow: hidden;
-}
-
-.sectorCard::before {
-    content: "";
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, var(--primary), #6366f1);
-    opacity: 0;
-    transition: opacity 0.2s;
-}
-
-.sectorCard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 32px rgba(14,15,55,0.12);
-    border-color: var(--primary);
-}
-
-.sectorCard:hover::before {
-    opacity: 1;
-}
-
-.scTop {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 8px;
-}
-
-.scSectorName {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--primary);
-    background: color-mix(in srgb, var(--primary) 10%, transparent);
-    padding: 3px 8px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-
-.scSectorRow {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.scIcon {
-    font-size: 20px;
-    line-height: 1;
-}
-
-.scBadge {
-    font-size: 10px;
-    font-weight: 700;
-    padding: 3px 8px;
-    border-radius: 999px;
-    white-space: nowrap;
-}
-
-.sc-pos {
-    background: #ecfdf5;
-    color: #059669;
-}
-
-.sc-neg {
-    background: #fef2f2;
-    color: #dc2626;
-}
-
-.sc-neu {
-    background: #f3f4f6;
-    color: #6b7280;
-}
-
-.sc-none {
-    background: var(--bg-page);
-    color: var(--text-muted);
-}
-
-.scCompanyName {
-    font-size: 20px;
-    font-weight: 900;
-    color: var(--text-main);
-    letter-spacing: -0.5px;
-    line-height: 1.2;
-}
-
-.scArticleCount {
-    display: flex;
-    align-items: baseline;
-    gap: 4px;
-}
-
-.scBigNum {
-    font-size: 22px;
-    font-weight: 900;
-    color: var(--text-main);
-    line-height: 1;
-}
-
-.scBigLabel {
-    font-size: 11px;
-    font-weight: 700;
-    color: var(--text-muted);
-}
-
-.scGaugeArea {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-}
-
-.scGaugeBar {
-    width: 100%;
-    height: 6px;
-    background: var(--bg-page);
-    border-radius: 999px;
-    overflow: hidden;
-    border: 1px solid var(--border);
-}
-
-.scGaugeFill {
-    height: 100%;
-    border-radius: 999px;
-    transition: width 1s ease;
-}
-
-.fill-pos {
-    background: linear-gradient(90deg, #34d399, #10b981);
-}
-
-.fill-neg {
-    background: linear-gradient(90deg, #f87171, #ef4444);
-}
-
-.scGaugeLabel {
-    display: flex;
-    justify-content: space-between;
-    font-size: 10px;
-    font-weight: 700;
-}
-
-.scNoData {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-align: center;
-    padding: 8px 0;
-    background: var(--bg-page);
-    border-radius: 8px;
-    border: 1px dashed var(--border);
-    height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.scStats {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    background: var(--bg-page);
-    border-radius: 12px;
-    padding: 10px 14px;
-    border: 1px solid var(--border);
-}
-
-.scStat {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
-}
-
-.scStatNum {
-    font-size: 15px;
-    font-weight: 900;
-    color: var(--text-main);
-}
-
-.scStatLabel {
-    font-size: 9px;
-    font-weight: 600;
-    color: var(--text-muted);
-    text-transform: uppercase;
-}
-
-.scStatDiv {
-    width: 1px;
-    height: 28px;
-    background: var(--border);
-}
-
-/* 종목 리스트 */
-.stockList {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 16px;
-    margin-top: 24px;
-}
-
-.stockItem {
-    background: var(--bg-card);
-    border-radius: 18px;
-    padding: 20px 24px;
-    border: 1px solid var(--border);
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: 0.2s;
-    box-shadow: var(--shadow);
-}
-
-.stockItem:hover {
-    transform: translateY(-3px);
-    border-color: var(--primary);
-}
-
-/* 공통 색상 */
-.up {
-    color: var(--up-red);
-    font-weight: 600;
-}
-
-.down {
-    color: var(--down-blue);
-    font-weight: 600;
-}
-
-/* feature/ml-news-impact compatibility */
-.clickableTicker {
-    cursor: pointer;
-    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
-}
-
-.clickableTicker:hover {
-    transform: translateY(-2px);
-    border-color: var(--primary);
-}
-
-.activeTicker {
-    border-color: var(--primary);
-    box-shadow: 0 12px 28px rgba(14, 15, 55, 0.14);
-}
-
-.activeTicker .label,
-.activeTicker .valueGroup strong {
-    color: var(--primary);
 }
 
 .tickerHead {
@@ -814,6 +58,46 @@ a.t-item:hover span {
     justify-content: space-between;
     gap: 12px;
     min-height: 18px;
+}
+
+.label {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.valueGroup {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.valueGroup strong {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.4px;
+    color: var(--text-main);
+}
+
+.clickableTicker {
+    cursor: pointer;
+    transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.clickableTicker:hover {
+    transform: translateY(-2px);
+    border-color: var(--primary-main);
+}
+
+.activeTicker {
+    border-color: var(--primary-main);
+    box-shadow: 0 12px 28px rgba(14, 15, 55, 0.14);
+}
+
+.activeTicker .label,
+.activeTicker .valueGroup strong {
+    color: var(--primary-dark);
 }
 
 .tickerSelect {
@@ -836,22 +120,490 @@ a.t-item:hover span {
     text-align: right;
 }
 
+/* 상단 메인 영역 */
+.stockTop {
+    display: grid;
+    grid-template-columns: minmax(0, 2.35fr) minmax(300px, 0.9fr);
+    gap: 14px;
+    align-items: start;
+}
+
+.chartBox {
+    background: var(--bg-card);
+    padding: 20px 22px 18px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+    min-height: 0;
+}
+
+.analysisBox {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.combinedAnalysis,
+.aiPredictPanel {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: var(--shadow);
+}
+
+.combinedAnalysis {
+    padding: 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.aiPredictPanel.aiRotatorPanel {
+    padding: 16px;
+    border-radius: 20px;
+}
+
+.boxHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.boxHeader h2,
+.boxHeader h3 {
+    margin: 0;
+    color: var(--text-main);
+    font-weight: 800;
+    line-height: 1.25;
+}
+
+.boxHeader h2 {
+    font-size: 18px;
+}
+
+.boxHeader h3 {
+    font-size: 15px;
+}
+
+/* 검색 */
+.searchWrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 14px;
+    box-sizing: border-box;
+}
+
+.searchWrapper input {
+    width: 100%;
+    box-sizing: border-box;
+    display: block;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    font-size: 14px;
+    color: var(--text-main);
+    background: var(--bg-card);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.searchWrapper input:focus {
+    border-color: var(--primary-main);
+    box-shadow: 0 0 0 3px var(--primary-dark-soft);
+}
+
+#searchDropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+    z-index: 1000;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.searchItem {
+    padding: 11px 14px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--line);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: background 0.15s;
+}
+
+.searchItem:last-child {
+    border-bottom: none;
+}
+
+.searchItem:hover {
+    background: var(--bg-soft);
+}
+
+.searchItem .item-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-main);
+}
+
+.searchItem .item-market {
+    font-size: 11px;
+    color: var(--text-sub);
+    margin-left: 6px;
+    background: var(--bg-soft);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+
+.searchItem .item-code {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-family: monospace;
+}
+
+/* 종목 정보 */
+.stockInfoPanel {
+    padding: 2px 0 12px;
+    border-bottom: 1px solid var(--line);
+    margin-bottom: 10px;
+}
+
+.stockNameRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.stockNameRow #chartStockName {
+    font-size: 17px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.stockCodeBadge {
+    font-size: 12px;
+    color: var(--text-light);
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
+    padding: 3px 9px;
+    border-radius: 8px;
+    font-weight: 600;
+}
+
+.stockPriceRow {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.stockPriceRow strong {
+    font-size: 30px;
+    font-weight: 900;
+    color: var(--text-main);
+    letter-spacing: -0.5px;
+}
+
+.stockPriceRow span {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.stockMetaRow {
+    display: flex;
+    gap: 16px;
+    font-size: 13px;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.stockMetaRow span {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.stockMetaRow strong {
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+/* 차트 탭 */
+.chartTabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 12px;
+}
+
+.chartTab {
+    padding: 8px 14px;
+    border-radius: 10px;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.chartTab.active {
+    background: var(--primary-mid);
+    color: var(--white);
+    border-color: var(--primary-mid);
+}
+
+.chartTab:hover:not(.active) {
+    border-color: var(--primary-main);
+    color: var(--primary-main);
+}
+
+/* 줌 버튼 */
+.zoomTabs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.zoomLabel {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-sub);
+    margin-right: 4px;
+}
+
+.zoomTab {
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+
+.zoomTab.active {
+    background: var(--primary-dark);
+    color: var(--white);
+}
+
+.zoomTab:hover:not(.active) {
+    color: var(--primary-main);
+    background: var(--primary-main-soft);
+}
+
+/* 차트 */
+.chartContainer {
+    position: relative;
+    width: 100%;
+    padding-bottom: 4px;
+}
+
 #mainChart {
     width: 100%;
     height: 360px;
 }
 
-.aiPredictPanel.aiRotatorPanel {
-    padding: 16px;
-    border-radius: 18px;
+/* 분석 카드 */
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    background: #ecfdf5;
+    color: #059669;
+    padding: 5px 10px;
+    border-radius: 999px;
+    font-weight: 800;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.badge-bull {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.badge-bear {
+    background: var(--danger-soft);
+    color: var(--danger-main);
+}
+
+.badge-warn {
+    background: #fffbeb;
+    color: #d97706;
+}
+
+.aiArticleCount {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--bg-soft);
+    border-radius: 12px;
+    padding: 11px 14px;
+    font-size: 13px;
+    color: var(--text-light);
+    border: 1px solid var(--line);
+}
+
+.aiArticleCount strong {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--text-main);
+}
+
+.gaugeWrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.gaugeLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.gaugeBar {
+    width: 100%;
+    height: 7px;
+    background: var(--bg-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+}
+
+.gaugeFill {
+    height: 100%;
+    border-radius: 999px;
+    width: 0;
+    transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.gaugeFill.positive {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--danger-main) 60%, white), var(--danger-main));
+}
+
+.gaugeFill.negative {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-main) 60%, white), var(--primary-main));
+}
+
+.gaugeFill.sentFill {
+    background: linear-gradient(90deg, #8bd8b0, #10b981);
+}
+
+.gaugeRange {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-muted);
+}
+
+.analysisDesc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.65;
+    color: var(--text-sub);
+}
+
+/* AI 브리핑 */
+.rotatorTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.rotatorControls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.rotatorBtn {
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--bg-card);
+    color: var(--primary-dark);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.rotatorIndex {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    min-width: 36px;
+    text-align: center;
+}
+
+.predictSymbol {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 700;
+    margin-bottom: 12px;
+}
+
+.predictMain {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.predictIcon {
+    width: 52px;
+    height: 52px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #eef6df;
+    color: #47651e;
+    font-size: 28px;
+    font-weight: 800;
+    flex-shrink: 0;
+}
+
+.predictContent {
+    min-width: 0;
+}
+
+.predictTitle {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text-main);
+    line-height: 1.25;
+    margin-bottom: 4px;
+}
+
+.predictSub {
+    font-size: 13px;
+    font-weight: 800;
+    color: var(--text-main);
 }
 
 .scTrendBox {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    background: var(--bg-page);
-    border: 1px solid var(--border);
+    background: var(--bg-soft);
+    border: 1px solid var(--line);
     border-radius: 12px;
     padding: 10px 12px;
 }
@@ -886,8 +638,8 @@ a.t-item:hover span {
     min-width: 40px;
     padding: 3px 8px;
     border-radius: 999px;
-    background: rgba(14, 15, 55, 0.08);
-    color: var(--primary);
+    background: var(--primary-main-soft);
+    color: var(--primary-dark);
     font-size: 10px;
     font-weight: 800;
 }
@@ -900,14 +652,14 @@ a.t-item:hover span {
     width: 22px;
     height: 22px;
     border-radius: 999px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--line);
     background: var(--bg-card);
     color: var(--text-sub);
     cursor: pointer;
 }
 
 .scTrendToggle:hover {
-    border-color: var(--primary);
+    border-color: var(--primary-main);
 }
 
 .scTrendToggleIcon {
@@ -960,24 +712,24 @@ a.t-item:hover span {
 }
 
 .trend-up {
-    background: #fef2f2;
-    color: #dc2626;
+    background: var(--danger-soft);
+    color: var(--danger-main);
 }
 
 .trend-down {
-    background: #eff6ff;
-    color: #2563eb;
+    background: var(--primary-main-soft);
+    color: var(--primary-main);
 }
 
 .trend-neutral {
     background: #f3f4f6;
-    color: #6b7280;
+    color: var(--text-muted);
 }
 
 .scTrendBar {
     width: 100%;
     height: 8px;
-    background: var(--border);
+    background: var(--line);
     border-radius: 999px;
     overflow: hidden;
 }
@@ -989,11 +741,11 @@ a.t-item:hover span {
 }
 
 .fill-trend-up {
-    background: linear-gradient(90deg, #fca5a5, #ef4444);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--danger-main) 55%, white), var(--danger-main));
 }
 
 .fill-trend-down {
-    background: linear-gradient(90deg, #93c5fd, #2563eb);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--primary-main) 55%, white), var(--primary-main));
 }
 
 .fill-trend-neutral {
@@ -1024,7 +776,7 @@ a.t-item:hover span {
     padding: 8px 0 0;
     background: transparent;
     border: none;
-    border-top: 1px solid var(--border);
+    border-top: 1px solid var(--line);
     border-radius: 0;
 }
 
@@ -1032,6 +784,316 @@ a.t-item:hover span {
     height: 24px;
 }
 
+/* 실시간 티커 */
+.price-ticker-container {
+    overflow: hidden;
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 10px 0;
+    box-shadow: var(--shadow);
+}
+
+.price-ticker-wrapper {
+    display: flex;
+    white-space: nowrap;
+    animation: tickerScroll 40s linear infinite;
+}
+
+.ticker-content {
+    display: flex;
+    align-items: center;
+}
+
+a.t-item,
+.t-item {
+    padding: 0 22px;
+    font-size: 13px;
+    border-right: 1px solid var(--line);
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+a.t-item:hover span {
+    color: var(--primary-dark);
+}
+
+.t-item span {
+    color: var(--text-muted);
+    margin-right: 8px;
+}
+
+@keyframes tickerScroll {
+    0% { transform: translateX(0); }
+    100% { transform: translateX(-50%); }
+}
+
+/* 섹터 현황 */
+.sectorWrap {
+    margin-bottom: 2px;
+}
+
+.sector-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 4px;
+}
+
+.sector-header h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text-main);
+}
+
+.live-badge {
+    font-size: 11px;
+    color: #059669;
+    background: #ecfdf5;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-weight: 700;
+}
+
+.sectorMoreLink {
+    color: #67c38a;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.sectorCardGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+    margin-top: 12px;
+}
+
+.sectorCard {
+    background: var(--bg-card);
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    text-decoration: none;
+    color: inherit;
+    transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.sectorCard::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-dark), var(--primary-main));
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.sectorCard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(14, 15, 55, 0.12);
+    border-color: var(--primary-main);
+}
+
+.sectorCard:hover::before {
+    opacity: 1;
+}
+
+.scTop {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.scSectorRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.scIcon {
+    font-size: 22px;
+    line-height: 1;
+}
+
+.scSectorName {
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--primary-dark);
+    background: var(--primary-main-soft);
+    padding: 4px 9px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.scBadge {
+    font-size: 10px;
+    font-weight: 800;
+    padding: 4px 8px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.sc-pos {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.sc-neg {
+    background: var(--danger-soft);
+    color: var(--danger-main);
+}
+
+.sc-neu {
+    background: #f3f4f6;
+    color: var(--text-muted);
+}
+
+.sc-none {
+    background: var(--bg-soft);
+    color: var(--text-light);
+}
+
+.scCompanyName {
+    font-size: 18px;
+    font-weight: 900;
+    color: var(--text-main);
+    letter-spacing: -0.4px;
+    line-height: 1.2;
+}
+
+.scArticleCount {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+}
+
+.scBigNum {
+    font-size: 22px;
+    font-weight: 900;
+    color: var(--text-main);
+    line-height: 1;
+}
+
+.scBigLabel {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+}
+
+.scGaugeArea {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.scGaugeBar {
+    width: 100%;
+    height: 6px;
+    background: var(--bg-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    border: 1px solid var(--line);
+}
+
+.scGaugeFill {
+    height: 100%;
+    border-radius: 999px;
+    transition: width 1s ease;
+}
+
+.fill-pos {
+    background: linear-gradient(90deg, #34d399, #10b981);
+}
+
+.fill-neg {
+    background: linear-gradient(90deg, color-mix(in srgb, var(--danger-main) 60%, white), var(--danger-main));
+}
+
+.scGaugeLabel {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.scNoData {
+    font-size: 12px;
+    color: var(--text-muted);
+    text-align: center;
+    padding: 8px 0;
+    background: var(--bg-soft);
+    border-radius: 10px;
+    border: 1px dashed var(--line);
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.scStats {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--bg-soft);
+    border-radius: 14px;
+    padding: 12px 14px;
+    border: 1px solid var(--line);
+}
+
+.scStat {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+}
+
+.scStatNum {
+    font-size: 15px;
+    font-weight: 900;
+    color: var(--text-main);
+}
+
+.scStatLabel {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+.scStatDiv {
+    width: 1px;
+    height: 28px;
+    background: var(--line);
+}
+
+/* 공통 상승/하락 */
+.up {
+    color: var(--danger-main);
+    font-weight: 700;
+}
+
+.down {
+    color: var(--primary-main);
+    font-weight: 700;
+}
+
+/* 반응형 */
 @media (max-width: 1200px) {
     .stockTop {
         grid-template-columns: 1fr;
@@ -1042,16 +1104,9 @@ a.t-item:hover span {
     }
 }
 
-@media (max-width: 992px) {
-    .stockList {
-        grid-template-columns: 1fr;
-    }
-}
-
 @media (max-width: 768px) {
     .stockMainPage {
-        padding: 0 0 24px;
-        gap: 12px;
+        padding: 14px 14px 24px;
     }
 
     .marketTicker {
@@ -1062,13 +1117,15 @@ a.t-item:hover span {
         grid-template-columns: 1fr;
     }
 
-    #mainChart {
-        height: 220px;
+    .valueGroup strong {
+        font-size: 22px;
     }
-}
 
-@media (max-width: 480px) {
-    .sectorCardGrid {
-        grid-template-columns: 1fr;
+    .stockPriceRow strong {
+        font-size: 24px;
+    }
+
+    #mainChart {
+        height: 300px;
     }
 }
