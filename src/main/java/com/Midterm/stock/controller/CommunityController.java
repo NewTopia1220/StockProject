@@ -227,6 +227,9 @@ public class CommunityController {
         if (dto.getTagNames() != null) {
             dto.setTagNames(dto.getTagNames().trim());
         }
+        if (dto.getNews_link() != null) {
+            dto.setNews_link(dto.getNews_link().trim());
+        }
 
         String bannedWord = findBannedWord(dto.getTitle(), dto.getContent(), dto.getTagNames());
 
@@ -268,10 +271,7 @@ public class CommunityController {
         int userCommentCount = communityCommentDao.getCommentCountByUserNum(dto.getUser_num());
         boolean isOwner = dto.getUser_num() == loginNum;
 
-        String relatedNewsTitle = null;
-        if (dto.getNews_link() != null && !dto.getNews_link().isBlank()) {
-            relatedNewsTitle = communityExtraDao.getNewsTitleByLink(dto.getNews_link());
-        }
+        String relatedNewsTitle = resolveSelectedNewsTitle(dto);
 
         boolean likedByMe = communityLikeDao.existsLike(boardId, loginNum);
         ArrayList<CommunityCommentDto> comments = communityCommentDao.getCommentsByBoardId(boardId);
@@ -453,11 +453,11 @@ public class CommunityController {
             return "redirect:/login";
         }
 
-        CommunityDto dto = communityBoardDao.getArticle(boardId);
-        if (dto == null) {
+        Integer articleOwnerNum = communityBoardDao.getArticleOwnerNum(boardId);
+        if (articleOwnerNum == null) {
             return "redirect:/community";
         }
-        if (dto.getUser_num() != loginNum) {
+        if (!articleOwnerNum.equals(loginNum)) {
             return "redirect:/community/detail?board_id=" + boardId;
         }
 
@@ -522,7 +522,8 @@ public class CommunityController {
             return "community/update";
         }
 
-        communityBoardDao.updateArticle(dto);
+        boolean refreshTags = !hasSameTagNames(origin.getTagNames(), dto.getTagNames());
+        communityBoardDao.updateArticle(dto, refreshTags);
         return "redirect:/community/detail?board_id=" + dto.getBoard_id();
     }
 
@@ -594,18 +595,48 @@ public class CommunityController {
     );
 
     private void addSelectedNewsTitle(Model model, CommunityDto dto) {
-        String selectedNewsTitle = null;
-        if (dto != null && dto.getNews_link() != null && !dto.getNews_link().isBlank()) {
-            selectedNewsTitle = communityExtraDao.getNewsTitleByLink(dto.getNews_link());
-            if (selectedNewsTitle == null || selectedNewsTitle.isBlank()) {
-                selectedNewsTitle = dto.getNews_link();
-            }
-        }
-        model.addAttribute("selectedNewsTitle", selectedNewsTitle);
+        model.addAttribute("selectedNewsTitle", resolveSelectedNewsTitle(dto));
     }
 
     private boolean isOwnArticleComment(CommunityDto article, Integer loginNum) {
         return article != null && loginNum != null && article.getUser_num() == loginNum;
+    }
+
+    private String resolveSelectedNewsTitle(CommunityDto dto) {
+        String newsLink = dto == null ? null : normalize(dto.getNews_link());
+        if (newsLink == null) {
+            return null;
+        }
+
+        String selectedNewsTitle = communityExtraDao.getNewsTitleByLink(newsLink);
+        if (selectedNewsTitle == null || selectedNewsTitle.isBlank()) {
+            return newsLink;
+        }
+
+        return selectedNewsTitle;
+    }
+
+    private boolean hasSameTagNames(String leftTagNames, String rightTagNames) {
+        return normalizeTagNamesForCompare(leftTagNames).equals(normalizeTagNamesForCompare(rightTagNames));
+    }
+
+    private String normalizeTagNamesForCompare(String tagNames) {
+        String normalized = normalize(tagNames);
+        if (normalized == null) {
+            return "";
+        }
+
+        String[] parts = normalized.contains("#") ? normalized.split("#") : normalized.split(",");
+        List<String> tokens = new ArrayList<>();
+        for (String part : parts) {
+            String token = normalize(part);
+            if (token != null) {
+                tokens.add(token.toLowerCase(Locale.KOREA));
+            }
+        }
+
+        tokens.sort(String::compareTo);
+        return String.join("|", tokens);
     }
 
     private String findBannedWord(String... values) {

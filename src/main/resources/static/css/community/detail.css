@@ -275,6 +275,11 @@
     color: #d04343;
 }
 
+.moreMenuItem:disabled {
+    opacity: 0.7;
+    cursor: default;
+}
+
 .moreMenuItem.disabled {
     color: #b8bfce;
     cursor: default;

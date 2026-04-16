@@ -286,24 +286,67 @@ select.cwInput {
     font-size: 13px;
     font-weight: 700;
     line-height: 1;
-    cursor: pointer;
     transition: all 0.2s ease;
     border: none;
-    background: #d9d9d9;
-    color: #ffffff;
-    box-shadow: 0 6px 14px rgba(21, 22, 77, 0.12);
 }
 
-.cwSubmitBtn:hover,
-.cwCancelBtn:hover {
-    background: #15164D;
+.cwCancelBtn {
+    cursor: pointer;
+    border: 1px solid #d9dee8;
+    background: #ffffff;
+    color: #4b5563;
+    box-shadow: none;
+}
+
+.cwSubmitBtn {
+    cursor: not-allowed;
+    background: #d9d9d9;
     color: #ffffff;
+    box-shadow: none;
+}
+
+.cwSubmitBtn.isReady,
+.cwSubmitBtn:enabled {
+    cursor: pointer;
+    background: var(--primary-main, #3182F6);
+    box-shadow: 0 8px 18px rgba(49, 130, 246, 0.22);
+}
+
+.cwSubmitBtn.isSubmitting {
+    cursor: wait;
+    background: var(--primary-main, #3182F6);
+    color: #ffffff;
+    box-shadow: 0 8px 18px rgba(49, 130, 246, 0.22);
+    opacity: 0.96;
+}
+
+.cwCancelBtn:hover {
+    background: #f5f7fb;
+    color: #111827;
     transform: translateY(-1px);
 }
 
-.cwSubmitBtn:active,
+.cwSubmitBtn.isReady:hover,
+.cwSubmitBtn:enabled:hover {
+    background: var(--primary-main, #3182F6);
+    color: #ffffff;
+    filter: brightness(0.97);
+    transform: translateY(-1px);
+}
+
 .cwCancelBtn:active {
     transform: translateY(0);
+}
+
+.cwSubmitBtn:active {
+    transform: translateY(0);
+}
+
+.cwSubmitBtn:disabled:hover {
+    background: #d9d9d9;
+    color: #ffffff;
+    filter: none;
+    transform: none;
 }
 
 @media screen and (max-width: 900px) {
