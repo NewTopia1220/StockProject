@@ -33,4 +33,7 @@ public interface StockRepository extends JpaRepository<Stock, Long> {
 
     @Query("SELECT s.fullName FROM Stock s WHERE s.stockCode = :stockCode")
     String findByStockCode(@Param("stockCode") String stockCode);
+
+    @Query("SELECT COALESCE(s.stockName, s.fullName, s.stockCode) FROM Stock s WHERE s.stockCode = :stockCode")
+    String findDisplayNameByStockCode(@Param("stockCode") String stockCode);
 }

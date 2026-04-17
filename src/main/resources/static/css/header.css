@@ -314,19 +314,87 @@ body.withGuestHeader {
 }
 
 .alertDot {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-top: 6px;
+    position: relative;
+    width: 20px;
+    height: 20px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 2px;
     flex-shrink: 0;
 }
 
-.alertDot.up {
-    background: #ef4444;
+.alertDotIcon {
+    width: 18px;
+    height: 18px;
+    stroke: none;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    fill: none;
+    filter: drop-shadow(0 1px 1px rgba(15, 23, 42, 0.12));
 }
 
-.alertDot.down {
-    background: #3b82f6;
+.alertDotIconSolid {
+    stroke: none;
+}
+
+.alertDotPrimaryFill {
+    fill: currentColor;
+}
+
+.alertDotAccentFill {
+    fill: #ffffff;
+}
+
+.alertDotAccentStroke {
+    stroke: #ffffff;
+    stroke-width: 2.1;
+    fill: none;
+}
+
+.alertDot.rise {
+    color: #ef4444;
+}
+
+.alertDot.rise .alertDotIcon {
+    width: 16px;
+    height: 16px;
+}
+
+.alertDot.fall {
+    color: #2563eb;
+}
+
+.alertDot.fall .alertDotIcon {
+    width: 16px;
+    height: 16px;
+}
+
+.alertDot.surge {
+    color: #f97316;
+}
+
+.alertDot.surge .alertDotIcon {
+    width: 18px;
+    height: 18px;
+}
+
+.alertDot.comment {
+    color: #16a34a;
+}
+
+.alertDot.comment .alertDotIcon {
+    width: 17px;
+    height: 17px;
+}
+
+.alertDot.anomaly {
+    color: #f59e0b;
+}
+
+.alertDot.anomaly .alertDotIcon {
+    width: 18px;
+    height: 18px;
 }
 
 .alertItemText {
