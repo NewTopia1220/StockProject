@@ -96,10 +96,8 @@ public class CommunityController {
         boolean hasCategory = categoryName != null && !categoryName.isBlank() && !"전체".equals(categoryName) && !isPopularView;
         boolean hasKeyword = searchKeyword != null;
 
-        // 전체 게시판인지 그 외 게시판인지
         boolean isDefaultBoardView = !isPopularView && !hasCategory && !hasKeyword;
 
-        // 첫 페이지 일반글 개수 설정 (전체 = 2, 그 외 = 4)
         final int firstPageRegularCount = isDefaultBoardView ? 2 : 4;
         final int otherPageRegularCount = 4;
 
@@ -107,12 +105,9 @@ public class CommunityController {
 
         if (page <= 1) {
             page = 1;
-
-            // 1페이지는 위에서 정한 firstPageRegularCount만큼
             start = 1;
             end = firstPageRegularCount;
         } else {
-            // 2페이지부터는 4개씩 끊어서
             start = firstPageRegularCount + ((page - 2) * otherPageRegularCount) + 1;
             end = start + otherPageRegularCount - 1;
         }
@@ -121,37 +116,30 @@ public class CommunityController {
         int totalCount;
 
         if (isPopularView) {
-            // 인기글 게시판
             lists = communityBoardDao.getPopularArticles(themeName, searchKeyword, start, end);
             totalCount = communityBoardDao.getPopularArticleCount(themeName, searchKeyword);
         } else if (hasCategory && hasKeyword) {
-            // 카테고리 + 검색어가 같이 있을 때
             lists = communityBoardDao.getArticlesByCategoryAndKeyword(categoryName, searchKeyword, start, end);
             totalCount = communityBoardDao.getArticleCountByCategoryAndKeyword(categoryName, searchKeyword);
         } else if (hasCategory) {
-            // 특정 카테고리 게시판만
             lists = communityBoardDao.getArticlesByCategory(categoryName, start, end);
             totalCount = communityBoardDao.getArticleCountByCategory(categoryName);
         } else if (hasKeyword) {
-            // 검색 결과만
             lists = communityBoardDao.searchArticles(searchKeyword, start, end);
             totalCount = communityBoardDao.getArticleCountByKeyword(searchKeyword);
         } else {
-            // 전체 게시판
             lists = communityBoardDao.getArticles(start, end);
             totalCount = communityBoardDao.getArticleCount();
         }
 
         int totalPages;
 
-        // 이후 페이지는 4개씩 계산
         if (totalCount <= firstPageRegularCount) {
             totalPages = 1;
         } else {
             totalPages = 1 + (int) Math.ceil((double) (totalCount - firstPageRegularCount) / otherPageRegularCount);
         }
 
-        // 현재 페이지가 총 페이지 수를 넘지 않도록
         page = Math.min(page, totalPages);
 
         ArrayList<Map<String, Object>> popularCategories = communityExtraDao.getPopularThemeCategories();
@@ -315,7 +303,6 @@ public class CommunityController {
             }
 
             if (result > 0) {
-
                 boolean isCommentAlertEnabled = watchListService.isCommentNotifyEnabled(article.getUser_num());
                 System.out.println("댓글 알림 체크 - 작성자: " + article.getUser_num() + " | 상태: " + isCommentAlertEnabled);
 
@@ -390,13 +377,6 @@ public class CommunityController {
             return "redirect:/community";
         }
 
-        /*  내 댓글만 삭제
-
-        if (comment.getUser_num() != loginNum) {
-            return "redirect:/community/detail?board_id=" + comment.getBoard_id();
-        }  */
-
-        // 권한 확대 => 내 게시글에 있는 다른 사람 댓글까지 삭제 가능
         CommunityDto board = communityBoardDao.getArticle(comment.getBoard_id());
         boolean isCommentWriter = comment.getUser_num() == loginNum;
         boolean isBoardOwner = board != null && board.getUser_num() == loginNum;
@@ -483,6 +463,11 @@ public class CommunityController {
             return "redirect:/community/detail?board_id=" + boardId;
         }
 
+        // 수정 입력창에서는 사용자가 입력하던 형식과 맞게 #태그 형태로 보여줍니다.
+        if (dto.getTagNames() != null && !dto.getTagNames().isBlank()) {
+            dto.setTagNames(formatTagsForInput(dto.getTagNames()));
+        }
+
         model.addAttribute("dto", dto);
         addSelectedNewsTitle(model, dto);
         model.addAttribute("currentPage", "community");
@@ -527,7 +512,6 @@ public class CommunityController {
         return "redirect:/community/detail?board_id=" + dto.getBoard_id();
     }
 
-    // 사용자별 게시글, 댓글 확인 가능
     @GetMapping("/activity")
     public String activity(@RequestParam(value = "user_num", required = false) Integer userNum,
                            @RequestParam(value = "tab", defaultValue = "posts") String tab,
@@ -556,18 +540,31 @@ public class CommunityController {
         int myCommentCount = communityCommentDao.getCommentCountByUserNum(targetUserNum);
         int receivedCommentCount = communityCommentDao.getReceivedCommentCountByBoardOwner(targetUserNum);
 
+        ArrayList<CommunityDto> posts = new ArrayList<>();
+        ArrayList<CommunityCommentDto> comments = new ArrayList<>();
+        ArrayList<CommunityCommentDto> replies = new ArrayList<>();
 
-        ArrayList<CommunityDto> posts = (selectedCategory == null)
-                ? communityBoardDao.getArticlesByUserNum(targetUserNum)
-                : communityBoardDao.getArticlesByUserNumAndCategory(targetUserNum, selectedCategory);
+        if ("posts".equals(currentTab)) {
+            posts = (selectedCategory == null)
+                    ? communityBoardDao.getArticlesByUserNum(targetUserNum)
+                    : communityBoardDao.getArticlesByUserNumAndCategory(targetUserNum, selectedCategory);
 
-        ArrayList<CommunityCommentDto> comments = (selectedCategory == null)
-                ? communityCommentDao.getCommentsByUserNum(targetUserNum)
-                : communityCommentDao.getCommentsByUserNumAndCategory(targetUserNum, selectedCategory);
+        } else if ("comments".equals(currentTab)) {
+            comments = (selectedCategory == null)
+                    ? communityCommentDao.getCommentsByUserNum(targetUserNum)
+                    : communityCommentDao.getCommentsByUserNumAndCategory(targetUserNum, selectedCategory);
 
-        ArrayList<CommunityCommentDto> replies = (selectedCategory == null)
-                ? communityCommentDao.getCommentsOnUserBoards(targetUserNum)
-                : communityCommentDao.getCommentsOnUserBoardsByCategory(targetUserNum, selectedCategory);
+        } else if ("replies".equals(currentTab)) {
+            replies = (selectedCategory == null)
+                    ? communityCommentDao.getCommentsOnUserBoards(targetUserNum)
+                    : communityCommentDao.getCommentsOnUserBoardsByCategory(targetUserNum, selectedCategory);
+
+        } else {
+            currentTab = "posts";
+            posts = (selectedCategory == null)
+                    ? communityBoardDao.getArticlesByUserNum(targetUserNum)
+                    : communityBoardDao.getArticlesByUserNumAndCategory(targetUserNum, selectedCategory);
+        }
 
         List<String> activityCategories = communityBoardDao.getUserActivityCategories(targetUserNum);
 
@@ -637,6 +634,25 @@ public class CommunityController {
 
         tokens.sort(String::compareTo);
         return String.join("|", tokens);
+    }
+
+    private String formatTagsForInput(String tagNames) {
+        String normalized = normalize(tagNames);
+        if (normalized == null) {
+            return "";
+        }
+
+        String[] parts = normalized.split(",");
+        List<String> tokens = new ArrayList<>();
+
+        for (String part : parts) {
+            String token = normalize(part);
+            if (token != null) {
+                tokens.add("#" + token);
+            }
+        }
+
+        return String.join(" ", tokens);
     }
 
     private String findBannedWord(String... values) {
@@ -812,7 +828,6 @@ public class CommunityController {
             return "platform";
         } else if ("엔터·미디어".equals(categoryName)) {
             return "entertainment";
-
         } else if ("자동차·모빌리티".equals(categoryName)) {
             return "mobility";
         }

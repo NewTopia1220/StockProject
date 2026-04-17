@@ -1,39 +1,31 @@
 package com.Midterm.stock.repository.community;
 
 import com.Midterm.stock.dto.CommunityCommentDto;
-import com.Midterm.stock.dto.CommunityDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 
 @Repository
 public class CommunityCommentDao {
-    private String driver = "oracle.jdbc.OracleDriver";
-    private String url = "jdbc:oracle:thin:@stoxle_high?TNS_ADMIN=C:/oraclepw";
-    private String id = "ADMIN";
-    private String pw = "Heeyoun1220!";
+
+    @Autowired
+    private DataSource dataSource;
 
     private Connection conn = null;
     private PreparedStatement pstmt = null;
     private ResultSet rs = null;
 
     public CommunityCommentDao() {
-        /*System.out.println("CommunityCommentDao 생성자 호출 - 클라우드 설정 시작");*/
-        try {
-            Class.forName(driver);
-            System.setProperty("oracle.net.wallet_location",
-                    "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
-            /*System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");*/
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        System.setProperty("oracle.net.wallet_location",
+                "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
     }
 
     public Connection connect() {
         try {
-            conn = DriverManager.getConnection(url, id, pw);
-            /*System.out.println("오라클 클라우드 DB 접속 성공!");*/
+            conn = dataSource.getConnection();
         } catch (SQLException e) {
             System.err.println("DB 접속 실패: " + e.getMessage());
             e.printStackTrace();
@@ -119,16 +111,6 @@ public class CommunityCommentDao {
         }
 
         return count;
-    }
-
-    private void closeAll() {
-        try {
-            if (rs != null) rs.close();
-            if (pstmt != null) pstmt.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     public CommunityCommentDto getComment(int comment_id) {
@@ -392,7 +374,6 @@ public class CommunityCommentDao {
         return count;
     }
 
-
     public int deleteComment(int comment_id) {
         connect();
         int count = -1;
@@ -410,5 +391,15 @@ public class CommunityCommentDao {
         }
 
         return count;
+    }
+
+    private void closeAll() {
+        try {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }
