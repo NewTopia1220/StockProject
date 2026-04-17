@@ -308,9 +308,11 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="scNoData" th:if="${card['articleCount'] == 0}">
-                            <img th:src="@{/images/searching_news.png}" width="80px" alt="뉴스 찾는중 이미지">
-                            <div>뉴스를 찾고 있어요</div>
+                        <div class="scNoData collectingState" th:if="${card['articleCount'] == 0}">
+                            <img src="/images/news-collecting.png" alt="기사 수집중" class="scNoDataIcon">
+                            <div class="scNoDataTextWrap">
+                                <p class="scNoDataTitle">기사 수집중...</p>
+                            </div>
                         </div>
                     </a>
                 </div>

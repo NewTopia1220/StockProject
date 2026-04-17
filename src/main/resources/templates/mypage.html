@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Stoxle - 설정</title>
     <link rel="stylesheet" th:href="@{/css/header.css}">
+    <link rel="stylesheet" th:href="@{/css/color.css}">
     <link rel="stylesheet" th:href="@{/css/asset/style.css}">
     <link rel="stylesheet" th:href="@{/css/asset/mypage.css}">
 </head>
@@ -150,7 +151,7 @@
                                 <p class="settings-value">모든 데이터가 영구 삭제됩니다</p>
                             </div>
                             <form id="withdrawForm" th:action="@{/user/withdraw}" method="post">
-                                <button type="button" class="btn btn-link" style="color: #ff4b4b;" onclick="confirmWithdraw()">탈퇴하기</button>
+                                <button type="button" class="btn btn-danger-outline" onclick="confirmWithdraw()">탈퇴하기</button>
                             </form>
                         </div>
                         <script>

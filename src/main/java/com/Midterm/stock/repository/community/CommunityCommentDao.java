@@ -1,38 +1,31 @@
 package com.Midterm.stock.repository.community;
 
 import com.Midterm.stock.dto.CommunityCommentDto;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import javax.sql.DataSource;
 import java.sql.*;
 import java.util.ArrayList;
 
 @Repository
 public class CommunityCommentDao {
-    private String driver = "oracle.jdbc.OracleDriver";
-    private String url = "jdbc:oracle:thin:@stoxle_high?TNS_ADMIN=C:/oraclepw";
-    private String id = "ADMIN";
-    private String pw = "Heeyoun1220!";
+
+    @Autowired
+    private DataSource dataSource;
 
     private Connection conn = null;
     private PreparedStatement pstmt = null;
     private ResultSet rs = null;
 
     public CommunityCommentDao() {
-        /*System.out.println("CommunityCommentDao 생성자 호출 - 클라우드 설정 시작");*/
-        try {
-            Class.forName(driver);
-            System.setProperty("oracle.net.wallet_location",
-                    "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
-            /*System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");*/
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        System.setProperty("oracle.net.wallet_location",
+                "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
     }
 
     public Connection connect() {
         try {
-            conn = DriverManager.getConnection(url, id, pw);
-            /*System.out.println("오라클 클라우드 DB 접속 성공!");*/
+            conn = dataSource.getConnection();
         } catch (SQLException e) {
             System.err.println("DB 접속 실패: " + e.getMessage());
             e.printStackTrace();
@@ -118,16 +111,6 @@ public class CommunityCommentDao {
         }
 
         return count;
-    }
-
-    private void closeAll() {
-        try {
-            if (rs != null) rs.close();
-            if (pstmt != null) pstmt.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 
     public CommunityCommentDto getComment(int comment_id) {
@@ -252,6 +235,123 @@ public class CommunityCommentDao {
         return comments;
     }
 
+    public ArrayList<CommunityCommentDto> getCommentsByUserNumAndCategory(int user_num, String category) {
+        connect();
+        ArrayList<CommunityCommentDto> comments = new ArrayList<>();
+
+        String sql = "select cc.comment_id, cc.board_id, cc.user_num, "
+                + "u.name as user_name, u.email as user_email, "
+                + "cb.title as board_title, cb.user_num as board_writer_user_num, "
+                + "cc.content, cc.created_at, cc.updated_at "
+                + "from community_comment cc "
+                + "join users u on cc.user_num = u.num "
+                + "join community_board cb on cc.board_id = cb.board_id "
+                + "where cc.user_num = ? and cb.category = ? "
+                + "order by cc.created_at desc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, user_num);
+            pstmt.setString(2, category);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityCommentDto dto = new CommunityCommentDto();
+                dto.setComment_id(rs.getInt("comment_id"));
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setBoardTitle(rs.getString("board_title"));
+                dto.setBoardWriterUserNum(rs.getInt("board_writer_user_num"));
+                dto.setContent(rs.getString("content"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                comments.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return comments;
+    }
+
+    public ArrayList<CommunityCommentDto> getCommentsOnUserBoardsByCategory(int boardOwnerUserNum, String category) {
+        connect();
+        ArrayList<CommunityCommentDto> comments = new ArrayList<>();
+
+        String sql = "select cc.comment_id, cc.board_id, cc.user_num, "
+                + "u.name as user_name, u.email as user_email, "
+                + "cb.title as board_title, cb.user_num as board_writer_user_num, "
+                + "cc.content, cc.created_at, cc.updated_at "
+                + "from community_comment cc "
+                + "join users u on cc.user_num = u.num "
+                + "join community_board cb on cc.board_id = cb.board_id "
+                + "where cb.user_num = ? "
+                + "and cc.user_num <> ? "
+                + "and cb.category = ? "
+                + "order by cc.created_at desc";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, boardOwnerUserNum);
+            pstmt.setInt(2, boardOwnerUserNum);
+            pstmt.setString(3, category);
+            rs = pstmt.executeQuery();
+
+            while (rs.next()) {
+                CommunityCommentDto dto = new CommunityCommentDto();
+                dto.setComment_id(rs.getInt("comment_id"));
+                dto.setBoard_id(rs.getInt("board_id"));
+                dto.setUser_num(rs.getInt("user_num"));
+                dto.setUserName(rs.getString("user_name"));
+                dto.setUserEmail(rs.getString("user_email"));
+                dto.setBoardTitle(rs.getString("board_title"));
+                dto.setBoardWriterUserNum(rs.getInt("board_writer_user_num"));
+                dto.setContent(rs.getString("content"));
+                dto.setCreated_at(rs.getTimestamp("created_at"));
+                dto.setUpdated_at(rs.getTimestamp("updated_at"));
+                comments.add(dto);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return comments;
+    }
+
+    public int getReceivedCommentCountByBoardOwner(int boardOwnerUserNum) {
+        connect();
+        int count = 0;
+
+        String sql = "select count(*) "
+                + "from community_comment cc "
+                + "join community_board cb on cc.board_id = cb.board_id "
+                + "where cb.user_num = ? "
+                + "and cc.user_num <> ?";
+
+        try {
+            pstmt = conn.prepareStatement(sql);
+            pstmt.setInt(1, boardOwnerUserNum);
+            pstmt.setInt(2, boardOwnerUserNum);
+            rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        } finally {
+            closeAll();
+        }
+
+        return count;
+    }
+
     public int updateComment(int comment_id, String content) {
         connect();
         int count = -1;
@@ -274,7 +374,6 @@ public class CommunityCommentDao {
         return count;
     }
 
-
     public int deleteComment(int comment_id) {
         connect();
         int count = -1;
@@ -292,5 +391,15 @@ public class CommunityCommentDao {
         }
 
         return count;
+    }
+
+    private void closeAll() {
+        try {
+            if (rs != null) rs.close();
+            if (pstmt != null) pstmt.close();
+            if (conn != null) conn.close();
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
     }
 }

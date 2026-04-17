@@ -1,5 +1,6 @@
 package com.Midterm.stock.repository.community;
 
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
 import java.sql.*;
@@ -20,12 +21,10 @@ public class CommunityExtraDao {
 
     // 생성자: 드라이버 로딩 및 지갑 설정
     public CommunityExtraDao() {
-        /*System.out.println("CommunityExtraDao 생성자 호출 - 클라우드 설정 시작");*/
         try {
             Class.forName(driver);
             System.setProperty("oracle.net.wallet_location",
                     "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
-            /*System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");*/
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -35,7 +34,6 @@ public class CommunityExtraDao {
     public Connection connect() {
         try {
             conn = DriverManager.getConnection(url, id, pw);
-            /*System.out.println("오라클 클라우드 DB 접속 성공!");*/
         } catch (SQLException e) {
             System.err.println("DB 접속 실패: " + e.getMessage());
             e.printStackTrace();
@@ -51,6 +49,9 @@ public class CommunityExtraDao {
 
         connect();
         String title = null;
+
+        // 뉴스는 news 테이블이 아니라
+        // news_data + news_data_sec 두 군데를 같이 확인합니다.
         String sql = "select title from ( "
                 + " select title from news_data where trim(link) = ? "
                 + " union all "
@@ -81,6 +82,7 @@ public class CommunityExtraDao {
         connect();
         ArrayList<Map<String, String>> newsList = new ArrayList<>();
 
+        // news_data와 news_data_sec를 합쳐서 관련 뉴스를 검색합니다.
         String sql = "select * from ( "
                 + "  select link, title, summary, pub_date from news_data "
                 + "  where title like ? or summary like ? "
@@ -94,8 +96,8 @@ public class CommunityExtraDao {
             pstmt = conn.prepareStatement(sql);
             pstmt.setString(1, "%" + keyword + "%");
             pstmt.setString(2, "%" + keyword + "%");
-            pstmt.setString(3, "%" + keyword + "%"); // news_data_sec의 title
-            pstmt.setString(4, "%" + keyword + "%"); // news_data_sec의 summary
+            pstmt.setString(3, "%" + keyword + "%");
+            pstmt.setString(4, "%" + keyword + "%");
             rs = pstmt.executeQuery();
 
             while (rs.next()) {
@@ -116,6 +118,9 @@ public class CommunityExtraDao {
     }
 
     // 인기 테마 카테고리 조회
+    // 메인 커뮤니티 화면에서 자주 쓰지만 자주 바뀌는 데이터는 아니라서 캐시를 붙입니다.
+    // 이렇게 하면 community/list 진입 때마다 매번 같은 집계를 다시 하지 않아도 됩니다.
+    @Cacheable("popularThemeCategories")
     public ArrayList<Map<String, Object>> getPopularThemeCategories() {
         connect();
         ArrayList<Map<String, Object>> popularCategories = new ArrayList<>();
