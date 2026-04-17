@@ -208,7 +208,6 @@ public class NewsDao {
     }
 
     // 뉴스 링크 목록에 대응하는 종목 매핑과 저장된 영향도를 한 번에 조회
-    // 뉴스 링크 목록에 대응하는 종목 매핑과 저장된 영향도를 한 번에 조회
     public Map<String, Map<String, Object>> getNewsSignalMap(List<String> links) {
         Map<String, Map<String, Object>> result = new HashMap<>();
         if (links == null || links.isEmpty()) {
@@ -223,27 +222,20 @@ public class NewsDao {
             return result;
         }
 
-        String sql =
-                "SELECT link, stock_code, impact_30m FROM ( " +
-                        "    SELECT link, stock_code, impact_30m, " +
-                        "           ROW_NUMBER() OVER (PARTITION BY link ORDER BY created_at DESC NULLS LAST, id DESC) AS rn " +
-                        "    FROM NEWS_IMPACT " +
-                        "    WHERE link IN (" + placeholders + ") " +
-                        ") WHERE rn = 1";
+        String impactSql =
+            "SELECT link, impact_30m FROM ( " +
+            "    SELECT link, impact_30m, " +
+            "           ROW_NUMBER() OVER (PARTITION BY link ORDER BY created_at DESC NULLS LAST, id DESC) AS rn " +
+            "    FROM NEWS_IMPACT " +
+            "    WHERE link IN (" + placeholders + ") " +
+            ") WHERE rn = 1";
 
-        try (PreparedStatement ps = conn.prepareStatement(sql)) {
+        try (PreparedStatement ps = conn.prepareStatement(impactSql)) {
             bindLinkParams(ps, uniqueLinks);
-
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     String link = rs.getString("link");
                     Map<String, Object> row = result.computeIfAbsent(link, key -> new HashMap<>());
-
-                    String stockCode = rs.getString("stock_code");
-                    if (stockCode != null && !stockCode.isBlank()) {
-                        row.put("stockCode", stockCode);
-                    }
-
                     double impact = rs.getDouble("impact_30m");
                     if (!rs.wasNull()) {
                         row.put("impact30m", impact);
@@ -251,12 +243,9 @@ public class NewsDao {
                 }
             }
         } catch (SQLException e) {
-            System.err.println("getNewsSignalMap: " + e.getMessage());
+            System.err.println("getNewsSignalMap(impact): " + e.getMessage());
         } finally {
-            try {
-                conn.close();
-            } catch (Exception ignore) {
-            }
+            try { conn.close(); } catch (Exception ignore) {}
         }
 
         return result;
@@ -322,98 +311,29 @@ public class NewsDao {
     }
 
     /** 좋아요·댓글 수를 한 번에 로드해서 dto에 세팅 */
-    // 좋아요·댓글 수를 현재 페이지 뉴스 링크 기준으로 한 번에 로드해서 dto에 세팅
-    // 좋아요·댓글 수를 현재 페이지 뉴스 링크 기준으로 한 번에 로드해서 dto에 세팅
     private void loadLikeCommentCounts(List<NewsDto> list, int userNum) {
-        if (list == null || list.isEmpty()) {
-            return;
-        }
-
-        List<String> links = new ArrayList<>();
-        for (NewsDto dto : list) {
-            if (dto.getLink() != null && !dto.getLink().isBlank()) {
-                links.add(dto.getLink());
-            }
-        }
-
-        if (links.isEmpty()) {
-            return;
-        }
-
-        String placeholders = String.join(",", Collections.nCopies(links.size(), "?"));
-        Map<String, Integer> likeCountMap = new HashMap<>();
-        Map<String, Boolean> likedMap = new HashMap<>();
-        Map<String, Integer> commentCountMap = new HashMap<>();
-
-        Connection conn = connect();
-        if (conn == null) {
-            return;
-        }
-
+        Connection conn = connect(); if (conn == null) return;
         try {
-            // 수정 이유:
-            // 기사마다 좋아요 쿼리를 따로 날리면 뉴스 개수만큼 반복되므로
-            // 현재 페이지 링크 전체를 한 번에 집계해서 가져온다.
-            String likeSql =
-                    "SELECT news_link, COUNT(*) AS total, " +
-                            "       SUM(CASE WHEN user_num = ? THEN 1 ELSE 0 END) AS mine " +
-                            "FROM NEWS_LIKES " +
-                            "WHERE news_link IN (" + placeholders + ") " +
-                            "GROUP BY news_link";
-
-            try (PreparedStatement ps = conn.prepareStatement(likeSql)) {
-                int idx = 1;
-                ps.setInt(idx++, userNum);
-                for (String link : links) {
-                    ps.setString(idx++, link);
-                }
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        String link = rs.getString("news_link");
-                        likeCountMap.put(link, rs.getInt("total"));
-                        likedMap.put(link, rs.getInt("mine") > 0);
-                    }
-                }
-            }
-
-            // 수정 이유:
-            // 댓글 수도 기사별로 개별 조회하지 않고
-            // 현재 페이지 링크 전체를 한 번에 집계해서 가져온다.
-            String commentSql =
-                    "SELECT news_link, COUNT(*) AS total " +
-                            "FROM NEWS_COMMENTS " +
-                            "WHERE news_link IN (" + placeholders + ") " +
-                            "GROUP BY news_link";
-
-            try (PreparedStatement ps = conn.prepareStatement(commentSql)) {
-                int idx = 1;
-                for (String link : links) {
-                    ps.setString(idx++, link);
-                }
-
-                try (ResultSet rs = ps.executeQuery()) {
-                    while (rs.next()) {
-                        commentCountMap.put(rs.getString("news_link"), rs.getInt("total"));
-                    }
-                }
-            }
-
             for (NewsDto dto : list) {
                 String link = dto.getLink();
-                dto.setLikeCount(likeCountMap.getOrDefault(link, 0));
-                dto.setLiked(likedMap.getOrDefault(link, false));
-                dto.setCommentCount(commentCountMap.getOrDefault(link, 0));
+                // 좋아요 count + liked
+                String likeSql = "SELECT COUNT(*) as total, " +
+                    "SUM(CASE WHEN user_num=? THEN 1 ELSE 0 END) as mine FROM NEWS_LIKES WHERE news_link=?";
+                try (PreparedStatement ps = conn.prepareStatement(likeSql)) {
+                    ps.setInt(1, userNum); ps.setString(2, link);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next()) { dto.setLikeCount(rs.getInt("total")); dto.setLiked(rs.getInt("mine")>0); }
+                    }
+                }
+                // 댓글 count
+                String cmtSql = "SELECT COUNT(*) FROM NEWS_COMMENTS WHERE news_link=?";
+                try (PreparedStatement ps = conn.prepareStatement(cmtSql)) {
+                    ps.setString(1, link);
+                    try (ResultSet rs = ps.executeQuery()) { if (rs.next()) dto.setCommentCount(rs.getInt(1)); }
+                }
             }
-
-        } catch (SQLException e) {
-            System.err.println("loadLikeCommentCounts: " + e.getMessage());
-        } finally {
-            try {
-                conn.close();
-            } catch (Exception ignore) {
-            }
-        }
+        } catch (SQLException e) { System.err.println("loadLikeCommentCounts: " + e.getMessage()); }
+        finally { try { conn.close(); } catch (Exception ignore) {} }
     }
 
     // ─────────────────────────────────────────────────────────────

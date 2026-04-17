@@ -26,14 +26,14 @@
     margin: 0;
     font-size: 26px;
     font-weight: 800;
-    color: var(--text-main);
+    color: #111827;
     letter-spacing: -0.03em;
 }
 
 /* 카드 공통 */
 .settings-section {
     width: 100%;
-    background: var(--bg-card);
+    background: #ffffff;
     border: 1px solid #e8ecf4;
     border-radius: 22px;
     box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
@@ -61,7 +61,7 @@
 .section-icon {
     width: 22px;
     height: 22px;
-    color: var(--primary-dark);
+    color: #15164D;
     flex-shrink: 0;
     margin-top: 1px;
 }
@@ -70,7 +70,7 @@
     margin: 0;
     font-size: 20px;
     font-weight: 800;
-    color: var(--primary-dark);
+    color: #1b2254;
     line-height: 1.3;
 }
 
@@ -78,7 +78,7 @@
     margin: 3px 0 0;
     font-size: 13px;
     line-height: 1.45;
-    color: var(--text-light);
+    color: #8f97ac;
 }
 
 /* 설정 리스트 */
@@ -114,7 +114,7 @@
     margin: 0 0 4px;
     font-size: 15px;
     font-weight: 700;
-    color: var(--primary-dark);
+    color: #1d234f;
     line-height: 1.35;
 }
 
@@ -122,7 +122,7 @@
     margin: 0;
     font-size: 14px;
     line-height: 1.5;
-    color: var(--text-muted);
+    color: #7f889b;
     word-break: keep-all;
 }
 
@@ -138,8 +138,8 @@
     border: 1px solid #d9dee8;
     border-radius: 10px;
     font-size: 14px;
-    color: var(--text-main);
-    background: var(--bg-card);
+    color: #111827;
+    background: #ffffff;
     outline: none;
     transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -148,8 +148,8 @@
 .settings-info input[type="tel"]:focus,
 .settings-info input[type="password"]:focus,
 .settings-edit-input:focus {
-    border-color: var(--primary-dark);
-    box-shadow: 0 0 0 4px var(--primary-dark-soft);
+    border-color: #15164D;
+    box-shadow: 0 0 0 4px rgba(21, 22, 77, 0.08);
 }
 
 /* 버튼 그룹 */
@@ -180,8 +180,8 @@
 }
 
 .btn-link:hover {
-    background: var(--primary-mid);
-    color: var(--white);
+    background: #15164D;
+    color: #ffffff;
 }
 
 .btn-save {
@@ -189,15 +189,15 @@
     height: 36px;
     padding: 0 14px;
     border-radius: 10px;
-    background: var(--primary-mid);
-    color: var(--white);
+    background: #15164D;
+    color: #ffffff;
     font-size: 13px;
     font-weight: 700;
     transition: all 0.18s ease;
 }
 
 .btn-save:hover {
-    background: var(--primary-dark);
+    background: #20266a;
 }
 
 .btn-cancel {
@@ -206,7 +206,7 @@
     padding: 0 14px;
     border-radius: 10px;
     background: #eef1f6;
-    color: var(--text-muted);
+    color: #6b7280;
     font-size: 13px;
     font-weight: 700;
     transition: all 0.18s ease;
@@ -214,7 +214,7 @@
 
 .btn-cancel:hover {
     background: #dfe5ee;
-    color: var(--text-sub);
+    color: #374151;
 }
 
 /* 토글 */
@@ -249,13 +249,13 @@
     width: 22px;
     height: 22px;
     border-radius: 50%;
-    background: var(--white);
+    background: #ffffff;
     box-shadow: 0 2px 6px rgba(15, 23, 42, 0.12);
     transition: transform 0.2s ease;
 }
 
 .toggle-input:checked + .toggle-slider {
-    background: var(--primary-mid);
+    background: #5b82f6;
 }
 
 .toggle-input:checked + .toggle-slider::before {
@@ -286,8 +286,8 @@
     width: 42px;
     height: 42px;
     border-radius: 12px;
-    background: var(--primary-main-soft);
-    color: var(--primary-dark);
+    background: #eef2ff;
+    color: #27306b;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -299,13 +299,13 @@
     margin: 0 0 3px;
     font-size: 14px;
     font-weight: 700;
-    color: var(--primary-dark);
+    color: #1d234f;
 }
 
 .account-number {
     margin: 0;
     font-size: 13px;
-    color: var(--text-light);
+    color: #8f97ac;
 }
 
 .btn-add-account {
@@ -316,8 +316,8 @@
     height: 38px;
     padding: 0 14px;
     border-radius: 10px;
-    background: var(--primary-mid);
-    color: var(--white);
+    background: #15164D;
+    color: #ffffff;
     font-size: 13px;
     font-weight: 700;
     text-decoration: none;
@@ -325,17 +325,17 @@
 }
 
 .btn-add-account:hover {
-    background: var(--primary-dark);
+    background: #20266a;
 }
 
 /* 로그아웃 */
 .btn-logout {
     width: 100%;
     height: 48px;
-    border: 1px solid var(--line);
+    border: none;
     border-radius: 18px;
-    background: #f3f4f6;
-    color: var(--text-sub);
+    background: #3182F6;
+    color: #ffffff;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -347,41 +347,8 @@
 }
 
 .btn-logout:hover {
-    background: var(--primary-mid);
-    color: var(--white);
-    border-color: var(--primary-mid);
+    background: #15164D;
 }
-
-.btn-logout:active {
-    background: var(--primary-dark);
-    color: var(--white);
-    border-color: var(--primary-dark);
-}
-
-.btn-danger-outline {
-    min-width: 96px;
-    height: 36px;
-    padding: 0 14px;
-    border-radius: 10px;
-    background: #f3f4f6;
-    color: var(--danger-main);
-    font-size: 13px;
-    font-weight: 700;
-    transition: all 0.18s ease;
-}
-
-.btn-danger-outline:hover {
-    background: var(--danger-main);
-    border-color: var(--danger-main);
-    color: var(--white);
-}
-
-.btn-danger-outline:active {
-    background: color-mix(in srgb, var(--danger-main) 88%, black);
-    border-color: color-mix(in srgb, var(--danger-main) 88%, black);
-    color: var(--white);
-}
-
 
 /* 캘린더 확장용 */
 .calendar-header {
@@ -413,7 +380,7 @@
 .calendar-month {
     font-size: 18px;
     font-weight: 800;
-    color: var(--primary-dark);
+    color: #1b2254;
 }
 
 .calendar-grid {
@@ -426,7 +393,7 @@
     text-align: center;
     font-size: 12px;
     font-weight: 700;
-    color: var(--text-light);
+    color: #8f97ac;
     padding-bottom: 4px;
 }
 
@@ -442,7 +409,7 @@
 
 .calendar-day:hover {
     border-color: #cfd8e8;
-    background: var(--bg-card);
+    background: #ffffff;
 }
 
 .calendar-day-tooltip {
@@ -453,8 +420,8 @@
     min-width: 140px;
     padding: 10px 12px;
     border-radius: 12px;
-    background: var(--text-main);
-    color: var(--white);
+    background: #111827;
+    color: #ffffff;
     font-size: 12px;
     line-height: 1.45;
     opacity: 0;

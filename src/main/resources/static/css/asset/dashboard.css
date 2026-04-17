@@ -107,7 +107,7 @@
     font-size: 24px;
     font-weight: 700;
     line-height: 1;
-    color: var(--text-main);
+    color: var(--primary-dark);
 }
 
 .gauge-label {
@@ -150,7 +150,6 @@
     line-height: 1.2;
     word-break: keep-all;
     text-align: center;
-    color: var(--text-main);
 }
 
 .stat-item .stat-value.accent {
@@ -163,7 +162,7 @@
     padding: 18px 20px;
     margin-bottom: 12px;
     margin-top: 0;
-    background-color: var(--bg-card);
+    background-color: var(--primary-main-soft);
     border: 2px dashed var(--primary-main);
     border-radius: 12px;
     color: var(--primary-mid);
@@ -171,24 +170,23 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease-in-out;
-    box-shadow: none;
+    box-shadow: 0 2px 6px rgba(49, 130, 246, 0.08);
 }
 
 .add-transaction-btn:hover {
-    background-color: var(--primary-main-soft);
-    border: 2px solid var(--primary-main);
-    color: var(--primary-dark);
+    background-color: var(--primary-mid-soft);
+    border-style: solid;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(49, 130, 246, 0.08);
+    box-shadow: 0 4px 12px rgba(49, 130, 246, 0.12);
 }
 
 #monthlyChart {
-    background: var(--white);
+    background: var(--bg-soft);
     padding: 8px;
     margin-top: 6px;
     border-radius: 10px;
-    height: 320px !important;
-    max-height: 320px !important;
+    height: 280px !important;
+    max-height: 280px !important;
 }
 
 .card.monthly-expense-card,

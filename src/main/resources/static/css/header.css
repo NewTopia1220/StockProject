@@ -89,7 +89,7 @@ body.withGuestHeader {
     align-items: center;
     justify-content: flex-end;
     gap: 2px;
-    min-width: auto;
+    min-width: 220px;
 }
 
 .userText,
@@ -109,16 +109,16 @@ body.withGuestHeader {
 }
 
 .memberMenu {
-    display: flex;
+    display: grid;
+    grid-template-columns: 56px minmax(84px, auto) 72px;
     align-items: center;
-    justify-content: flex-end;
-    gap: 14px;
+    gap: 8px;
 }
 
 .memberMenuSlot {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
 }
 
 .memberUserText {
@@ -129,33 +129,18 @@ body.withGuestHeader {
     min-width: 0;
     text-align: center;
     white-space: nowrap;
-    position: relative;
-    padding-right: 16px;
-    color: var(--header-text);
-    font-weight: 700;
-}
-
-.memberUserText::after {
-    content: "|";
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    color: #d1d5db;
-    font-size: 13px;
-    font-weight: 500;
 }
 
 .memberMenuLink {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: center;
     min-height: 38px;
     color: var(--header-sub);
     font-size: 14px;
     font-weight: 600;
     line-height: 1;
-    text-align: left;
+    text-align: center;
     white-space: nowrap;
     transition: color 0.2s ease;
 }
@@ -232,13 +217,13 @@ body.withGuestHeader {
 
 .alertPanel {
     position: absolute;
-    top: calc(100% + 10px);
+    top: calc(100% + 12px);
     right: 0;
     width: 340px;
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+    border-radius: 18px;
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.14);
     z-index: 9998;
     display: none;
     overflow: hidden;
@@ -250,24 +235,26 @@ body.withGuestHeader {
 
 .alertPanelTabs {
     display: flex;
-    border-bottom: 1px solid #f3f4f6;
+    border-bottom: 1px solid #eef2f7;
+    background: #ffffff;
 }
 
 .alertTab {
     flex: 1;
-    padding: 12px 0;
-    font-size: 13px;
-    font-weight: 600;
+    padding: 16px 0 14px;
+    font-size: 15px;
+    font-weight: 700;
     color: #9ca3af;
     background: none;
     border: none;
     border-bottom: 2px solid transparent;
     cursor: pointer;
-    transition: color 0.15s, border-color 0.15s;
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .alertTab:hover {
-    color: #374151;
+    color: #4b5563;
+    background: #fcfcfd;
 }
 
 .alertTab.active {
@@ -278,7 +265,7 @@ body.withGuestHeader {
 .alertTabActions {
     display: flex;
     justify-content: flex-end;
-    padding: 8px 16px 4px;
+    padding: 10px 16px 4px;
 }
 
 .alertReadAllBtn {
@@ -304,10 +291,10 @@ body.withGuestHeader {
     display: flex;
     align-items: flex-start;
     gap: 10px;
-    padding: 12px 16px;
-    border-bottom: 1px solid #f9fafb;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f4f6f8;
     cursor: pointer;
-    transition: background 0.12s;
+    transition: background 0.12s ease;
 }
 
 .alertItem:last-child {
@@ -330,7 +317,7 @@ body.withGuestHeader {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    margin-top: 5px;
+    margin-top: 6px;
     flex-shrink: 0;
 }
 
@@ -356,6 +343,7 @@ body.withGuestHeader {
     font-size: 12px;
     color: #6b7280;
     margin-top: 2px;
+    line-height: 1.5;
 }
 
 .alertItemTime {
@@ -372,11 +360,12 @@ body.withGuestHeader {
 }
 
 .watchlistPanelNote {
-    font-size: 11px;
+    font-size: 12px;
     color: #6b7280;
     background: #f9fafb;
-    padding: 8px 16px;
+    padding: 12px 16px;
     border-bottom: 1px solid #f3f4f6;
+    line-height: 1.5;
 }
 
 .watchlistPanelList {
@@ -388,9 +377,10 @@ body.withGuestHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 11px 16px;
-    border-bottom: 1px solid #f9fafb;
-    transition: background 0.12s;
+    gap: 12px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f4f6f8;
+    transition: background 0.12s ease;
     cursor: pointer;
 }
 
@@ -404,30 +394,34 @@ body.withGuestHeader {
 
 .watchlistItemInfo {
     flex: 1;
+    min-width: 0;
 }
 
 .watchlistItemName {
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 700;
     color: #111827;
+    line-height: 1.4;
 }
 
 .watchlistItemCode {
-    font-size: 11px;
-    color: #9ca3af;
-    margin-top: 1px;
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 3px;
+    line-height: 1.5;
 }
 
 .watchlistRemoveBtn {
+    flex-shrink: 0;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 700;
     color: #9ca3af;
-    background: none;
+    background: #ffffff;
     border: 1px solid #e5e7eb;
-    border-radius: 6px;
-    padding: 4px 9px;
+    border-radius: 8px;
+    padding: 7px 10px;
     cursor: pointer;
-    transition: all 0.13s;
+    transition: all 0.15s ease;
     white-space: nowrap;
 }
 
@@ -510,6 +504,10 @@ body.withGuestHeader {
     border-bottom: 1px solid var(--header-border);
 }
 
+/* ══════════════════════════════════════
+   알림 벨 + 패널 (header 공통)
+══════════════════════════════════════ */
+
 .bellWrapper {
     position: relative;
     display: inline-flex;
@@ -531,7 +529,6 @@ body.withGuestHeader {
     position: relative;
     color: #374151;
 }
-
 .bellBtn:hover {
     background: #f3f4f6;
     border-color: #d1d5db;
@@ -554,11 +551,135 @@ body.withGuestHeader {
     padding: 0 3px;
     line-height: 1;
 }
+.bellBadge.show { display: flex; }
 
-.bellBadge.show {
+.alertPanel {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    width: 340px;
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+    z-index: 9998;
+    display: none;
+    overflow: hidden;
+}
+.alertPanel.open { display: block; }
+
+.alertPanelHeader {
     display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 16px 10px;
+    border-bottom: 1px solid #f3f4f6;
 }
 
+.alertPanelTitle {
+    font-size: 15px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.alertReadAllBtn {
+    font-size: 12px;
+    color: #6b7280;
+    cursor: pointer;
+    font-weight: 600;
+    border: none;
+    background: none;
+    padding: 0;
+}
+.alertReadAllBtn:hover { color: #111827; }
+
+.alertList {
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.alertItem {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #f9fafb;
+    cursor: pointer;
+    transition: background 0.12s;
+}
+.alertItem:last-child { border-bottom: none; }
+.alertItem:hover      { background: #f9fafb; }
+.alertItem.unread     { background: #fefce8; }
+.alertItem.unread:hover { background: #fef9c3; }
+
+.alertDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 5px;
+    flex-shrink: 0;
+}
+.alertDot.up   { background: #ef4444; }
+.alertDot.down { background: #3b82f6; }
+
+.alertItemText { flex: 1; }
+
+.alertItemName {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.alertItemDesc {
+    font-size: 12px;
+    color: #6b7280;
+    margin-top: 2px;
+}
+
+.alertItemTime {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 4px;
+}
+
+.alertEmpty {
+    text-align: center;
+    padding: 36px 16px;
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+/* ── 패널 탭 ── */
+.alertPanelTabs {
+    display: flex;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.alertTab {
+    flex: 1;
+    padding: 12px 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #9ca3af;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+}
+.alertTab:hover { color: #374151; }
+.alertTab.active {
+    color: #0E0F37;
+    border-bottom-color: #0E0F37;
+}
+
+.alertTabActions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 8px 16px 4px;
+}
+
+/* 알림창 기능 */
 .alertPermissionBar {
     display: flex;
     align-items: center;
@@ -617,6 +738,64 @@ body.withGuestHeader {
     background: linear-gradient(135deg, #f8fafc, #ffffff);
 }
 
+/* ── 관심종목 설정 탭 ── */
+.watchlistPanelNote {
+    font-size: 11px;
+    color: #6b7280;
+    background: #f9fafb;
+    padding: 8px 16px;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.watchlistPanelList {
+    max-height: 340px;
+    overflow-y: auto;
+}
+
+.watchlistPanelItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 16px;
+    border-bottom: 1px solid #f9fafb;
+    transition: background 0.12s;
+    cursor: pointer;
+}
+.watchlistPanelItem:last-child { border-bottom: none; }
+.watchlistPanelItem:hover { background: #f9fafb; }
+
+.watchlistItemInfo { flex: 1; }
+
+.watchlistItemName {
+    font-size: 13px;
+    font-weight: 700;
+    color: #111827;
+}
+
+.watchlistItemCode {
+    font-size: 11px;
+    color: #9ca3af;
+    margin-top: 1px;
+}
+
+.watchlistRemoveBtn {
+    font-size: 11px;
+    font-weight: 600;
+    color: #9ca3af;
+    background: none;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 4px 9px;
+    cursor: pointer;
+    transition: all 0.13s;
+    white-space: nowrap;
+}
+.watchlistRemoveBtn:hover {
+    color: #ef4444;
+    border-color: #ef4444;
+    background: #fff5f5;
+}
+
 .pageContainer {
     width: 100%;
     max-width: 1280px;
@@ -656,13 +835,15 @@ body.withGuestHeader {
         min-width: auto;
     }
 
-    .memberMenu {
-        gap: 10px;
+    .brandText {
+        font-size: 22px;
     }
 
-    .memberUserText {
-        padding-right: 14px;
+    .memberMenu {
+        grid-template-columns: 48px minmax(70px, auto) 66px;
+        gap: 6px;
     }
+
 }
 
 @media (max-width: 768px) {
@@ -705,14 +886,21 @@ body.withGuestHeader {
     .alertPanel {
         right: -8px;
         width: 320px;
-    }
-
+/* ======= */
     .menu {
         gap: 6px;
     }
 
+    .menuBtn {
+        height: 38px;
+        line-height: 38px;
+        padding: 0 14px;
+        font-size: 13px;
+    }
+
     .memberMenu {
-        gap: 10px;
+        grid-template-columns: 44px minmax(64px, auto) 60px;
+        gap: 4px;
     }
 
     .memberUserText,
@@ -720,17 +908,10 @@ body.withGuestHeader {
         font-size: 13px;
     }
 
-    .memberUserText {
-        padding-right: 14px;
-    }
-
-    .memberUserText::after {
-        font-size: 12px;
-    }
-
     .bellBtn {
         width: 34px;
         height: 34px;
+/* >>>>>>> 290b989 (알림 ui 되돌림) */
     }
 
     .categoryBar {
@@ -768,7 +949,6 @@ body.withGuestHeader {
     .pageContainer {
         padding: 20px 14px 48px;
     }
-
     .alertPermissionBar {
         align-items: stretch;
         flex-direction: column;
@@ -778,4 +958,5 @@ body.withGuestHeader {
         width: 100%;
         justify-content: center;
     }
+}
 }

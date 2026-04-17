@@ -15,9 +15,10 @@
         <div class="detailMain">
             <section class="postCard" th:if="${dto != null}">
                 <div class="postTop">
-                    <h1 class="postTitle" th:text="${dto.title}">제목</h1>
                     <span class="categoryBadge" th:text="${dto.category}">카테고리</span>
                 </div>
+
+                <h1 class="postTitle" th:text="${dto.title}">제목</h1>
 
                 <div th:if="${dto.tagNames != null and !#strings.isEmpty(dto.tagNames)}" class="detailTags">
                     <div class="detailTagList">
@@ -203,12 +204,6 @@
                         <span>댓글</span>
                         <strong th:text="${userCommentCount} + '개'">0개</strong>
                     </div>
-
-                    <a class="profileActivityBtn"
-                       th:href="@{/community/activity(user_num=${dto.user_num}, tab='posts')}"
-                       th:text="${isOwner} ? '내 활동 보기' : '작성자 활동 보기'">
-                        작성자 활동 보기
-                    </a>
                 </div>
             </section>
 

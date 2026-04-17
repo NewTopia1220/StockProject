@@ -1,31 +1,41 @@
 package com.Midterm.stock.repository.community;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
-import javax.sql.DataSource;
 import java.sql.*;
+import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
 @Repository
 public class CommunityTagDao {
-
-    @Autowired
-    private DataSource dataSource;
+    private String driver = "oracle.jdbc.OracleDriver";
+    private String url = "jdbc:oracle:thin:@stoxle_high?TNS_ADMIN=C:/oraclepw";
+    private String id = "ADMIN";
+    private String pw = "Heeyoun1220!";
 
     private Connection conn = null;
     private PreparedStatement pstmt = null;
     private ResultSet rs = null;
 
+    // 생성자: 드라이버 로딩 및 지갑 설정
     public CommunityTagDao() {
-        System.setProperty("oracle.net.wallet_location",
-                "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
+        /*System.out.println("CommunityTagDao 생성자 호출 - 클라우드 설정 시작");*/
+        try {
+            Class.forName(driver);
+            System.setProperty("oracle.net.wallet_location",
+                    "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
+            /*System.out.println("드라이버 로드 및 클라우드 지갑 설정 성공");*/
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
+    // DB 연결
     public Connection connect() {
         try {
-            conn = dataSource.getConnection();
+            conn = DriverManager.getConnection(url, id, pw);
+            /*System.out.println("오라클 클라우드 DB 접속 성공!");*/
         } catch (SQLException e) {
             System.err.println("DB 접속 실패: " + e.getMessage());
             e.printStackTrace();
@@ -33,6 +43,8 @@ public class CommunityTagDao {
         return conn;
     }
 
+    // 태그 문자열 저장
+    // 쉼표 방식과 #태그 방식 둘 다 처리
     public void saveTags(int boardId, String tagNames) throws SQLException {
         connect();
 
@@ -51,109 +63,101 @@ public class CommunityTagDao {
         }
     }
 
+    // 입력된 태그 문자열을 파싱
+    // 예: "네이버, AI" 또는 "#네이버 #AI"
     private Set<String> parseTags(String tagNames) {
-        Set<String> tags = new LinkedHashSet<>();
+        Set<String> uniqueTags = new LinkedHashSet<>();
 
-        if (tagNames == null || tagNames.trim().isEmpty()) {
-            return tags;
+        if (tagNames == null || tagNames.isBlank()) {
+            return uniqueTags;
         }
 
-        String normalized = tagNames.replace("#", " ");
-        String[] split = normalized.split("[,\\s]+");
+        String normalized = tagNames.trim();
 
-        for (String raw : split) {
-            String tag = raw == null ? "" : raw.trim();
-            if (!tag.isEmpty()) {
-                tags.add(tag);
+        if (normalized.contains("#")) {
+            String[] parts = normalized.split("#");
+            for (String part : parts) {
+                String tag = part.trim();
+                if (!tag.isEmpty()) {
+                    uniqueTags.add(tag);
+                }
+            }
+        } else {
+            String[] parts = normalized.split(",");
+            for (String part : parts) {
+                String tag = part.trim();
+                if (!tag.isEmpty()) {
+                    uniqueTags.add(tag);
+                }
             }
         }
 
-        return tags;
+        return uniqueTags;
     }
 
+    // 태그명으로 tag_id 조회
     private int findTagId(String tagName) throws SQLException {
         String sql = "select tag_id from community_tag where tag_name = ?";
-        PreparedStatement localPstmt = null;
-        ResultSet localRs = null;
+        pstmt = conn.prepareStatement(sql);
+        pstmt.setString(1, tagName);
+        rs = pstmt.executeQuery();
 
-        try {
-            localPstmt = conn.prepareStatement(sql);
-            localPstmt.setString(1, tagName);
-            localRs = localPstmt.executeQuery();
-
-            if (localRs.next()) {
-                return localRs.getInt("tag_id");
-            }
-            return 0;
-        } finally {
-            if (localRs != null) localRs.close();
-            if (localPstmt != null) localPstmt.close();
+        if (rs.next()) {
+            return rs.getInt("tag_id");
         }
+        return 0;
     }
 
+    // 새 태그 저장
     private int insertTag(String tagName) throws SQLException {
+        String seqSql = "select community_tag_seq.nextval from dual";
+        pstmt = conn.prepareStatement(seqSql);
+        rs = pstmt.executeQuery();
+
         int tagId = 0;
-        PreparedStatement localPstmt = null;
-        ResultSet localRs = null;
-
-        try {
-            String seqSql = "select community_tag_seq.nextval from dual";
-            localPstmt = conn.prepareStatement(seqSql);
-            localRs = localPstmt.executeQuery();
-
-            if (localRs.next()) {
-                tagId = localRs.getInt(1);
-            }
-
-            localRs.close();
-            localPstmt.close();
-
-            String insertSql = "insert into community_tag(tag_id, tag_name) values(?, ?)";
-            localPstmt = conn.prepareStatement(insertSql);
-            localPstmt.setInt(1, tagId);
-            localPstmt.setString(2, tagName);
-            localPstmt.executeUpdate();
-
-            return tagId;
-        } finally {
-            if (localRs != null) localRs.close();
-            if (localPstmt != null) localPstmt.close();
+        if (rs.next()) {
+            tagId = rs.getInt(1);
         }
+
+        rs.close();
+        pstmt.close();
+
+        String insertSql = "insert into community_tag(tag_id, tag_name) values(?, ?)";
+        pstmt = conn.prepareStatement(insertSql);
+        pstmt.setInt(1, tagId);
+        pstmt.setString(2, tagName);
+        pstmt.executeUpdate();
+
+        return tagId;
     }
 
+    // 게시글과 태그 연결 저장
     private void insertBoardTag(int boardId, int tagId) throws SQLException {
-        PreparedStatement localPstmt = null;
-        ResultSet localRs = null;
+        String checkSql = "select count(*) from community_board_tag where board_id = ? and tag_id = ?";
+        pstmt = conn.prepareStatement(checkSql);
+        pstmt.setInt(1, boardId);
+        pstmt.setInt(2, tagId);
+        rs = pstmt.executeQuery();
 
-        try {
-            String checkSql = "select count(*) from community_board_tag where board_id = ? and tag_id = ?";
-            localPstmt = conn.prepareStatement(checkSql);
-            localPstmt.setInt(1, boardId);
-            localPstmt.setInt(2, tagId);
-            localRs = localPstmt.executeQuery();
+        boolean exists = false;
+        if (rs.next()) {
+            exists = rs.getInt(1) > 0;
+        }
 
-            int count = 0;
-            if (localRs.next()) {
-                count = localRs.getInt(1);
-            }
+        rs.close();
+        pstmt.close();
 
-            localRs.close();
-            localPstmt.close();
-
-            if (count == 0) {
-                String insertSql = "insert into community_board_tag(board_id, tag_id) values(?, ?)";
-                localPstmt = conn.prepareStatement(insertSql);
-                localPstmt.setInt(1, boardId);
-                localPstmt.setInt(2, tagId);
-                localPstmt.executeUpdate();
-            }
-        } finally {
-            if (localRs != null) localRs.close();
-            if (localPstmt != null) localPstmt.close();
+        if (!exists) {
+            String insertSql = "insert into community_board_tag(board_id, tag_id) values(?, ?)";
+            pstmt = conn.prepareStatement(insertSql);
+            pstmt.setInt(1, boardId);
+            pstmt.setInt(2, tagId);
+            pstmt.executeUpdate();
         }
     }
 
-    public void deleteBoardTags(int boardId) {
+    // 게시글에 연결된 태그 매핑 삭제
+    public void deleteBoardTags(int boardId) throws SQLException {
         connect();
 
         try {
@@ -161,43 +165,41 @@ public class CommunityTagDao {
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, boardId);
             pstmt.executeUpdate();
-        } catch (SQLException e) {
-            e.printStackTrace();
         } finally {
             closeAll();
         }
     }
 
+    // 게시글에 연결된 태그 목록 문자열로 조회
     public String getTagNamesByBoardId(int boardId) {
         connect();
-        StringBuilder tagNames = new StringBuilder();
-
-        String sql = "select ct.tag_name "
-                + "from community_board_tag cbt "
-                + "join community_tag ct on cbt.tag_id = ct.tag_id "
-                + "where cbt.board_id = ? "
-                + "order by ct.tag_id";
 
         try {
+            String sql = "select ct.tag_name "
+                    + "from community_board_tag cbt "
+                    + "join community_tag ct on cbt.tag_id = ct.tag_id "
+                    + "where cbt.board_id = ? "
+                    + "order by ct.tag_name asc";
+
             pstmt = conn.prepareStatement(sql);
             pstmt.setInt(1, boardId);
             rs = pstmt.executeQuery();
 
+            ArrayList<String> tags = new ArrayList<>();
             while (rs.next()) {
-                if (tagNames.length() > 0) {
-                    tagNames.append(", ");
-                }
-                tagNames.append(rs.getString("tag_name"));
+                tags.add(rs.getString("tag_name"));
             }
+
+            return String.join(", ", tags);
         } catch (SQLException e) {
             e.printStackTrace();
+            return "";
         } finally {
             closeAll();
         }
-
-        return tagNames.toString();
     }
 
+    // 공통 자원 해제
     private void closeAll() {
         try {
             if (rs != null) rs.close();

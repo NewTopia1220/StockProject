@@ -32,9 +32,9 @@
     <div class="communityMain right-empty newsMainLayout">
         <aside class="communitySidebar">
             <div class="sidebarCard sideAiPanel">
-                <div class="sidebarHeader aiSummaryHeader">
+                <div class="sidebarHeader">
                     <h3>AI 뉴스 종합 분석</h3>
-                    <span class="aiSummaryCount" th:text="'총 ' + ${saTotal} + '건 분석'">총 0건 분석</span>
+                    <p th:text="'총 ' + ${saTotal} + '건 분석'">총 0건 분석</p>
                 </div>
 
                 <div class="aiCircleRow">
@@ -124,6 +124,7 @@
             <div class="contentTop">
                 <div class="contentWrap">
                     <h2 th:text="${keyword != null ? keyword + ' 검색 결과' : (sector != null ? sector + ' 섹터 뉴스' : '전체 뉴스')}">전체 뉴스</h2>
+                    <p class="contentDesc" th:text="'총 ' + ${totalCount} + '건의 기사'">총 0건</p>
                 </div>
             </div>
 
