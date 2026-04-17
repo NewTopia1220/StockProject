@@ -346,8 +346,8 @@ async function handleExchangeCurrencyChange(event) {
     const currency = getSelectedCurrency();
     const { quote, chartData } = await loadExchangeSelectionData(currency);
     latestChartData = chartData;
-    await updateMainChart();
     renderExchangeSummary(quote, chartData);
+    await updateMainChart();
 }
 
 // 환율 화면에서는 시세를 먼저 갱신하고, 차트는 같은 통화 캐시를 재사용해서 뒤이어 반영
