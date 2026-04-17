@@ -155,7 +155,6 @@
                 </div>
                 <span class="activityCommentMove">원문 보기</span>
               </div>
-
               <p class="commentText" th:text="${comment.content}">댓글 내용</p>
             </div>
           </div>
@@ -173,8 +172,8 @@
               <div class="commentMeta">
                 <strong th:text="${reply.boardTitle}">게시글 제목</strong>
                 <span th:text="${reply.displayName + ' · ' + #dates.format(reply.created_at, 'yyyy-MM-dd HH:mm')}">
-            작성자
-          </span>
+                  작성자
+                </span>
               </div>
 
               <div class="commentMoreMenuWrap">
@@ -187,14 +186,12 @@
                 <div class="commentMoreMenuDropdown"
                      th:id="|activityCommentMenu-${reply.comment_id}|">
                   <a th:href="@{/community/detail(board_id=${reply.board_id})}"
-                     class="commentMoreMenuItem commentMoreMenuLink">
+                     class="commentMoreMenuItem">
                     원문 보기
                   </a>
 
-                  <form th:if="${isMyActivity}"
-                        th:action="@{/community/comment/delete}"
+                  <form th:action="@{/community/comment/delete}"
                         method="post"
-                        class="commentMoreMenuForm"
                         onsubmit="return confirm('댓글을 삭제할까요?');">
                     <input type="hidden" name="comment_id" th:value="${reply.comment_id}">
                     <input type="hidden" name="returnUrl"

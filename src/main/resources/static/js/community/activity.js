@@ -5,6 +5,7 @@ document.addEventListener("DOMContentLoaded", function () {
         button.addEventListener("click", function () {
             const item = button.closest(".accordionItem");
             if (!item) return;
+
             item.classList.toggle("open");
         });
     });

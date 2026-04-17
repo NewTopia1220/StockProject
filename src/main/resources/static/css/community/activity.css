@@ -68,7 +68,6 @@
 
 .activityCommentCard,
 .activityReplyCard {
-    padding: 18px 18px;
     min-height: 132px;
 }
 
@@ -133,7 +132,7 @@
     position: absolute;
     top: 32px;
     right: 0;
-    min-width: 124px;
+    min-width: 110px;
     padding: 6px;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -145,48 +144,6 @@
 
 .activityReplyCard .commentMoreMenuDropdown.show {
     display: block;
-}
-
-/* 수정 이유:
-   원문 보기와 삭제가 텍스트만 눌리는 느낌이 아니라
-   메뉴 한 줄 전체가 클릭되도록 만들어서 사용성을 높임 */
-.activityReplyCard .commentMoreMenuLink,
-.activityReplyCard .commentMoreMenuForm {
-    display: block;
-    width: 100%;
-}
-
-.activityReplyCard .commentMoreMenuForm {
-    margin: 0;
-}
-
-/* 수정 이유:
-   클릭 영역을 넓히기 위해 width, min-height, padding을 충분히 줌.
-   특히 원문 보기의 커서 칸이 작게 느껴지던 문제를 해결 */
-.activityReplyCard .commentMoreMenuItem {
-    width: 100%;
-    min-height: 40px;
-    display: flex;
-    align-items: center;
-    padding: 0 14px;
-    border: none;
-    border-radius: 10px;
-    background: transparent;
-    box-sizing: border-box;
-    font-size: 13px;
-    font-weight: 700;
-    text-decoration: none;
-    text-align: left;
-    cursor: pointer;
-    color: #374151;
-}
-
-.activityReplyCard .commentMoreMenuItem:hover {
-    background: #f3f4f6;
-}
-
-.activityReplyCard .commentMoreMenuItem.danger {
-    color: #e25555;
 }
 
 .emptyState {
