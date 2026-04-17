@@ -436,6 +436,7 @@ function resolveAlertDotClass(alert) {
     if (
         alert?.alertType === '\uAE09\uB4F1'
         || alert?.alertType === '\uAC70\uB798\uB7C9\uAE09\uB4F1'
+        || alert?.alertType === '\uC2E4\uC2DC\uAC04_\uAE09\uB4F1'
         || alert?.alertType === '\uC774\uC0C1\uAC70\uB798_\uC2EC\uAC01'
         || alert?.alertType === '\uACBD\uACE0'
     ) {

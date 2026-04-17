@@ -29,6 +29,8 @@ public class WatchListService {
     private static final String ALERT_TYPE_PRICE_DROP = "\uAC00\uACA9\uAE09\uB77D";
     private static final String ALERT_TYPE_VOLUME_SURGE = "\uAC70\uB798\uB7C9\uAE09\uB4F1";
     private static final String ALERT_TYPE_PATTERN_ANOMALY = "\uD328\uD134\uC774\uC0C1";
+    private static final String ALERT_TYPE_REALTIME_SURGE = "\uC2E4\uC2DC\uAC04_\uAE09\uB4F1";
+    private static final String ALERT_TYPE_REALTIME_CAUTION = "\uC2E4\uC2DC\uAC04_\uC8FC\uC758";
     private static final String ALERT_TYPE_ANOMALY_CAUTION = "\uC774\uC0C1\uAC70\uB798_\uC8FC\uC758";
     private static final String ALERT_TYPE_ANOMALY_SEVERE = "\uC774\uC0C1\uAC70\uB798_\uC2EC\uAC01";
     private static final String ALERT_TYPE_LEGACY_SURGE = "\uAE09\uB4F1";
@@ -234,6 +236,7 @@ public class WatchListService {
         if (
             ALERT_TYPE_LEGACY_SURGE.equals(alertType)
             || ALERT_TYPE_VOLUME_SURGE.equals(alertType)
+            || ALERT_TYPE_REALTIME_SURGE.equals(alertType)
             || ALERT_TYPE_ANOMALY_SEVERE.equals(alertType)
             || ALERT_TYPE_LEGACY_WARNING.equals(alertType)
         ) {
@@ -261,6 +264,8 @@ public class WatchListService {
             case ALERT_TYPE_PRICE_DROP -> "\uAC00\uACA9 \uAE09\uB77D \uAC10\uC9C0";
             case ALERT_TYPE_VOLUME_SURGE -> "\uAC70\uB798\uB7C9 \uAE09\uB4F1 \uAC10\uC9C0";
             case ALERT_TYPE_PATTERN_ANOMALY -> "\uD328\uD134 \uC774\uC0C1 \uAC10\uC9C0";
+            case ALERT_TYPE_REALTIME_SURGE -> "\uC2E4\uC2DC\uAC04 \uAE09\uB4F1 \uAC10\uC9C0";
+            case ALERT_TYPE_REALTIME_CAUTION -> "\uC2E4\uC2DC\uAC04 \uC8FC\uC758 \uAC10\uC9C0";
             default -> alertType.replace('_', ' ');
         };
     }
