@@ -497,6 +497,18 @@ function buildOhlcv(data) {
     return { ohlc, vol, hasOhlc };
 }
 
+const getPriceColorFromUI = () => {
+    const el =
+        document.getElementById('panelChangeRate') ||
+        document.getElementById('detailPriceChange');
+
+    if (!el) return '#3b82f6';
+
+    if (el.classList.contains('up')) return '#ef4444';
+    if (el.classList.contains('down')) return '#3b82f6';
+    return '#9ca3af'; // flat
+};
+
 /** Highcharts 공통 옵션
  * @param tab 'daily' | 'time' | 'minute'
  */
@@ -540,12 +552,7 @@ function hcBaseOptions(name, ohlc, vol, hasOhlc, compact, tab) {
         : null;
 
     // 시간별·분별 라인 방향 색상 (오르면 빨강, 내리면 파랑)
-    const minuteLineColor = (() => {
-        if ((tab !== 'minute' && tab !== 'time') || ohlc.length < 2) return '#3b82f6';
-        const first = hasOhlc ? ohlc[0][4] : ohlc[0][1];
-        const last  = hasOhlc ? ohlc[ohlc.length - 1][4] : ohlc[ohlc.length - 1][1];
-        return last >= first ? '#ef4444' : '#3b82f6';
-    })();
+    const minuteLineColor = getPriceColorFromUI();
 
     // 모든 탭 캔들스틱 (OHLCV 있을 때) / 라인 (없을 때)
     const mainSeries = hasOhlc ? {
