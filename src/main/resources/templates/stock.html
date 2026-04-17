@@ -308,7 +308,12 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="scNoData" th:if="${card['articleCount'] == 0}">오늘 수집된 기사 없음</div>
+                        <div class="scNoData collectingState" th:if="${card['articleCount'] == 0}">
+                            <img src="/images/news-collecting.png" alt="기사 수집중" class="scNoDataIcon">
+                            <div class="scNoDataTextWrap">
+                                <p class="scNoDataTitle">기사 수집중...</p>
+                            </div>
+                        </div>
                     </a>
                 </div>
             </div>

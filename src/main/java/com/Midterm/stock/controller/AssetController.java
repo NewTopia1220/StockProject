@@ -2,9 +2,7 @@ package com.Midterm.stock.controller;
 
 import com.Midterm.stock.dto.AssetDto;
 import com.Midterm.stock.dto.AssetPlannerAnalysisDto;
-import com.Midterm.stock.dto.UserDto;
 import com.Midterm.stock.repository.AssetDao;
-import com.Midterm.stock.repository.UserDao;
 import com.Midterm.stock.service.AssetPlannerAnalysisService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -30,9 +28,6 @@ public class AssetController {
     private AssetDao assetDao;
 
     @Autowired
-    private UserDao userDao;
-
-    @Autowired
     private AssetPlannerAnalysisService assetPlannerAnalysisService;
 
     private int getCurrentMonth() {
@@ -43,11 +38,11 @@ public class AssetController {
         return LocalDate.now().getYear();
     }
 
-    private void addLoginUserAttributes(Model model, Integer loginNum) {
-        UserDto user = userDao.getUserInfo(loginNum);
-        model.addAttribute("userName", user.getName());
-        model.addAttribute("userEmail", user.getEmail());
-        model.addAttribute("user_id", user.getNum());
+    // UserController에서 이미 session에 name, email 넣어둠
+    private void addLoginUserAttributes(Model model, HttpSession session, Integer loginNum) {
+        model.addAttribute("userName", (String) session.getAttribute("userName"));
+        model.addAttribute("userEmail", (String) session.getAttribute("userEmail"));
+        model.addAttribute("user_id", loginNum);
     }
 
     @GetMapping("/asset/dashboard")
@@ -73,7 +68,8 @@ public class AssetController {
             year = currentRealYear;
         }
 
-        addLoginUserAttributes(model, loginNum);
+        // session도 같이 넘겨야 함
+        addLoginUserAttributes(model, session, loginNum);
 
         List<AssetDto> transactions = assetDao.getRecentTransactionsByMonth(month, year, loginNum);
         int currentMonthSpending = assetDao.getMonthSpending(month, year, loginNum);
@@ -198,7 +194,8 @@ public class AssetController {
         model.addAttribute("currentRealMonth", currentRealMonth);
         model.addAttribute("currentRealYear", currentRealYear);
 
-        addLoginUserAttributes(model, loginNum);
+        // 세션 기반 사용자 정보 사용
+        addLoginUserAttributes(model, session, loginNum);
 
         Map<String, Integer> needWant = assetDao.getNeedWantSpending(month, year, loginNum);
         int need = needWant.getOrDefault("need", 0);
@@ -309,7 +306,8 @@ public class AssetController {
             year = currentRealYear;
         }
 
-        addLoginUserAttributes(model, loginNum);
+        // 세션 기반 사용자 정보
+        addLoginUserAttributes(model, session, loginNum);
 
         List<AssetPlannerAnalysisDto> history = assetPlannerAnalysisService.getHistory(loginNum);
         AssetPlannerAnalysisDto lastData;
@@ -355,7 +353,8 @@ public class AssetController {
             year = currentRealYear;
         }
 
-        addLoginUserAttributes(model, loginNum);
+        // 분석 port 후 다시 화면으로 돌아올 수 있으니
+        addLoginUserAttributes(model, session, loginNum);
 
         try {
             int currentMonthSpending = assetDao.getMonthSpending(month, year, loginNum);

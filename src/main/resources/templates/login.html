@@ -34,6 +34,14 @@
                     <input type="password" name="userPassword" id="userPassword" class="inputBox" placeholder="비밀번호 입력">
                 </div>
 
+                <div class="loginErrorText" th:if="${param.error}">
+                    이메일 또는 비밀번호가 올바르지 않습니다.
+                </div>
+
+                <div class="loginErrorText" th:if="${param.caseError}">
+                    이메일의 @ 앞부분 대소문자가 가입 정보와 다릅니다.
+                </div>
+
                 <button type="submit" class="loginBtn">로그인</button>
 
 

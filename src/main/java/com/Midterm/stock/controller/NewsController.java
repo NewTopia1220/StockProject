@@ -100,14 +100,19 @@ public class NewsController {
     }
 
     // 기사 목록에 영향도와 상승 예측 신호를 순서대로 보강
+    // 실시간 AI는 유지하되 저장된 값 먼저 반영 후 저장값 없는 기사만 즉시 계산하도록
     private void enrichPredictionSignals(List<NewsDto> newsList) {
         if (newsList == null || newsList.isEmpty()) {
             return;
         }
 
         applyStoredImpactSignals(newsList);
-        applyArticleImpactFallback(newsList);
-        applyStockPredictions(newsList);
+
+        int maxImmediateImpactCount = 3;
+        int maxImmediateStockPredictionCount = 2;
+
+        applyArticleImpactFallback(newsList, maxImmediateImpactCount);
+        applyStockPredictions(newsList, maxImmediateStockPredictionCount);
     }
 
     // 이미 저장된 기사 영향도와 연결 종목이 있으면 그 값을 먼저 사한다.
@@ -142,7 +147,10 @@ public class NewsController {
 
     // 저장된 값이 없을 때만 기사 단위 모델을 돌리고, 계산 결과는 다시 저장해 다음 조회를 빠르게 만듦
     // 저장된 영향도가 없을 때만 기사 영향도 모델을 돌리고 결과를 캐시 테이블에 남김
-    private void applyArticleImpactFallback(List<NewsDto> newsList) {
+    // 최대 개수까지만 실시간 계산
+    private void applyArticleImpactFallback(List<NewsDto> newsList, int maxImmediateImpactCount) {
+        int processedCount = 0;
+
         for (NewsDto dto : newsList) {
             if (dto.hasStockImpactPrediction()) {
                 continue;
@@ -150,6 +158,11 @@ public class NewsController {
 
             String stockCode = dto.getStockCode();
             if (stockCode == null || stockCode.isBlank()) {
+                continue;
+            }
+
+            // 저장값이 없는 일부만 계산
+            if (processedCount >= maxImmediateImpactCount) {
                 continue;
             }
 
@@ -161,17 +174,30 @@ public class NewsController {
             dto.setStockImpactPercent(modelImpact);
             dto.setStockImpactSource("기사 영향 추정 모델");
             newsDao.saveNewsImpact(dto.getLink(), stockCode, modelImpact);
+
+            processedCount++;
         }
     }
 
     // 익일 상승 확률은 종목 단위 예측이므로 종목코드별로 한 번만 호출해서 재사용
     // 종목별 AI 예측 결과를 한 번만 계산해 같은 종목 기사들에 재사용
-    private void applyStockPredictions(List<NewsDto> newsList) {
+    private void applyStockPredictions(List<NewsDto> newsList, int maxImmediateCount) {
         Map<String, AiPredictionDto> stockPredictions = new HashMap<>();
+        int processedCount = 0;
 
         for (NewsDto dto : newsList) {
             String stockCode = dto.getStockCode();
-            if (stockCode == null || stockCode.isBlank() || stockPredictions.containsKey(stockCode)) {
+
+            if (stockCode == null || stockCode.isBlank()) {
+                continue;
+            }
+
+            if (stockPredictions.containsKey(stockCode)) {
+                continue;
+            }
+
+            if (processedCount >= maxImmediateCount) {
+                stockPredictions.put(stockCode, null);
                 continue;
             }
 
@@ -180,6 +206,8 @@ public class NewsController {
             } catch (Exception ignored) {
                 stockPredictions.put(stockCode, null);
             }
+
+            processedCount++;
         }
 
         for (NewsDto dto : newsList) {

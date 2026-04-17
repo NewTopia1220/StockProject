@@ -47,10 +47,40 @@ public class UserDao {
 
         return cnt;
     }
+    public UserDto login(String email, String password) {
+        UserDto dto = null;
 
+        String sql = "SELECT num, name, email, role, phone " +
+                "FROM users " +
+                "WHERE email = ? AND password = ?";
+
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            pstmt.setString(1, email);
+            pstmt.setString(2, password);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    dto = new UserDto();
+                    dto.setNum(rs.getInt("num"));
+                    dto.setName(rs.getString("name"));
+                    dto.setEmail(rs.getString("email"));
+                    dto.setRole(rs.getString("role"));
+                    dto.setPhone(rs.getString("phone"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+
+        return dto;
+    }
+/*
     public boolean loginCheck(String email, String password) {
         boolean result = false;
 
+        // 로그인 여부 확인 -> select 1 사용 => 가져올 데이터가 줄어듦
         String sql = "SELECT 1 FROM users WHERE email = ? AND password = ?";
 
         try (Connection conn = dataSource.getConnection();
@@ -67,7 +97,7 @@ public class UserDao {
         }
 
         return result;
-    }
+    }*/
 
     public boolean existsWithDifferentEmailCase(String email, String password) {
         boolean result = false;
@@ -208,10 +238,10 @@ public class UserDao {
         return cnt;
     }
 
-    public UserDto getUserInfoByEmail(String email) {
+    /*public UserDto getUserInfoByEmail(String email) {
         UserDto dto = null;
 
-        String sql = "SELECT num, name, email, phone FROM users WHERE email = ?";
+        String sql = "SELECT num, name, email, role, phone FROM users WHERE email = ?";
 
         try (Connection conn = dataSource.getConnection();
              PreparedStatement pstmt = conn.prepareStatement(sql)) {
@@ -224,6 +254,7 @@ public class UserDao {
                     dto.setNum(rs.getInt("num"));
                     dto.setName(rs.getString("name"));
                     dto.setEmail(rs.getString("email"));
+                    dto.setRole(rs.getString("role"));
                     dto.setPhone(rs.getString("phone"));
                 }
             }
@@ -232,7 +263,7 @@ public class UserDao {
         }
 
         return dto;
-    }
+    }*/
 
     public UserDto getUserInfo(int num) {
         UserDto dto = null;
@@ -366,6 +397,7 @@ public class UserDao {
     public void updateNotifySetting(int userNum, String type, int status) {
         String columnName;
 
+        // stock 아니면 무조건 comment로 보낸지 말고 잘못된 type는 예외 처리
         if ("stock".equals(type)) {
             columnName = "notify_stock";
         } else if ("comment".equals(type)) {
