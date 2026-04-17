@@ -381,8 +381,16 @@ public class CommunityController {
         boolean isCommentWriter = comment.getUser_num() == loginNum;
         boolean isBoardOwner = board != null && board.getUser_num() == loginNum;
 
-        if (!isCommentWriter && !isBoardOwner) {
-            return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+        // 댓글 작성자 또는 게시글 작성자일 경우 삭제 가능
+        // 현재 로그인한 사용자가 해당 게시글 주인인 경우에만 허용하도록
+        if (returnUrl != null && returnUrl.contains("/community/activity") && returnUrl.contains("tab=replies")) {
+            if (!isBoardOwner) {
+                return "redirect:/community";
+            }
+        } else {
+            if (!isCommentWriter && !isBoardOwner) {
+                return "redirect:/community/detail?board_id=" + comment.getBoard_id();
+            }
         }
 
         communityCommentDao.deleteComment(commentId);
