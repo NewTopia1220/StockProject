@@ -18,6 +18,7 @@ let aiRotatorItems = [];
 let aiRotatorIndex = 0;
 let aiRotatorTimer = null;
 let aiRefreshToken = 0;
+let currentChangeDirection = 0
 
 // 환율은 같은 통화를 반복 조회하는 경우가 많아서 브라우저 메모리에 짧게 캐시
 const EXCHANGE_QUOTE_TTL_MS = 60 * 1000;
@@ -86,6 +87,7 @@ function bindChartTabs() {
 
             currentTab = nextTab;
             syncChartTabs();
+            await refreshActiveSummary();
             await updateMainChart();
         });
     });
@@ -432,6 +434,7 @@ async function startPolling() {
         }
 
         if (isMarketOpen()) {
+            await refreshActiveSummary();
             await updateMainChart();
         }
     });
@@ -478,13 +481,13 @@ async function refreshActiveView() {
     syncChartTabs();
     applyActiveTickerState();
 
+    await refreshActiveSummary();
     if (mainChart) {
         await updateMainChart();
     } else {
         await initMainChart();
     }
 
-    await refreshActiveSummary();
 }
 
 // 현재 선택된 차트 탭 상태를 버튼 클래스와 비활성 상태에 반영
@@ -512,19 +515,20 @@ function applyActiveTickerState() {
     });
 }
 
-// 현재 차트 소스와 탭에 맞는 메인 차트 데이터를 조회
+let chartFetchToken = 0;
+
 async function fetchMainChartData() {
+    const myToken = ++chartFetchToken;
     syncChartTabs();
 
     if (currentChartSource === 'exchange') {
         try {
             const data = await getExchangeChart(getSelectedCurrency());
+            if (myToken !== chartFetchToken) return emptyChartData(); // ← 체크
             latestChartData = data;
             return data;
         } catch (error) {
-            // console.log('exchange chart fetch error:', error);
-            latestChartData = emptyChartData();
-            return latestChartData;
+            return emptyChartData();
         }
     }
 
@@ -535,19 +539,19 @@ async function fetchMainChartData() {
     }
 
     try {
-        const data = normalizeChartData(await fetchJson(endpoint));
+        const data = normalizeChartData(await fetchJson(endpoint)); // ← await 완료 후
+        if (myToken !== chartFetchToken) return emptyChartData();   // ← 즉시 체크
+
         if (data.labels.length === 0 && currentTab !== 'daily' && currentChartSource !== 'exchange') {
             currentTab = 'daily';
             syncChartTabs();
-            return await fetchMainChartData();
+            return await fetchMainChartData(); // 재귀 시 토큰은 이미 최신이므로 OK
         }
 
         latestChartData = data;
         return data;
     } catch (error) {
-        // console.log('chart fetch error:', error);
-        latestChartData = emptyChartData();
-        return latestChartData;
+        return emptyChartData();
     }
 }
 
@@ -652,12 +656,12 @@ async function initMainChart() {
 
     // 라인 차트(인덱스 등) 방향 색상
     const lineColor = (() => {
-        if (showCandles || closePrices.length < 2) {
-            return '#3b82f6';
-        }
-        const firstClose = Number(closePrices[0]) || 0;
-        const lastClose  = Number(closePrices[closePrices.length - 1]) || 0;
-        return lastClose >= firstClose ? '#ef4444' : '#3b82f6';
+        if (showCandles) return '#3b82f6';
+
+        // DOM 읽기 제거, 전역 변수로 판단
+        if (currentChangeDirection > 0) return '#ef4444';
+        if (currentChangeDirection < 0) return '#3b82f6';
+        return '#374151';
     })();
 
     const priceSeries = [];
@@ -693,11 +697,6 @@ async function initMainChart() {
             animation: false,
             height: 360,
             style: { fontFamily: 'inherit' }
-        },
-        plotOptions: {
-            series: {
-                animation: false
-            }
         },
         rangeSelector: isIntraday ? { enabled: false } : {
             selected: 1,
@@ -786,6 +785,7 @@ async function initMainChart() {
             const savedMax = sessionStorage.getItem(storageKey + '_max');
 
             const firstDataTs = priceSeries.length > 0 ? priceSeries[0][0] : null;
+            const lastDataTs = priceSeries.length > 0 ? priceSeries[priceSeries.length - 1][0] : null;
             const baseDate = firstDataTs ? new Date(firstDataTs) : new Date();
 
             const _base = {
@@ -822,8 +822,14 @@ async function initMainChart() {
                     ..._base,
                     ordinal: false,
                     // 저장값이 유효하면 사용, 아니면 기본 시간 범위
-                    min: (savedMin && parseFloat(savedMin) >= _at9 - 3600000) ? parseFloat(savedMin) : _at9,
-                    max: savedMax ? parseFloat(savedMax) : _xMax,
+                    min: (() => {
+                        return firstDataTs ? firstDataTs : _at9;
+                    })(),
+                    max: (() => {
+                        // 저장값이 없으면 데이터의 마지막 지점(lastDataTs)을 사용,
+                        // 데이터도 없으면 기본값(_xMax) 사용
+                        return lastDataTs ? lastDataTs : _xMax;
+                    })(),
                     tickInterval: currentTab === 'time' ? 3600000 : undefined,
                     dateTimeLabelFormats: { millisecond: '%H:%M', second: '%H:%M', minute: '%H:%M', hour: '%H:%M' }
                 };
@@ -863,7 +869,7 @@ async function initMainChart() {
                 align: 'left',
                 x: 0,
                 style: {
-                    color: '#9ca3af',
+                    color: '#7a6dba',
                     fontSize: '11px'
                 },
                 formatter: function () {
@@ -893,7 +899,8 @@ async function initMainChart() {
             series: {
                 dataGrouping: {
                     enabled: false
-                }
+                },
+                animation: false
             },
             candlestick: {
                 animation: false,
@@ -1195,6 +1202,10 @@ function renderChartSummary(summary) {
         changeEl.textContent = summary.priceChangeText;
         changeEl.className = summary.priceChangeClass || '';
     }
+
+    if (summary.priceChangeClass === 'up') currentChangeDirection = 1;
+    else if (summary.priceChangeClass === 'down') currentChangeDirection = -1;
+    else currentChangeDirection = 0;
 
     setMetaField('chartOpenLabel', 'chartOpenPrice', summary.openLabel, summary.openValue, summary.openClass);
     setMetaField('chartHighLabel', 'chartHighPrice', summary.highLabel, summary.highValue, summary.highClass);

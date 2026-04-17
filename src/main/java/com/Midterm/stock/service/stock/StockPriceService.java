@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
@@ -101,22 +102,41 @@ public class StockPriceService {
         }
     }
 
-    // ?????????????????????????????????????????????????????????????
-    //  ?쒓컙蹂?李⑦듃 (1?쒓컙 遊?吏묎퀎)
-    //  - ?꾩옱 ?쒓컙遺??09:00源뚯? 猷⑦봽濡??섏쭛 ??1?쒓컙 踰꾪궥 吏묎퀎
-    // ?????????????????????????????????????????????????????????????
+    // 서비스에 캐시 추가
+    private final Map<String, StockChartDto> timeChartCache = new ConcurrentHashMap<>();
+    private final Map<String, Long> timeChartCacheTs = new ConcurrentHashMap<>();
+    private static final long TIME_CHART_TTL_MS = 60_000; // 1분 캐시
+
     public StockChartDto getTimePrice(String stockCode) {
+        // 캐시 확인
+        Long cachedTs = timeChartCacheTs.get(stockCode);
+        if (cachedTs != null && System.currentTimeMillis() - cachedTs < TIME_CHART_TTL_MS) {
+            StockChartDto cached = timeChartCache.get(stockCode);
+            if (cached != null) return cached;
+        }
+
+        // 기존 while 로직...
+        StockChartDto result = fetchTimePrice(stockCode);
+
+        // 캐시 저장
+        timeChartCache.put(stockCode, result);
+        timeChartCacheTs.put(stockCode, System.currentTimeMillis());
+        return result;
+    }
+
+    public StockChartDto fetchTimePrice(String stockCode) {
         kisApi.issueToken();
-        List<JsonNode> allItems = new ArrayList<>();
+        // 중복 제거를 위해 Key를 시간(stck_cntg_hour)으로 하는 Map 사용 권장
+        Map<String, JsonNode> uniqueItems = new TreeMap<>(); // TreeMap은 시간순 정렬까지 해줌
 
         String realNowTime = java.time.LocalTime.now().format(TIME_FORMAT);
-        String hourParam   = realNowTime.compareTo("153000") > 0 ? "153000" : realNowTime;
+        String hourParam = realNowTime.compareTo("153000") > 0 ? "153000" : realNowTime;
+        StockResponseDto current = getCurrentPrice(stockCode);
+        String realOpenPrice = current.getOpenPrice();
 
         try {
-            int callCount  = 0;
-            int retryCount = 0;
-
-            while (callCount < 13 && retryCount < 5) {
+            int callCount = 0;
+            while (callCount < 13) {
                 final String hp = hourParam;
                 JsonNode response = kisApi.get(uriBuilder -> uriBuilder
                         .path("/uapi/domestic-stock/v1/quotations/inquire-time-itemchartprice")
@@ -127,47 +147,38 @@ public class StockPriceService {
                         .queryParam("FID_PW_DATA_INCU_YN", "Y")
                         .build(), STOCK_INTRADAY_TR_ID);
 
-                if (response != null && "1".equals(response.path("rt_cd").asText())) {
-                    Thread.sleep(100);
-                    retryCount++;
-                    continue;
-                }
-
                 if (response == null || response.get("output2") == null) break;
                 JsonNode output2 = response.get("output2");
-                if (!output2.isArray() || output2.size() == 0) break;
+                if (output2.size() == 0) break;
 
-                List<JsonNode> batch = new ArrayList<>();
                 for (JsonNode item : output2) {
                     String itemTime = item.path("stck_cntg_hour").asText();
+                    // 1. 현재 시간보다 미래 데이터 제외
+                    // 2. Map에 넣어서 중복 시간 데이터 자동 제거 (덮어쓰기)
                     if (itemTime.compareTo(realNowTime) <= 0) {
-                        batch.add(item);
+                        uniqueItems.put(itemTime, item);
                     }
                 }
 
-                if (batch.isEmpty()) {
-                    String oldest = output2.get(output2.size() - 1).path("stck_cntg_hour").asText("090000");
-                    if (oldest.compareTo("090000") <= 0) break;
-                    hourParam = oldest;
-                    callCount++;
-                    continue;
-                }
+                String oldestTime = output2.get(output2.size() - 1).path("stck_cntg_hour").asText();
 
-                allItems.addAll(batch);
-
-                String oldestTime = output2.get(output2.size() - 1).path("stck_cntg_hour").asText("090000");
+                // 9시 데이터까지 다 가져왔으면 종료
                 if (oldestTime.compareTo("090000") <= 0) break;
+
+                // 다음 조회를 위해 시간 갱신
                 hourParam = oldestTime;
                 callCount++;
                 Thread.sleep(100);
             }
-        } catch (Exception e) {
-            // System.out.println("?쒓컙蹂?李⑦듃 ?ㅽ뙣 [" + stockCode + "]: " + e.getMessage());
-        }
+        } catch (Exception e) { /* 로그 출력 */ }
 
-        if (allItems.isEmpty()) return emptyChart();
-        Collections.reverse(allItems);          // ?ㅻ옒??寃???理쒖떊 ??
-        return parseHourlyChart(allItems);       // 1?쒓컙 踰꾪궥 吏묎퀎
+        if (uniqueItems.isEmpty()) return emptyChart();
+
+        // TreeMap을 사용했으므로 이미 시간 순서대로 정렬되어 있음
+        List<JsonNode> sortedItems = new ArrayList<>(uniqueItems.values());
+
+        // 이제 sortedItems[0]은 확실히 09:00(혹은 가장 빠른 시간)의 데이터입니다.
+        return parseHourlyChart(sortedItems, realOpenPrice);
     }
 
     // ?????????????????????????????????????????????????????????????
@@ -391,7 +402,7 @@ public class StockPriceService {
     // ?????????????????????????????????????????????????????????????
     //  ?뚯떛 - ?쒓컙蹂?(1?쒓컙 踰꾪궥 吏묎퀎)
     // ?????????????????????????????????????????????????????????????
-    private StockChartDto parseHourlyChart(List<JsonNode> items) {
+    private StockChartDto parseHourlyChart(List<JsonNode> items, String realOpenPrice) {
         Map<String, List<Integer>> priceGroups = new LinkedHashMap<>();
         Map<String, List<Integer>> volGroups   = new LinkedHashMap<>();
 
@@ -405,7 +416,43 @@ public class StockPriceService {
             priceGroups.computeIfAbsent(key, k -> new ArrayList<>()).add(price);
             volGroups.computeIfAbsent(key,   k -> new ArrayList<>()).add(vol);
         }
-        return buildOhlcvDto(priceGroups, volGroups);
+        List<String> labels  = new ArrayList<>();
+        List<String> opens   = new ArrayList<>();
+        List<String> highs   = new ArrayList<>();
+        List<String> lows    = new ArrayList<>();
+        List<String> closes  = new ArrayList<>();
+        List<String> volumes = new ArrayList<>();
+
+        for (Map.Entry<String, List<Integer>> entry : priceGroups.entrySet()) {
+            String timeKey = entry.getKey();
+            List<Integer> p = entry.getValue();
+            List<Integer> v = volGroups.getOrDefault(timeKey, List.of(0));
+
+            labels.add(timeKey);
+
+            // 🔥 핵심: 09:00만 실제 시가 적용
+            if ("09:00".equals(timeKey) && realOpenPrice != null && !realOpenPrice.equals("0")) {
+                opens.add(realOpenPrice);
+            } else {
+                opens.add(String.valueOf(p.get(0)));
+            }
+
+            closes.add(String.valueOf(p.get(p.size() - 1)));
+            highs.add(String.valueOf(p.stream().mapToInt(i -> i).max().orElse(0)));
+            lows.add(String.valueOf(p.stream().mapToInt(i -> i).min().orElse(0)));
+            volumes.add(String.valueOf(v.stream().mapToInt(i -> i).sum()));
+        }
+
+        // ✅ 3. DTO 반환
+        StockChartDto dto = new StockChartDto();
+        dto.setLabels(labels);
+        dto.setOpenPrices(opens);
+        dto.setHighPrices(highs);
+        dto.setLowPrices(lows);
+        dto.setClosePrices(closes);
+        dto.setVolumes(volumes);
+
+        return dto;
     }
 
     // ?????????????????????????????????????????????????????????????
