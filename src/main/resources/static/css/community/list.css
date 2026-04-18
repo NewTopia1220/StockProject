@@ -842,9 +842,9 @@ a{
 }
 
 /* analysis card */
-.analysisCard{
-    background:linear-gradient(180deg, var(--primary-main) 0%, var(--primary-dark) 100%);
-    border-color:var(--primary-mid);
+.analysisCard {
+    background: var(--primary-mid);
+    border-color: var(--primary-mid);
 }
 
 .analysisCard h4,

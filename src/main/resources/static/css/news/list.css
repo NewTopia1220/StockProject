@@ -36,12 +36,34 @@
 }
 
 .newsPage .sidebarHeader h3 {
-    margin: 0 0 4px;
+    margin: 0;
 }
 
 /* AI 분석 패널 */
 .sideAiPanel {
     padding: 20px 18px 16px;
+}
+
+.aiSummaryHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.aiSummaryHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 800;
+    color: var(--text-main);
+}
+
+.aiSummaryCount {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    white-space: nowrap;
+    margin-left: auto;
 }
 
 .aiCircleRow {

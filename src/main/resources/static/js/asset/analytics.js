@@ -69,23 +69,29 @@ document.addEventListener('DOMContentLoaded', function() {
 //
 //     setTimeout(animate, 300);
 // }
+
+// color.css 에서 실제 색상값을 읽어오는 유틸 함수
+function getThemeColor(variableName, fallback) {
+    const value = getComputedStyle(document.documentElement)
+        .getPropertyValue(variableName)
+        .trim();
+
+    return value || fallback;
+}
+
 function drawCategoryDonut() {
     const canvas = document.getElementById('categoryDonut');
     if (!canvas || !window.categoryData || window.categoryData.length === 0) return;
 
     const ctx = canvas.getContext('2d');
 
-    // 🔍 [수정 포인트 1] 캔버스의 실제 표시 크기에 맞춰 해상도 조정
-    // CSS에서 220px로 잡았으므로 그에 맞게 캔버스 크기를 강제합니다.
     canvas.width = 220;
     canvas.height = 220;
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-
-    // 🔍 [수정 포인트 2] 반지름 조절 (220px 안에 쏙 들어오게)
-    const radius = 90;       // 바깥쪽 반지름 (기존 120 -> 90)
-    const innerRadius = 55;   // 안쪽 구멍 반지름 (기존 70 -> 55)
+    const radius = 90;
+    const innerRadius = 55;
 
     const total = window.categoryData.reduce((sum, cat) => sum + Number(cat.value), 0);
 
@@ -97,7 +103,6 @@ function drawCategoryDonut() {
 
         const totalDrawAngle = currentPercent * (Math.PI * 2);
         let startAngle = -Math.PI / 2;
-
         let accumulatedAngle = 0;
 
         window.categoryData.forEach(category => {
@@ -107,7 +112,6 @@ function drawCategoryDonut() {
                 const drawAngle = Math.min(categoryAngle, totalDrawAngle - accumulatedAngle);
 
                 ctx.beginPath();
-                // 🔍 [수정 포인트 3] 선을 부드럽게 그리기 위한 설정
                 ctx.lineCap = 'round';
 
                 ctx.arc(centerX, centerY, radius, startAngle, startAngle + drawAngle);
@@ -131,8 +135,6 @@ function drawCategoryDonut() {
     setTimeout(animate, 300);
 }
 
-
-
 /**
  * 캘린더 초기화 (색상 및 툴팁)
  */
@@ -143,17 +145,14 @@ function initializeCalendar() {
         const amount = parseInt(day.getAttribute('data-amount'));
         const date = day.getAttribute('data-date');
 
-        // 레벨 계산 (0-5)
         const level = getSpendingLevel(amount);
         const color = getColorByLevel(level);
-        const textColor = level > 2 ? '#ffffff' : '#1a1a1a';
+        const textColor = level > 2 ? '#ffffff' : getThemeColor('--text-main', '#111827');
 
-        // 스타일 적용
         day.style.backgroundColor = color;
         day.style.color = textColor;
         day.textContent = date;
 
-        // 툴팁 추가
         const tooltip = document.createElement('div');
         tooltip.className = 'calendar-day-tooltip';
         tooltip.textContent = amount.toLocaleString('ko-KR') + '원';
@@ -178,12 +177,12 @@ function getSpendingLevel(amount) {
  */
 function getColorByLevel(level) {
     const colors = [
-        '#F0F0F0',  // 0: 매우 적음
-        '#B3D9FF',  // 1: 적음
-        '#66B3FF',  // 2: 보통
-        '#3399FF',  // 3: 많음
-        '#15164D',  // 4: 매우 많음
-        '#FF4B4B'   // 5: 경고
+        getThemeColor('--bg-soft', '#eef2f7'),          // 0: 매우 적음
+        '#dbeafe',                                      // 1: 적음
+        getThemeColor('--primary-main-soft', '#eef4ff'),// 2: 보통
+        getThemeColor('--primary-main', '#3182F6'),     // 3: 많음
+        getThemeColor('--primary-dark', '#15164D'),     // 4: 매우 많음
+        getThemeColor('--danger-main', '#d74b5a')       // 5: 경고
     ];
     return colors[level];
 }
@@ -272,4 +271,3 @@ document.addEventListener('DOMContentLoaded', () => {
         userAvatarEl.textContent = fullName.charAt(0) || '';
     }
 });
-

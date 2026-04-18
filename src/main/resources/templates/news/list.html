@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+﻿﻿<!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
@@ -15,12 +15,12 @@
 
 <div class="pageContainer communityPage newsPage">
     <section class="communityHero">
-<!--        <div class="heroTop">
-            <div class="heroText">
-                <h1>AI가 분석한 오늘의 주식 뉴스</h1>
-                <p>기사별로 주가 영향과 익일 상승 예측을 함께 보면서 시장 흐름을 한눈에 확인해보세요.</p>
-            </div>
-        </div>-->
+        <!--        <div class="heroTop">
+                    <div class="heroText">
+                        <h1>AI가 분석한 오늘의 주식 뉴스</h1>
+                        <p>기사별로 주가 영향과 익일 상승 예측을 함께 보면서 시장 흐름을 한눈에 확인해보세요.</p>
+                    </div>
+                </div>-->
 
         <form class="communitySearch" th:action="@{/news}" method="get">
             <input type="hidden" name="sector" th:value="${sector}" th:if="${sector != null}">
@@ -32,9 +32,9 @@
     <div class="communityMain right-empty newsMainLayout">
         <aside class="communitySidebar">
             <div class="sidebarCard sideAiPanel">
-                <div class="sidebarHeader">
+                <div class="sidebarHeader aiSummaryHeader">
                     <h3>AI 뉴스 종합 분석</h3>
-                    <p th:text="'총 ' + ${saTotal} + '건 분석'">총 0건 분석</p>
+                    <span class="aiSummaryCount" th:text="'총 ' + ${saTotal} + '건 분석'">총 0건 분석</span>
                 </div>
 
                 <div class="aiCircleRow">
@@ -124,7 +124,6 @@
             <div class="contentTop">
                 <div class="contentWrap">
                     <h2 th:text="${keyword != null ? keyword + ' 검색 결과' : (sector != null ? sector + ' 섹터 뉴스' : '전체 뉴스')}">전체 뉴스</h2>
-                    <p class="contentDesc" th:text="'총 ' + ${totalCount} + '건의 기사'">총 0건</p>
                 </div>
             </div>
 

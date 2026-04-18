@@ -64,7 +64,7 @@ body {
 .logo-icon {
     width: 28px;
     height: 28px;
-    background-color: var(--primary);
+    background-color: var(--primary-mid);
     border-radius: 7px;
     display: flex;
     align-items: center;
@@ -107,8 +107,8 @@ body {
 }
 
 .nav-item.active {
-    background-color: var(--primary);
-    color: var(--primary-foreground);
+    background-color: var(--primary-mid);
+    color: var(--white);
 }
 
 .sidebar-user {
