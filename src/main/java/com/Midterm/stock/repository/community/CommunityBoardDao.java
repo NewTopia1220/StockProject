@@ -478,36 +478,49 @@ public class CommunityBoardDao {
         return count;
     }
 
+    // 게시글과 태그를 하나의 작업으로 저장
+    // 중간에 태그 저장이 실패하면 게시글 저장도 함께 롤백
     public int insertArticle(CommunityDto dto) {
         int count = -1;
         int boardId = 0;
 
         try (Connection conn = dataSource.getConnection()) {
-            String seqSql = "select community_board_seq.nextval from dual";
-            try (PreparedStatement seqPstmt = conn.prepareStatement(seqSql);
-                 ResultSet seqRs = seqPstmt.executeQuery()) {
+            conn.setAutoCommit(false);
 
-                if (seqRs.next()) {
-                    boardId = seqRs.getInt(1);
+            try {
+                String seqSql = "select community_board_seq.nextval from dual";
+                try (PreparedStatement seqPstmt = conn.prepareStatement(seqSql);
+                     ResultSet seqRs = seqPstmt.executeQuery()) {
+
+                    if (seqRs.next()) {
+                        boardId = seqRs.getInt(1);
+                    }
                 }
-            }
 
-            String sql = "insert into community_board(board_id, user_num, category, title, content, news_link) "
-                    + "values(?, ?, ?, ?, ?, ?)";
+                String sql = "insert into community_board(board_id, user_num, category, title, content, news_link) "
+                        + "values(?, ?, ?, ?, ?, ?)";
 
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setInt(1, boardId);
-                pstmt.setInt(2, dto.getUser_num());
-                pstmt.setString(3, dto.getCategory());
-                pstmt.setString(4, dto.getTitle());
-                pstmt.setString(5, dto.getContent());
-                pstmt.setString(6, dto.getNews_link());
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setInt(1, boardId);
+                    pstmt.setInt(2, dto.getUser_num());
+                    pstmt.setString(3, dto.getCategory());
+                    pstmt.setString(4, dto.getTitle());
+                    pstmt.setString(5, dto.getContent());
+                    pstmt.setString(6, dto.getNews_link());
 
-                count = pstmt.executeUpdate();
-            }
+                    count = pstmt.executeUpdate();
+                }
 
-            if (count > 0) {
-                communityTagDao.saveTags(boardId, dto.getTagNames());
+                if (count > 0) {
+                    communityTagDao.saveTags(conn, boardId, dto.getTagNames());
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -568,6 +581,8 @@ public class CommunityBoardDao {
         }
     }
 
+    // 게시글 본문 수정과 태그 갱신을 하나의 작업으로 처리
+    // 태그 삭제 또는 재저장 중 실패하면 게시글 수정도 롤백
     public int updateArticle(CommunityDto dto, boolean refreshTags) {
         int count = -1;
 
@@ -575,20 +590,31 @@ public class CommunityBoardDao {
                 + "set category = ?, title = ?, content = ?, news_link = ?, updated_at = sysdate "
                 + "where board_id = ?";
 
-        try (Connection conn = dataSource.getConnection();
-             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
 
-            pstmt.setString(1, dto.getCategory());
-            pstmt.setString(2, dto.getTitle());
-            pstmt.setString(3, dto.getContent());
-            pstmt.setString(4, dto.getNews_link());
-            pstmt.setInt(5, dto.getBoard_id());
+            try {
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setString(1, dto.getCategory());
+                    pstmt.setString(2, dto.getTitle());
+                    pstmt.setString(3, dto.getContent());
+                    pstmt.setString(4, dto.getNews_link());
+                    pstmt.setInt(5, dto.getBoard_id());
 
-            count = pstmt.executeUpdate();
+                    count = pstmt.executeUpdate();
+                }
 
-            if (count > 0 && refreshTags) {
-                communityTagDao.deleteBoardTags(dto.getBoard_id());
-                communityTagDao.saveTags(dto.getBoard_id(), dto.getTagNames());
+                if (count > 0 && refreshTags) {
+                    communityTagDao.deleteBoardTags(conn, dto.getBoard_id());
+                    communityTagDao.saveTags(conn, dto.getBoard_id(), dto.getTagNames());
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
             e.printStackTrace();
@@ -597,16 +623,30 @@ public class CommunityBoardDao {
         return count;
     }
 
+    // 게시글 삭제 전에 연결된 태그를 먼저 지우고,
+    // 두 작업을 하나의 트랜잭션으로 묶어 중간 상태가 남지 않게
     public int deleteArticle(int board_id) {
         int count = -1;
 
-        try (Connection conn = dataSource.getConnection()) {
-            communityTagDao.deleteBoardTags(board_id);
+        String sql = "delete from community_board where board_id = ?";
 
-            String sql = "delete from community_board where board_id = ?";
-            try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
-                pstmt.setInt(1, board_id);
-                count = pstmt.executeUpdate();
+        try (Connection conn = dataSource.getConnection()) {
+            conn.setAutoCommit(false);
+
+            try {
+                communityTagDao.deleteBoardTags(conn, board_id);
+
+                try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+                    pstmt.setInt(1, board_id);
+                    count = pstmt.executeUpdate();
+                }
+
+                conn.commit();
+            } catch (SQLException e) {
+                conn.rollback();
+                throw e;
+            } finally {
+                conn.setAutoCommit(true);
             }
         } catch (SQLException e) {
             e.printStackTrace();

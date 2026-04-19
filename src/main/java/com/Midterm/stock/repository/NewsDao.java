@@ -388,33 +388,48 @@ public class NewsDao {
     // ─────────────────────────────────────────────────────────────
     public Map<String, Object> getSidebarAnalysis(String sector, String keyword) {
         Map<String, Object> r = new HashMap<>();
-        r.put("totalCount", 0); r.put("avgTypeProb", 0.0);
-        r.put("avgClickbaitProb", 0.0); r.put("positiveCount", 0);
+        r.put("totalCount", 0);
+        r.put("avgTypeProb", 0.0);
+        r.put("avgClickbaitProb", 0.0);
+        r.put("positiveCount", 0);
+        r.put("negativeCount", 0);
 
         String where1 = buildWhere(sector, keyword, "1");
         String where2 = buildWhere(sector, keyword, "2");
         String sql =
-            "SELECT COUNT(*) as tc, ROUND(AVG(type_prob),1) as atp, " +
-            "       ROUND(AVG(clickbait_prob),1) as acp, " +
-            "       SUM(CASE WHEN sentiment='호재' THEN 1 ELSE 0 END) as pos " +
-            "FROM (SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA " + where1 +
-            "      UNION ALL SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA_SEC " + where2 + ")";
+                "SELECT COUNT(*) as tc, ROUND(AVG(type_prob),1) as atp, " +
+                        "       ROUND(AVG(clickbait_prob),1) as acp, " +
+                        "       SUM(CASE WHEN sentiment='호재' THEN 1 ELSE 0 END) as pos, " +
+                        "       SUM(CASE WHEN sentiment='악재' THEN 1 ELSE 0 END) as neg " +
+                        "FROM (SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA " + where1 +
+                        "      UNION ALL SELECT type_prob,clickbait_prob,sentiment FROM NEWS_DATA_SEC " + where2 + ")";
 
-        Connection conn = connect(); if (conn == null) return r;
+        Connection conn = connect();
+        if (conn == null) return r;
+
         try (PreparedStatement ps = conn.prepareStatement(sql)) {
             int idx = 1;
             idx = setWhereParams(ps, idx, sector, keyword);
             setWhereParams(ps, idx, sector, keyword);
+
             try (ResultSet rs = ps.executeQuery()) {
                 if (rs.next()) {
-                    r.put("totalCount",      rs.getInt("tc"));
-                    r.put("avgTypeProb",     rs.getDouble("atp"));
-                    r.put("avgClickbaitProb",rs.getDouble("acp"));
-                    r.put("positiveCount",   rs.getInt("pos"));
+                    r.put("totalCount", rs.getInt("tc"));
+                    r.put("avgTypeProb", rs.getDouble("atp"));
+                    r.put("avgClickbaitProb", rs.getDouble("acp"));
+                    r.put("positiveCount", rs.getInt("pos"));
+                    r.put("negativeCount", rs.getInt("neg"));
                 }
             }
-        } catch (SQLException e) { System.err.println("getSidebarAnalysis: " + e.getMessage()); }
-        finally { try { conn.close(); } catch (Exception ignore) {} }
+        } catch (SQLException e) {
+            System.err.println("getSidebarAnalysis: " + e.getMessage());
+        } finally {
+            try {
+                conn.close();
+            } catch (Exception ignore) {
+            }
+        }
+
         return r;
     }
 

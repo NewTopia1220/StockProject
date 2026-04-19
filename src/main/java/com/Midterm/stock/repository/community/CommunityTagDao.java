@@ -4,7 +4,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import javax.sql.DataSource;
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -14,43 +17,37 @@ public class CommunityTagDao {
     @Autowired
     private DataSource dataSource;
 
-    private Connection conn = null;
-    private PreparedStatement pstmt = null;
-    private ResultSet rs = null;
-
     public CommunityTagDao() {
         System.setProperty("oracle.net.wallet_location",
                 "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
     }
 
-    public Connection connect() {
-        try {
-            conn = dataSource.getConnection();
-        } catch (SQLException e) {
-            System.err.println("DB 접속 실패: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return conn;
-    }
-
+    // 게시글에 입력된 태그 문자열을 저장합니다.
+    // 외부에서 커넥션을 직접 넘기지 않는 일반 호출용 메서드입니다.
     public void saveTags(int boardId, String tagNames) throws SQLException {
-        connect();
-
-        try {
-            Set<String> uniqueTags = parseTags(tagNames);
-
-            for (String tagName : uniqueTags) {
-                int tagId = findTagId(tagName);
-                if (tagId == 0) {
-                    tagId = insertTag(tagName);
-                }
-                insertBoardTag(boardId, tagId);
-            }
-        } finally {
-            closeAll();
+        try (Connection conn = dataSource.getConnection()) {
+            saveTags(conn, boardId, tagNames);
         }
     }
 
+    // 게시글 저장/수정 트랜잭션 안에서 같은 커넥션을 공유해 태그를 저장합니다.
+    public void saveTags(Connection conn, int boardId, String tagNames) throws SQLException {
+        Set<String> uniqueTags = parseTags(tagNames);
+
+        if (uniqueTags.isEmpty()) {
+            return;
+        }
+
+        for (String tagName : uniqueTags) {
+            int tagId = findTagId(conn, tagName);
+            if (tagId == 0) {
+                tagId = insertTag(conn, tagName);
+            }
+            insertBoardTag(conn, boardId, tagId);
+        }
+    }
+
+    // 사용자가 입력한 태그 문자열을 중복 없는 태그 집합으로 정리합니다.
     private Set<String> parseTags(String tagNames) {
         Set<String> tags = new LinkedHashSet<>();
 
@@ -71,105 +68,95 @@ public class CommunityTagDao {
         return tags;
     }
 
-    private int findTagId(String tagName) throws SQLException {
+    // 태그 이름으로 기존 태그 ID를 찾습니다.
+    private int findTagId(Connection conn, String tagName) throws SQLException {
         String sql = "select tag_id from community_tag where tag_name = ?";
-        PreparedStatement localPstmt = null;
-        ResultSet localRs = null;
 
-        try {
-            localPstmt = conn.prepareStatement(sql);
-            localPstmt.setString(1, tagName);
-            localRs = localPstmt.executeQuery();
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setString(1, tagName);
 
-            if (localRs.next()) {
-                return localRs.getInt("tag_id");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt("tag_id");
+                }
             }
-            return 0;
-        } finally {
-            if (localRs != null) localRs.close();
-            if (localPstmt != null) localPstmt.close();
         }
+
+        return 0;
     }
 
-    private int insertTag(String tagName) throws SQLException {
+    // 새 태그를 community_tag 테이블에 등록하고 생성된 tag_id를 반환합니다.
+    private int insertTag(Connection conn, String tagName) throws SQLException {
         int tagId = 0;
-        PreparedStatement localPstmt = null;
-        ResultSet localRs = null;
 
-        try {
-            String seqSql = "select community_tag_seq.nextval from dual";
-            localPstmt = conn.prepareStatement(seqSql);
-            localRs = localPstmt.executeQuery();
+        String seqSql = "select community_tag_seq.nextval from dual";
+        try (PreparedStatement pstmt = conn.prepareStatement(seqSql);
+             ResultSet rs = pstmt.executeQuery()) {
 
-            if (localRs.next()) {
-                tagId = localRs.getInt(1);
+            if (rs.next()) {
+                tagId = rs.getInt(1);
             }
-
-            localRs.close();
-            localPstmt.close();
-
-            String insertSql = "insert into community_tag(tag_id, tag_name) values(?, ?)";
-            localPstmt = conn.prepareStatement(insertSql);
-            localPstmt.setInt(1, tagId);
-            localPstmt.setString(2, tagName);
-            localPstmt.executeUpdate();
-
-            return tagId;
-        } finally {
-            if (localRs != null) localRs.close();
-            if (localPstmt != null) localPstmt.close();
         }
-    }
 
-    private void insertBoardTag(int boardId, int tagId) throws SQLException {
-        PreparedStatement localPstmt = null;
-        ResultSet localRs = null;
-
-        try {
-            String checkSql = "select count(*) from community_board_tag where board_id = ? and tag_id = ?";
-            localPstmt = conn.prepareStatement(checkSql);
-            localPstmt.setInt(1, boardId);
-            localPstmt.setInt(2, tagId);
-            localRs = localPstmt.executeQuery();
-
-            int count = 0;
-            if (localRs.next()) {
-                count = localRs.getInt(1);
-            }
-
-            localRs.close();
-            localPstmt.close();
-
-            if (count == 0) {
-                String insertSql = "insert into community_board_tag(board_id, tag_id) values(?, ?)";
-                localPstmt = conn.prepareStatement(insertSql);
-                localPstmt.setInt(1, boardId);
-                localPstmt.setInt(2, tagId);
-                localPstmt.executeUpdate();
-            }
-        } finally {
-            if (localRs != null) localRs.close();
-            if (localPstmt != null) localPstmt.close();
-        }
-    }
-
-    public void deleteBoardTags(int boardId) {
-        connect();
-
-        try {
-            String sql = "delete from community_board_tag where board_id = ?";
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, boardId);
+        String insertSql = "insert into community_tag(tag_id, tag_name) values(?, ?)";
+        try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+            pstmt.setInt(1, tagId);
+            pstmt.setString(2, tagName);
             pstmt.executeUpdate();
+        }
+
+        return tagId;
+    }
+
+    // 게시글과 태그 연결 정보가 없을 때만 community_board_tag에 추가합니다.
+    private void insertBoardTag(Connection conn, int boardId, int tagId) throws SQLException {
+        String checkSql = "select count(*) from community_board_tag where board_id = ? and tag_id = ?";
+
+        int count = 0;
+        try (PreparedStatement pstmt = conn.prepareStatement(checkSql)) {
+            pstmt.setInt(1, boardId);
+            pstmt.setInt(2, tagId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    count = rs.getInt(1);
+                }
+            }
+        }
+
+        if (count == 0) {
+            String insertSql = "insert into community_board_tag(board_id, tag_id) values(?, ?)";
+            try (PreparedStatement pstmt = conn.prepareStatement(insertSql)) {
+                pstmt.setInt(1, boardId);
+                pstmt.setInt(2, tagId);
+                pstmt.executeUpdate();
+            }
+        }
+    }
+
+    // 게시글에 연결된 태그를 모두 삭제합니다.
+    // 일반 호출용 메서드입니다.
+    public int deleteBoardTags(int boardId) {
+        try (Connection conn = dataSource.getConnection()) {
+            return deleteBoardTags(conn, boardId);
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            closeAll();
+            return 0;
         }
     }
 
+    // 게시글 삭제/수정 트랜잭션 안에서 같은 커넥션으로 태그 연결을 삭제합니다.
+    public int deleteBoardTags(Connection conn, int boardId) throws SQLException {
+        String sql = "delete from community_board_tag where board_id = ?";
+
+        try (PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setInt(1, boardId);
+            return pstmt.executeUpdate();
+        }
+    }
+
+    // 게시글 상세 조회 시 연결된 태그 이름들을 문자열로 묶어서 반환합니다.
     public String getTagNamesByBoardId(int boardId) {
-        connect();
         StringBuilder tagNames = new StringBuilder();
 
         String sql = "select ct.tag_name "
@@ -178,33 +165,23 @@ public class CommunityTagDao {
                 + "where cbt.board_id = ? "
                 + "order by ct.tag_id";
 
-        try {
-            pstmt = conn.prepareStatement(sql);
-            pstmt.setInt(1, boardId);
-            rs = pstmt.executeQuery();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
 
-            while (rs.next()) {
-                if (tagNames.length() > 0) {
-                    tagNames.append(", ");
+            pstmt.setInt(1, boardId);
+
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    if (tagNames.length() > 0) {
+                        tagNames.append(", ");
+                    }
+                    tagNames.append(rs.getString("tag_name"));
                 }
-                tagNames.append(rs.getString("tag_name"));
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            closeAll();
         }
 
         return tagNames.toString();
-    }
-
-    private void closeAll() {
-        try {
-            if (rs != null) rs.close();
-            if (pstmt != null) pstmt.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 }

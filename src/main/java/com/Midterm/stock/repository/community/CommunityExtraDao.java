@@ -1,88 +1,64 @@
 package com.Midterm.stock.repository.community;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Repository;
 
-import java.sql.*;
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
 @Repository
 public class CommunityExtraDao {
-    private String driver = "oracle.jdbc.OracleDriver";
-    private String url = "jdbc:oracle:thin:@stoxle_high?TNS_ADMIN=C:/oraclepw";
-    private String id = "ADMIN";
-    private String pw = "Heeyoun1220!";
 
-    private Connection conn = null;
-    private PreparedStatement pstmt = null;
-    private ResultSet rs = null;
+    @Autowired
+    private DataSource dataSource;
 
-    // 생성자: 드라이버 로딩 및 지갑 설정
     public CommunityExtraDao() {
-        try {
-            Class.forName(driver);
-            System.setProperty("oracle.net.wallet_location",
-                    "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
-        } catch (ClassNotFoundException e) {
-            e.printStackTrace();
-        }
+        System.setProperty("oracle.net.wallet_location",
+                "(SOURCE=(METHOD=FILE)(METHOD_DATA=(DIRECTORY=C:/oraclepw)))");
     }
 
-    // DB 연결
-    public Connection connect() {
-        try {
-            conn = DriverManager.getConnection(url, id, pw);
-        } catch (SQLException e) {
-            System.err.println("DB 접속 실패: " + e.getMessage());
-            e.printStackTrace();
-        }
-        return conn;
-    }
-
-    // 뉴스 링크로 뉴스 제목 조회
+    // 뉴스 링크를 기준으로 뉴스 제목을 조회합니다.
     public String getNewsTitleByLink(String newsLink) {
         if (newsLink == null || newsLink.isBlank()) {
             return null;
         }
 
-        connect();
-        String title = null;
-
-        // 뉴스는 news 테이블이 아니라
-        // news_data + news_data_sec 두 군데를 같이 확인합니다.
         String sql = "select title from ( "
                 + " select title from news_data where trim(link) = ? "
                 + " union all "
                 + " select title from news_data_sec where trim(link) = ? "
                 + " ) where rownum = 1";
 
-        try {
-            pstmt = conn.prepareStatement(sql);
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
             String normalizedLink = newsLink.trim();
             pstmt.setString(1, normalizedLink);
             pstmt.setString(2, normalizedLink);
-            rs = pstmt.executeQuery();
 
-            if (rs.next()) {
-                title = rs.getString("title");
+            try (ResultSet rs = pstmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getString("title");
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            closeAll();
         }
 
-        return title;
+        return null;
     }
 
-    // 관련 뉴스 검색
+    // 입력한 키워드와 관련된 뉴스 목록을 조회합니다.
     public ArrayList<Map<String, String>> searchRelatedNews(String keyword) {
-        connect();
         ArrayList<Map<String, String>> newsList = new ArrayList<>();
 
-        // news_data와 news_data_sec를 합쳐서 관련 뉴스를 검색합니다.
         String sql = "select * from ( "
                 + "  select link, title, summary, pub_date from news_data "
                 + "  where title like ? or summary like ? "
@@ -92,37 +68,34 @@ public class CommunityExtraDao {
                 + "  order by pub_date desc "
                 + ") where rownum <= 5";
 
-        try {
-            pstmt = conn.prepareStatement(sql);
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
             pstmt.setString(1, "%" + keyword + "%");
             pstmt.setString(2, "%" + keyword + "%");
             pstmt.setString(3, "%" + keyword + "%");
             pstmt.setString(4, "%" + keyword + "%");
-            rs = pstmt.executeQuery();
 
-            while (rs.next()) {
-                Map<String, String> item = new HashMap<>();
-                item.put("link", rs.getString("link"));
-                item.put("title", rs.getString("title"));
-                item.put("summary", rs.getString("summary"));
-                item.put("pubDate", rs.getString("pub_date"));
-                newsList.add(item);
+            try (ResultSet rs = pstmt.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, String> item = new HashMap<>();
+                    item.put("link", rs.getString("link"));
+                    item.put("title", rs.getString("title"));
+                    item.put("summary", rs.getString("summary"));
+                    item.put("pubDate", rs.getString("pub_date"));
+                    newsList.add(item);
+                }
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            closeAll();
         }
 
         return newsList;
     }
 
-    // 인기 테마 카테고리 조회
-    // 메인 커뮤니티 화면에서 자주 쓰지만 자주 바뀌는 데이터는 아니라서 캐시를 붙입니다.
-    // 이렇게 하면 community/list 진입 때마다 매번 같은 집계를 다시 하지 않아도 됩니다.
+    // 커뮤니티에서 많이 언급된 인기 테마 카테고리를 조회합니다.
     @Cacheable("popularThemeCategories")
     public ArrayList<Map<String, Object>> getPopularThemeCategories() {
-        connect();
         ArrayList<Map<String, Object>> popularCategories = new ArrayList<>();
 
         String sql = "select * from ( "
@@ -142,9 +115,9 @@ public class CommunityExtraDao {
                 + " order by count(*) desc, category asc "
                 + ") where rownum <= 3";
 
-        try {
-            pstmt = conn.prepareStatement(sql);
-            rs = pstmt.executeQuery();
+        try (Connection conn = dataSource.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql);
+             ResultSet rs = pstmt.executeQuery()) {
 
             while (rs.next()) {
                 Map<String, Object> item = new HashMap<>();
@@ -154,21 +127,8 @@ public class CommunityExtraDao {
             }
         } catch (SQLException e) {
             e.printStackTrace();
-        } finally {
-            closeAll();
         }
 
         return popularCategories;
-    }
-
-    // 공통 자원 해제
-    private void closeAll() {
-        try {
-            if (rs != null) rs.close();
-            if (pstmt != null) pstmt.close();
-            if (conn != null) conn.close();
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
     }
 }

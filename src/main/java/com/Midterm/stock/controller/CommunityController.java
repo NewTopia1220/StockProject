@@ -372,17 +372,18 @@ public class CommunityController {
         }
 
         CommunityCommentDto comment = communityCommentDao.getComment(commentId);
-
         if (comment == null) {
             return "redirect:/community";
         }
 
         CommunityDto board = communityBoardDao.getArticle(comment.getBoard_id());
-        boolean isCommentWriter = comment.getUser_num() == loginNum;
-        boolean isBoardOwner = board != null && board.getUser_num() == loginNum;
+        if (board == null) {
+            return "redirect:/community";
+        }
 
-        // 댓글 작성자 또는 게시글 작성자일 경우 삭제 가능
-        // 현재 로그인한 사용자가 해당 게시글 주인인 경우에만 허용하도록
+        boolean isCommentWriter = comment.getUser_num() == loginNum;
+        boolean isBoardOwner = board.getUser_num() == loginNum;
+
         if (returnUrl != null && returnUrl.contains("/community/activity") && returnUrl.contains("tab=replies")) {
             if (!isBoardOwner) {
                 return "redirect:/community";
@@ -393,7 +394,10 @@ public class CommunityController {
             }
         }
 
-        communityCommentDao.deleteComment(commentId);
+        int result = communityCommentDao.deleteComment(commentId);
+        if (result <= 0) {
+            return "redirect:/community/detail?board_id=" + comment.getBoard_id() + "&deleteError=1";
+        }
 
         if (returnUrl != null && !returnUrl.isBlank()) {
             return "redirect:" + returnUrl;
@@ -402,6 +406,8 @@ public class CommunityController {
         return "redirect:/community/detail?board_id=" + comment.getBoard_id();
     }
 
+    // 로그인 사용자의 게시글 좋아요를 토글하고,
+    // 처리 결과를 JSON 형태로 프론트에 반환합니다.
     @PostMapping("/like")
     @ResponseBody
     public Map<String, Object> likeArticle(@RequestParam("board_id") int boardId,
@@ -416,20 +422,7 @@ public class CommunityController {
             return result;
         }
 
-        boolean liked = communityLikeDao.existsLike(boardId, loginNum);
-        if (liked) {
-            communityLikeDao.deleteLike(boardId, loginNum);
-            communityLikeDao.decreaseLikeCount(boardId);
-            result.put("liked", false);
-        } else {
-            communityLikeDao.insertLike(boardId, loginNum);
-            communityLikeDao.increaseLikeCount(boardId);
-            result.put("liked", true);
-        }
-
-        result.put("success", true);
-        result.put("likeCount", communityLikeDao.getLikeCount(boardId));
-        return result;
+        return communityLikeDao.toggleLike(boardId, loginNum);
     }
 
     @PostMapping("/delete")
@@ -445,11 +438,17 @@ public class CommunityController {
         if (articleOwnerNum == null) {
             return "redirect:/community";
         }
+
         if (!articleOwnerNum.equals(loginNum)) {
             return "redirect:/community/detail?board_id=" + boardId;
         }
 
-        communityBoardDao.deleteArticle(boardId);
+        int result = communityBoardDao.deleteArticle(boardId);
+
+        if (result <= 0) {
+            return "redirect:/community/detail?board_id=" + boardId + "&deleteError=1";
+        }
+
         return "redirect:/community";
     }
 
